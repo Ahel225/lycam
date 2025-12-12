@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Gestionnaire d'Élèves & LYCAM — v5.1</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+  :root { 
+    --bg:#f1f5f9; 
+    --surface:#ffffff; 
+    --surface-2:#f8fafc; 
+    --text:#0f172a; 
+    --text-muted:#64748b; 
+    --border:#e2e8f0; 
+    --brand:#0ea5e9; 
+    --brand-dark:#0284c7; 
+    --brand-light:#e0f2fe; 
+    --accent:#10b981; 
+    --warn:#f59e0b;
+    --danger:#ef4444; 
+    --lycam-color:#6366f1; /* Couleur violette pour LYCAM */
+    --lycam-light:#e0e7ff;
+    --shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); 
+  }
+  
+  *{box-sizing:border-box} 
+  html,body{height:100%} 
+  body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4;}
+  
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+  .container{max-width:1400px;margin:0 auto;padding:16px;height:100%;display:flex;flex-direction:column;gap: 16px;}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--brand),#38bdf8);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:bold;}
+  
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:var(--shadow);display: flex;flex-direction: column;}
+  .section { flex:1; min-height:0; } 
+  
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border);margin-top:10px;}
+  .toolbar-roster {display: flex;gap: 10px;margin-bottom: 12px;align-items: center;}
+  
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .label{font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+  .input,.select,.textarea{padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:13px;color:var(--text);width:100%;transition:border 0.2s;}
+  .input:focus, .select:focus {outline:none;border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-light);}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border:0;border-radius:6px;background:var(--brand);color:#fff;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:13px;}
+  .btn:hover{filter:brightness(95%);transform:translateY(-1px);}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+  .btn.ghost:hover{background:#fff;border-color:var(--brand);color:var(--brand);}
+  .btn.lycam-btn { background: var(--lycam-color); color: white; }
+  
+  .table-wrap{overflow:auto; border-radius:8px; border:1px solid var(--border); background:var(--surface); flex-grow: 1;}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+  thead th{position:sticky;top:0;background:var(--surface-2);padding:10px 8px;font-weight:700;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;z-index:10;color:var(--text-muted);}
+  tbody td{padding:8px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tbody tr:hover{background:var(--brand-light);cursor: pointer;}
+
+  /* Colonnes */
+  #roster tbody td:nth-child(1) { width: 90px; color:var(--text-muted); font-family: 'Courier New', monospace; font-size:12px; }
+  #roster tbody td:nth-child(2) { color: var(--text); width: 250px; }
+  #roster tbody td:nth-child(3) { width: 80px; }
+  #roster tbody td:nth-child(4) { width: 50px; text-align:center; }
+  #roster tbody td:nth-child(5) { width: 100px; text-align:center; color:var(--text-muted); }
+  #roster tbody td:nth-child(6) { width: 50px; text-align:center; } /* Vue */
+
+  .name-part { font-weight: 800; color: var(--brand-dark); text-transform: uppercase; margin-right: 6px; }
+  .grid-container {display: flex;flex-direction: column;flex-grow: 1;height: 100%;overflow: hidden;}
+
+  .badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-muted);}
+  
+  .tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:8px;margin-bottom:16px;}
+  .tab{padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;color:var(--text-muted);flex:1;text-align:center;}
+  .tab.active{background:var(--surface);color:var(--brand);box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+
+  .modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9999;backdrop-filter:blur(2px);padding:10px;align-items:center;justify-content:center;}
+  .modal-content{background:var(--surface);width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;border-radius:16px;box-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1);animation:slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
+  .modal-body{overflow-y:auto;padding:24px;flex:1;}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2);border-radius:0 0 16px 16px;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* LYCAM Styles */
+  .question-block { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--border); }
+  .question-text { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+  .option-label { display: block; padding: 4px 0; cursor: pointer; color: var(--text-muted); }
+  .option-label:hover { color: var(--brand); }
+  
+  .risk-badge { background: #fee2e2; color: #dc2626; border:1px solid #fecaca; }
+  .ok-badge { background: #dcfce7; color: #16a34a; border:1px solid #bbf7d0; }
+  
+  .dim-score-box { 
+      display:inline-flex; 
+      font-size:10px; font-family:'Courier New'; font-weight:bold;
+      border:1px solid #e2e8f0; padding:1px 4px; border-radius:4px; margin-right:2px; margin-bottom:2px;
+  }
+
+  @media (max-width: 768px){
+      .container { padding: 10px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-roster { flex-wrap: wrap; }
+      #search { width: 100%; }
+  }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <header class="header">
+    <div class="brand">
+      <div class="logo">GE</div>
+      <div>
+        <div style="font-weight:800;font-size:18px">Gestionnaire d'Élèves</div>
+        <div class="subtitle">v5.1 +LYCAM Pro</div>
+      </div>
+    </div>
+    <div class="chip" id="status"><i class="fa fa-check-circle" style="color:var(--accent)"></i> Prêt</div>
+  </header>
+
+  <section class="card" style="flex:0 0 auto;">
+    <details>
+      <summary style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--brand);font-size:13px">
+        <i class="fa fa-sliders"></i> Configuration & Import
+      </summary>
+      <div class="toolbar">
+        <div class="field" style="flex:1;min-width:200px;">
+          <label class="label">Importer Excel</label>
+          <input id="excel-file" class="input" type="file" accept=".xlsx,.xls">
+        </div>
+        <div class="field" style="width:140px">
+          <label class="label">Année scolaire</label>
+          <select id="school-year" class="select">
+            <option selected>2025-2026</option>
+            <option>2024-2025</option>
+          </select>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin-top:auto">
+           <button id="btn-export-backup" class="btn ghost"><i class="fa fa-download"></i> Sauver</button>
+           <label class="btn ghost" style="cursor:pointer;margin:0">
+             <i class="fa fa-upload"></i> Restaurer
+             <input type="file" id="input-import-backup" accept=".json" style="display:none">
+           </label>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <div class="grid-container">
+
+    <div id="rosterPanel" class="card section">
+      <div class="toolbar-roster">
+        <div style="display:flex;align-items:center;gap:8px;flex:1">
+             <select id="class-filter" class="select" style="max-width:160px;font-weight:600">
+                <option value="__ALL__">Toutes les classes</option>
+            </select>
+            <div style="position:relative;flex-grow:1;">
+                <i class="fa fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px"></i>
+                <input id="search" class="input" placeholder="Rechercher..." style="padding-left:30px;width:100%">
+            </div>
+        </div>
+        
+        <div id="class-stats" class="chip"></div>
+
+        <div style="display:flex;gap:4px">
+            <button id="refresh-roster" class="btn ghost" title="Actualiser"><i class="fa fa-sync"></i></button>
+            <button id="btn-open-rankings" class="btn ghost" title="Classements"><i class="fa fa-list-ol"></i></button>
+            <button id="btn-open-lycam-main" class="btn lycam-btn" title="Gestion LYCAM"><i class="fa fa-clipboard-check"></i> LYCAM</button>
+            <button id="btn-add-student" class="btn"><i class="fa fa-plus"></i></button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="roster">
+          <thead>
+            <tr>
+              <th>Matricule</th>
+              <th>Nom & Prénoms</th>
+              <th>Classe</th>
+              <th>Sexe</th>
+              <th>Né(e) le</th>
+              <th>Vue</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="studentPanel" class="card section" style="display:none; border-top:4px solid var(--brand)">
+      
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+        <button id="backToListBtn" class="btn ghost"><i class="fa fa-arrow-left"></i> Retour</button>
+        <div>
+           <h2 id="st-name" style="margin:0;font-size:20px;color:var(--text)">Nom Prénoms</h2>
+           <div style="color:var(--text-muted);font-size:12px;margin-top:2px">
+              <span class="chip"><i class="fa fa-id-card"></i> <span id="st-mat">MAT</span></span>
+              <span class="chip"><i class="fa fa-users"></i> <span id="st-class">CLASSE</span></span>
+           </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="identity">Identité</div>
+        <div class="tab" data-tab="grades">Matières</div>
+        <div class="tab" data-tab="visits">Suivi</div>
+        <div class="tab" data-tab="coaching">Coaching</div>
+      </div>
+
+      <div id="tab-identity" style="display:block">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px">
+           <div>
+              <h4 style="color:var(--text-muted);text-transform:uppercase;margin-top:0;font-size:12px">Informations</h4>
+              <div class="field" style="margin-bottom:10px"><label class="label">Sexe</label><div id="st-sex" class="input" style="background:var(--surface-2)"></div></div>
+              <div class="field"><label class="label">Né(e) le</label><div id="st-born" class="input" style="background:var(--surface-2)"></div></div>
+           </div>
+           <div style="background:var(--brand-light);padding:16px;border-radius:10px;border:1px solid rgba(14, 165, 233, 0.2)">
+              <h4 style="margin-top:0;color:var(--brand-dark);font-size:14px">Synthèse Annuelle</h4>
+              <div id="kpi-avg" style="font-size:14px;line-height:1.6;color:var(--text)"></div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:center">
+                 <div>Rang: <strong id="kpi-rank" style="font-size:16px"></strong></div>
+                 <span id="kpi-status" class="badge"></span>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      <div id="tab-grades" style="display:none">
+        <div class="table-wrap">
+          <table id="grades-table">
+            <thead><tr><th>Matière</th><th>T1</th><th>T2</th><th>T3</th><th>AN</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-visits" style="display:none">
+        <div class="toolbar" style="margin:0 0 12px 0;border:none;background:transparent;padding:0">
+           <input id="visit-at" type="date" class="input" style="width:auto">
+           <input id="visit-reason" class="input" placeholder="Motif" style="flex:1">
+           <button id="btn-add-visit" class="btn">Ajouter</button>
+        </div>
+        <textarea id="visit-details" class="textarea" placeholder="Détails de l'échange..." style="margin-bottom:12px"></textarea>
+        <div class="table-wrap"><table id="visits-table"><thead><tr><th>Date</th><th>Détails</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="tab-coaching" style="display:none">
+        <div class="toolbar" style="margin:0 0 12px 0;border:none;background:transparent;padding:0">
+           <select id="coach-status" class="select" style="width:120px"><option>En cours</option><option>Terminé</option><option>Abandonné</option></select>
+           <input id="coach-actions" class="input" placeholder="Actions..." style="flex:1">
+           <button id="btn-save-coach" class="btn">Sauver</button>
+        </div>
+        <div class="table-wrap"><table id="coach-table"><thead><tr><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+    </div>
+
+    <div id="rankingsPanel" class="card section" style="display:none; border-top:4px solid var(--accent)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3><i class="fa fa-trophy" style="color:var(--warn)"></i> Classements</h3>
+          <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+        </div>
+        <div class="toolbar" style="margin-top:0;margin-bottom:12px">
+          <div class="field"><label class="label">Période</label><select id="rank-scope" class="select"><option value="Annuelle">Annuelle</option><option value="1TR">1er Trimestre</option><option value="2TR">2e Trimestre</option><option value="3TR">3e Trimestre</option></select></div>
+          <div class="field"><label class="label">Classe</label><select id="rank-class-filter" class="select"></select></div>
+          <div class="field"><label class="label">Matière</label>
+            <select id="subject-filter" class="select">
+              <option value="francais">Français</option>
+              <option value="maths">Maths</option>
+              <option value="anglais">Anglais</option>
+              <option value="physique">Physique</option>
+              <option value="svt">SVT</option>
+              <option value="hg">Hist-Géo</option>
+              <option value="eps">EPS</option>
+              <option value="philosophie">Philo</option>
+              <option value="lv2">LV2</option>
+              <option value="conduite">Conduite</option>
+              <option value="art_plastique">Arts</option>
+            </select>
+          </div>
+        </div>
+        <div id="rankings-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;overflow-y:auto;padding-bottom:20px"></div>
+    </div>
+
+    <div id="lycamMainPanel" class="card section" style="display:none; border-top:4px solid var(--lycam-color)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3><i class="fa fa-clipboard-check" style="color:var(--lycam-color)"></i> Gestion LYCAM</h3>
+          <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+        </div>
+        
+        <div class="tabs">
+             <div class="tab active" onclick="switchLycamView('candidates')">Faire passer le test</div>
+             <div class="tab" onclick="switchLycamView('results')">Consulter les résultats</div>
+        </div>
+
+        <div id="lycam-view-candidates" style="display:block; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+            <div class="toolbar" style="margin-top:0">
+                <div class="field">
+                    <label class="label">Filtrer par Classe</label>
+                    <select id="lycam-class-filter" class="select" style="min-width:150px">
+                        <option value="__ALL__">Toutes</option>
+                    </select>
+                </div>
+                <div class="field" style="flex:1">
+                    <label class="label">Rechercher un élève</label>
+                    <input id="lycam-search-candidate" class="input" placeholder="Nom ou Matricule...">
+                </div>
+            </div>
+            <div class="table-wrap" style="margin-top:12px;">
+                <table id="lycam-candidates-table">
+                    <thead><tr><th>Matricule</th><th>Nom & Prénoms</th><th>Classe</th><th>Statut</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="lycam-view-results" style="display:none; flex:1; overflow:hidden; display:flex; flex-direction:column;">
+             <div class="table-wrap">
+                <table id="lycam-global-table">
+                    <thead>
+                        <tr>
+                            <th>Identité</th>
+                            <th>Total Risque</th>
+                            <th>Détail des Dimensions (Score)</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="modal-add-student" class="modal">
+  <div class="modal-content">
+    <div class="modal-body">
+        <h3>Ajouter un élève</h3>
+        <form id="form-add-student" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label class="label">Matricule</label><input name="matricule" class="input" required></div>
+            <div class="field" style="flex:1"><label class="label">Classe</label><input name="classe" class="input" placeholder="ex: 6e1"></div>
+        </div>
+        <div class="field"><label class="label">Nom</label><input name="nom" class="input" required></div>
+        <div class="field"><label class="label">Prénoms</label><input name="prenoms" class="input"></div>
+        <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label class="label">Sexe</label><select name="sexe" class="select"><option value="M">Masculin</option><option value="F">Féminin</option></select></div>
+            <div class="field" style="flex:1"><label class="label">Date Naiss.</label><input name="dateNaissance" type="date" class="input"></div>
+        </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" id="btn-cancel-add" class="btn ghost">Annuler</button>
+        <button type="button" id="btn-submit-add" class="btn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-lycam-test" class="modal">
+    <div class="modal-content">
+        <div style="padding:20px;border-bottom:1px solid var(--border);background:var(--surface-2);border-radius:16px 16px 0 0">
+            <h3 style="margin:0">Test LYCAM</h3>
+            <div id="lycam-candidate-name" style="font-weight:bold;color:var(--lycam-color)"></div>
+            <div style="font-size:12px;color:var(--text-muted)">Cochez la réponse donnée par l'élève.</div>
+        </div>
+        <div class="modal-body" id="lycam-questions-container">
+            </div>
+        <div class="modal-footer">
+            <button type="button" id="btn-cancel-lycam" class="btn ghost">Annuler</button>
+            <button type="button" id="btn-submit-lycam" class="btn lycam-btn">Valider le test</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ====== LYCAM DATA & LOGIC ======
+const LYCAM_QUESTIONS = [
+  { "id": 1, "text": "D'une façon générale, est-ce que tu aimes ou non aller au lycée ?", "options": [ "A - Oui, j'aime ça", "B - J'aime ça plus ou moins", "C - Ça m'est égal", "D - Je n'aime pas ça", "E - J'en ai marre du lycée" ], "dimension": "IE" },
+  { "id": 2, "text": "Tes parents rencontrent-ils les professeurs :", "options": [ "A - À l'occasion de réunions parents-professeurs", "B - En prenant rendez-vous avec un professeur", "C - S'ils sont convoqués", "D - Rarement parce qu'ils n'ont pas le temps", "E - Rarement parce qu'ils n'aiment pas venir au lycée" ], "dimension": "AF" },
+  { "id": 3, "text": "Pourquoi fréquentes-tu le lycée ? (choisis une seule raison, la plus vraie dans ton cas)", "options": [ "A - Parce que j'aime ça", "B - Pour avoir un bon métier", "C - Comme ça, sans me poser de question", "D - Pour rencontrer des copains, des copines", "E - Parce que j'ai des projets précis", "F - Parce que j'y suis obligé(e)" ], "dimension": "IE" },
+  { "id": 4, "text": "Depuis les trois dernières années, tes résultats scolaires sont-ils satisfaisants ?", "options": [ "A - Oui, très satisfaisants", "B - Satisfaisants", "C - Peu satisfaisants", "D - Pas du tout satisfaisants" ], "dimension": "RS" },
+  { "id": 5, "text": "Pendant les cours écoutes-tu attentivement :", "options": [ "A - Cela dépend des jours", "B - Cela dépend des cours, de mon intérêt", "C - Oui, toujours", "D - Non, je me laisse facilement distraire" ], "dimension": "IE" },
+  { "id": 6, "text": "Parmi les phrases suivantes, quelle est celle qui te représente le mieux ?", "options": [ "A - Je supporte très bien les règlements et les façons de faire du lycée", "B - Je supporte assez bien les règlements et le travail imposé par le lycée", "C - Je supporte difficilement les règlements et le travail imposé par le lycée", "D - Je ne supporte pas du tout les règlements et le travail imposé" ], "dimension": "IE" },
+  { "id": 7, "text": "Avec le personnel du lycée (enseignants, surveillants, direction, infirmière, conseiller d'éducation, documentaliste...) tu penses que tes relations sont :", "options": [ "A - Très bonnes", "B - Bonnes", "C - Plus ou moins bonnes", "D - Mauvaises" ], "dimension": "BS" },
+  { "id": 8, "text": "D'après les premières évaluations ou notes, tu penses que :", "options": [ "A - Ton année scolaire va bien se dérouler", "B - Ce sera trop difficile pour toi", "C - Tu y arriveras avec beaucoup de travail", "D - Quels que soient les résultats, cela t'est égal" ], "dimension": "RS" },
+  { "id": 9, "text": "Quelle attitude as-tu devant un mauvais résultat ?", "options": [ "A - Ça m'est égal", "B - Ça me décourage un peu et j'ai du mal à m'en remettre", "C - Ça me décourage beaucoup et j'ai envie d'abandonner", "D - Je travaille plus pour me rattraper" ], "dimension": "CS" },
+  { "id": 10, "text": "Tes parents, ta famille (...), parlent-ils avec toi du lycée ?", "options": [ "A - Souvent", "B - Quand il y a un évènement particulier", "C - Uniquement si c'est nécessaire (papiers administratifs, carnet de correspondance ...)", "D - Très rarely" ], "dimension": "AF" },
+  { "id": 11, "text": "Selon toi, tes relations avec les professeurs sont :", "options": [ "A - Très bonnes", "B - Bonnes", "C - Plus ou moins bonnes", "D - Mauvaises" ], "dimension": "BS" },
+  { "id": 12, "text": "Cette année, les cours :", "options": [ "A - T'intéressent tous", "B - T'intéressent pour la plupart", "C - Ne t'intéressent généralement pas", "D - Ne t'intéressent pas du tout" ], "dimension": "IE" },
+  { "id": 13, "text": "Te sens-tu prêt(e) actuellement à quitter l'école pour aller travailler ?", "options": [ "A - Sûrement pas", "B - Pas encore", "C - Presque", "D - Tout à fait" ], "dimension": "PS" },
+  { "id": 14, "text": "As-tu des résultats corrects ?", "options": [ "A - Non, je n'y arrive pas, même en travaillant", "B - Oui, en travaillant régulièrement", "C - Non, je n'ai pas envie de faire des efforts", "D - Oui, en étant attentif(ve) en classe" ], "dimension": "RS" },
+  { "id": 15, "text": "Combien d'heures par semaines passes-tu à tes devoirs ou leçons ?", "options": [ "A - Plus de 10 heures /semaine", "B - De 6 à 10 heures / semaine", "C - De 2 à 5 heures / semaine", "D - Moins de 2 heures / semaine", "E - Aucune" ], "dimension": "RS" },
+  { "id": 16, "text": "Je m'absente, mais je m'absenterais moins souvent si on me payait pour venir au lycée. Es-tu d'accord avec cette idée ?", "options": [ "A - Absolument pas d'accord", "B - Pas tout à fait d'accord", "C - Assez d'accord", "D - Je suis rarement absent(e)", "E - Tout à fait d'accord" ], "dimension": "AB" },
+  { "id": 17, "text": "Jusqu'où penses-tu poursuivre tes études ?", "options": [ "A - Jusqu'à un diplôme (CAP-BEP-BAC...)", "B - Le plus loin possible", "C - Je pense que je n'irai pas plus loin que cette année", "D - Si j'avais eu le choix, j'aurais déjà quitté" ], "dimension": "PS" },
+  { "id": 18, "text": "Ta famille souhaite que :", "options": [ "A - Tu obtiennes un diplôme (CAP-BEP-BAC...)", "B - Tu continues tes études le plus loin possible", "C - Tu gagnes ta vie le plus vite possible", "D - Je ne sais pas" ], "dimension": "AF" },
+  { "id": 19, "text": "Est-ce que tu as déjà manqué des cours pour des raisons que le lycée ne trouve pas valables  (cette année ou l'année dernière) ?", "options": [ "A - Jamais", "B - Une ou deux fois", "C - Plusieurs fois", "D - Très souvent" ], "dimension": "AB" },
+  { "id": 20, "text": "Si on te permettait d'abandonner le lycée dès maintenant, que ferais-tu ?", "options": [ "A - Je ne quitterais pas", "B - Je ne sais pas", "C - Je quitterais le lycée" ], "dimension": "PS" },
+  { "id": 21, "text": "Pour ton travail scolaire, est-ce que ta famille (parents, sœurs, frères aînés...) ?", "options": [ "A - T'apporte une aide", "B - Contrôle ce que tu as fait", "C - Te fait confiance", "D - N'a pas le temps de s'en occuper", "E - Ne s'y intéresse pas" ], "dimension": "AF" },
+  { "id": 22, "text": "As-tu l'intention de terminer les études que tu as commencées ?", "options": [ "A - Certainement", "B - Peut-être", "C - Pas du tout", "D - Je ne sais pas" ], "dimension": "PS" },
+  { "id": 23, "text": "Dès que possible j'accepte n'importe quoi comme travail plutôt que de continuer à aller au lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "PS" },
+  { "id": 24, "text": "Cette année, je pense que ça va aller pour moi à l'école.", "options": [ "A - Oui", "B - Non" ], "dimension": "CS" },
+  { "id": 25, "text": "En général, je suis à peu près sûr(e) de réussir ce que je fais.", "options": [ "A - Oui", "B - Non" ], "dimension": "CS" },
+  { "id": 26, "text": "J'ai obtenu l'orientation que je souhaitais.", "options": [ "A - Oui", "B - Non" ], "dimension": "PS" },
+  { "id": 27, "text": "En général, j'aime le lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "IE" },
+  { "id": 28, "text": "J'ai confiance en mes possibilités de réussite à l'école.", "options": [ "A - Oui", "B - Non" ], "dimension": "CS" },
+  { "id": 29, "text": "Mes parents connaissent le nom de mon (ma) prof. principal(e).", "options": [ "A - Oui", "B - Non" ], "dimension": "AF" },
+  { "id": 30, "text": "Quand j'ai des problèmes, la plupart de mes professeurs font des efforts pour me comprendre.", "options": [ "A - Oui", "B - Non" ], "dimension": "BS" },
+  { "id": 31, "text": "Souvent, j'ai envie de \"sécher\" les cours.", "options": [ "A - Oui", "B - Non" ], "dimension": "AB" },
+  { "id": 32, "text": "Si j'échoue cette année, je vais peut-être abandonner le lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "PS" },
+  { "id": 33, "text": "La plupart de mes professeurs me donnent envie d'apprendre.", "options": [ "A - Oui", "B - Non" ], "dimension": "BS" },
+  { "id": 34, "text": "En général, j'aime bien la façon dont mes professeurs font cours.", "options": [ "A - Oui", "B - Non" ], "dimension": "BS" },
+  { "id": 35, "text": "J'aime m'absenter du lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "AB" },
+  { "id": 36, "text": "Je préfèrerais avoir d'autres cours que ceux de cette année.", "options": [ "A - Oui", "B - Non" ], "dimension": "PS" },
+  { "id": 37, "text": "Je risque d'échouer cette année au lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "RS" },
+  { "id": 38, "text": "En général, mes professeurs essaient de me comprendre.", "options": [ "A - Oui", "B - Non" ], "dimension": "BS" },
+  { "id": 39, "text": "Quand je suis absent(e) du lycée, j'ai une raison valable.", "options": [ "A - Oui", "B - Non" ], "dimension": "AB" },
+  { "id": 40, "text": "Je réussis mieux dans ce que je fais en dehors du lycée que dans les matières scolaires.", "options": [ "A - Oui", "B - Non" ], "dimension": "CS" },
+  { "id": 41, "text": "Je trouve désagréable d'aller en classe, que ce soit ici ou dans un autre lycée.", "options": [ "A - Oui", "B - Non" ], "dimension": "AB" }
+];
+
+const LYCAM_DIMENSIONS = {
+  AF: { label: "Attitude de la famille", threshold: 2 },
+  PS: { label: "Projet scolaire", threshold: 4 },
+  RS: { label: "Rendement scolaire", threshold: 2 },
+  CS: { label: "Confiance en soi", threshold: 3 },
+  AB: { label: "Absentéisme", threshold: 2 },
+  BS: { label: "Besoin de soutien", threshold: 3 },
+  IE: { label: "Intérêt pour l'école", threshold: 2 }
+};
+const LYCAM_TOTAL_THRESHOLD = 18;
+
+function getRiskScore(questionId, value) {
+  const letter = value ? value.charAt(0) : '';
+  switch(questionId) {
+    case 1: return (letter === 'D' || letter === 'E') ? 1 : 0;
+    case 2: return (letter === 'C' || letter === 'D' || letter === 'E') ? 1 : 0;
+    case 3: return (letter === 'C' || letter === 'F') ? 1 : 0;
+    case 4: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 5: return (letter === 'D' || letter === 'A') ? 1 : 0;
+    case 6: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 7: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 8: return (letter === 'D' || letter === 'B') ? 1 : 0;
+    case 9: return (letter === 'A' || letter === 'C') ? 1 : 0;
+    case 10: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 11: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 12: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 13: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 14: return (letter === 'A' || letter === 'C') ? 1 : 0;
+    case 15: return (letter === 'D' || letter === 'E') ? 1 : 0;
+    case 16: return (letter === 'C' || letter === 'E') ? 1 : 0;
+    case 17: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 18: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 19: return (letter === 'D' || letter === 'C') ? 1 : 0;
+    case 20: return (letter === 'B' || letter === 'C') ? 1 : 0;
+    case 21: return (letter === 'D' || letter === 'E') ? 1 : 0;
+    case 22: return (letter === 'B') ? 1 : 0;
+    case 23: return (letter === 'A') ? 1 : 0;
+    case 24: return (letter === 'B') ? 1 : 0;
+    case 25: return (letter === 'B') ? 1 : 0;
+    case 26: return (letter === 'B') ? 1 : 0;
+    case 27: return (letter === 'B') ? 1 : 0;
+    case 28: return (letter === 'B') ? 1 : 0;
+    case 29: return (letter === 'B') ? 1 : 0;
+    case 30: return (letter === 'B') ? 1 : 0;
+    case 31: return (letter === 'A') ? 1 : 0;
+    case 32: return (letter === 'A') ? 1 : 0;
+    case 33: return (letter === 'B') ? 1 : 0;
+    case 34: return (letter === 'B') ? 1 : 0;
+    case 35: return (letter === 'A') ? 1 : 0;
+    case 36: return (letter === 'A') ? 1 : 0;
+    case 37: return (letter === 'A') ? 1 : 0;
+    case 38: return (letter === 'B') ? 1 : 0;
+    case 39: return (letter === 'B') ? 1 : 0;
+    case 40: return (letter === 'A') ? 1 : 0;
+    case 41: return (letter === 'A') ? 1 : 0;
+    default: return 0;
+  }
+}
+
+/* CONFIG */
+const CONFIG = { dbName: 'kfwDB', dbVersion: 3 };
+
+const DICTIONARY = {
+  nom_complet: ['nom et prenoms','nom & prenoms','nom_prenom','nom complet','noms et prenoms','noms & prenoms','nom et prenom','nom & prenom','nom prenom','nom_et_prenoms','nom/prenom','full name','fullname'],
+  matricule: ['matricule','mat','mat.','id','code','num'],
+  nom: ['nom','noms','surname','familyname','name'],
+  prenoms: ['prenom','prenoms','firstname','pren'],
+  sexe: ['sexe','genre','sex'],
+  dateNaissance: ['date de naissance','date_naissance','datenaissance','ddn','né le','ne le','ne(e) le','né(e) le','naissance','dob','date n','date.n'],
+  classe: ['classe','class','groupe','niv'],
+  maths: ['math','maths','mathematique','ml'],
+  francais: ['fr','fra','francais','français','frs'],
+  anglais: ['ang','angl','anglais','english'],
+  physique: ['pc','sp','phys','physique'],
+  svt: ['svt','bio','biologie','sciences'],
+  hg: ['hg','hist','geo','histoire'],
+  eps: ['eps','sport','education physique'],
+  philosophie: ['philo','philosophie'],
+  lv2: ['lv2','espagnol','allemand','esp','all'],
+  art_plastique: ['ap','art','arts','dessin'],
+  conduite: ['conduite','cond','comportement'],
+  moyenne: ['moy','moyenne','mg','gen','generale'],
+  rang: ['rg','rang','rank']
+};
+
+function normalizeStr(str) {
+  if (!str) return '';
+  return String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); 
+}
+function findColumnValue(row, targetKey, exclusions = []) {
+  const possibleKeys = DICTIONARY[targetKey] || [targetKey];
+  for (let rk of Object.keys(row)) {
+    const cleanHeader = normalizeStr(rk);
+    if (exclusions.some(exc => cleanHeader.includes(normalizeStr(exc)))) continue;
+    for (let alias of possibleKeys) {
+      if (cleanHeader.includes(normalizeStr(alias))) return row[rk];
+    }
+  }
+  return undefined;
+}
+
+let allStudents = [];
+let allTestResults = []; 
+let allVisits = [];      
+let coachingData = [];   
+let currentStudent = null;
+let currentLycamCandidate = null; // Élève en cours de test
+
+function getSelectedYear(){ return document.getElementById('school-year').value; }
+function h(x){ return (x==null)?'':String(x); }
+function fmtDate(d){ if(!d)return'—'; const t=(typeof d==='number')?new Date((d-(25567+2))*86400*1000):new Date(d); return isNaN(t)?String(d):t.toLocaleDateString('fr-FR'); }
+function uuid(){ return 'id-'+Math.random().toString(36).slice(2); }
+function normalizeClasseKey(s){ return normalizeStr(s).replace('eme','e'); }
+
+/* DB STORAGE */
+const idb = {
+  db: null,
+  async open() {
+    if (this.db) return this.db;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(CONFIG.dbName, CONFIG.dbVersion);
+      req.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains('studentsByYear')) db.createObjectStore('studentsByYear'); };
+      req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
+      req.onerror = (e) => reject(e);
+    });
+  },
+  async put(storeName, key, value) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = reject;
+    });
+  },
+  async get(storeName, key) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const req = tx.objectStore(storeName).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = reject;
+    });
+  },
+  async listKeys(storeName) {
+    const db = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const req = tx.objectStore(storeName).getAllKeys();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = reject;
+    });
+  }
+};
+const studentsStore = {
+  save: async (year, data) => idb.put('studentsByYear', year, data),
+  load: async (year) => (await idb.get('studentsByYear', year)) || [],
+  listYears: async () => idb.listKeys('studentsByYear')
+};
+const storage = {
+  load(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch{ return fallback; } },
+  save(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+};
+
+/* LOGIQUE */
+async function loadGlobalData() {
+  allTestResults = storage.load('LYCAMTestResults', []);
+  allVisits = storage.load('studentVisits', []);
+  coachingData = storage.load('LYCAMCoachingData', []);
+}
+
+async function loadStudentsForYear(){
+  const year = getSelectedYear();
+  document.getElementById('status').textContent = 'Chargement...';
+  allStudents = await studentsStore.load(year);
+  allStudents.forEach(s => { if(!s.id) s.id = s.matricule || uuid(); });
+  populateClassFilter();
+  renderRoster();
+  document.getElementById('status').innerHTML = `<i class="fa fa-check-circle" style="color:var(--accent)"></i> ${allStudents.length}`;
+}
+
+function populateClassFilter(){
+  const sel = document.getElementById('class-filter');
+  const selLycam = document.getElementById('lycam-class-filter'); // Pour le panneau LYCAM
+  
+  const oldVal = sel.value;
+  const classes = [...new Set(allStudents.map(s => s.classe).filter(Boolean))].sort();
+  
+  sel.innerHTML = '<option value="__ALL__">Toutes les classes</option>';
+  selLycam.innerHTML = '<option value="__ALL__">Toutes les classes</option>';
+  
+  classes.forEach(c => {
+      sel.add(new Option(c, normalizeClasseKey(c)));
+      selLycam.add(new Option(c, normalizeClasseKey(c)));
+  });
+  
+  if(oldVal && oldVal !== '__ALL__') for(let opt of sel.options){ if(opt.value === oldVal) sel.value = oldVal; }
+}
+
+function renderRoster(list) {
+  const sel = document.getElementById('class-filter');
+  const filterKey = sel.value;
+  let rows = list || allStudents;
+  if(!list && filterKey !== '__ALL__') rows = allStudents.filter(s => normalizeClasseKey(s.classe) === filterKey);
+
+  const tbody = document.querySelector('#roster tbody');
+  tbody.innerHTML = '';
+  
+  rows.forEach(s => { 
+    // Check LYCAM status
+    const hasLycam = allTestResults.some(t => t.matricule === s.matricule);
+    const lycamIcon = hasLycam ? `<i class="fa fa-check-circle" style="color:var(--accent);margin-left:6px" title="Test LYCAM passé"></i>` : '';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${h(s.matricule)}</td>
+      <td><span class="name-part">${h(s.nom)}</span> ${h(s.prenoms||s.prenom)} ${lycamIcon}</td>
+      <td><span class="badge" style="background:var(--brand-light);color:var(--brand-dark)">${h(s.classe)}</span></td>
+      <td style="text-align:center">${h(s.sexe)}</td>
+      <td style="text-align:center;font-size:12px">${fmtDate(s.dateNaissance)}</td>
+      <td style="text-align:center"><button class="btn ghost btn-view" style="padding:2px 6px;font-size:11px"><i class="fa fa-eye"></i></button></td>
+    `;
+    tr.onclick = (e) => { openStudent(s); };
+    tbody.appendChild(tr);
+  });
+  
+  const male = rows.filter(s => (s.sexe||'').startsWith('M')).length;
+  const female = rows.length - male;
+  document.getElementById('class-stats').innerHTML = `<i class="fa fa-users"></i> ${rows.length} <span style="opacity:0.5">|</span> <i class="fa fa-female"></i> ${female} <i class="fa fa-male"></i> ${male}`;
+}
+
+function openStudent(s){
+  currentStudent = s;
+  document.getElementById('rosterPanel').style.display = 'none';
+  document.getElementById('studentPanel').style.display = 'block';
+  document.getElementById('rankingsPanel').style.display = 'none';
+  document.getElementById('lycamMainPanel').style.display = 'none';
+  
+  document.getElementById('st-name').textContent = `${s.nom} ${s.prenoms||s.prenom}`;
+  document.getElementById('st-mat').textContent = s.matricule;
+  document.getElementById('st-class').textContent = s.classe;
+  document.getElementById('st-sex').textContent = s.sexe;
+  document.getElementById('st-born').textContent = fmtDate(s.dateNaissance);
+  renderGrades(s);
+  renderVisits(s);
+  renderCoachings(s);
+  renderKPIs(s);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function leaveDetailMode(){
+  document.getElementById('studentPanel').style.display = 'none';
+  document.getElementById('rankingsPanel').style.display = 'none';
+  document.getElementById('lycamMainPanel').style.display = 'none';
+  document.getElementById('rosterPanel').style.display = 'flex';
+  document.getElementById('rosterPanel').style.flexDirection = 'column';
+  currentStudent = null;
+  renderRoster(); // Refresh to update icons
+}
+
+/* --- EXCEL IMPORT --- */
+async function handleExcel(file){
+  try {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {type:'array'});
+    const sheetName = wb.SheetNames.find(n => n.match(/effectif|liste|eleve|base/i)) || wb.SheetNames[0];
+    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:''});
+    
+    if(raw.length === 0) throw new Error("Fichier vide");
+
+    const students = raw.map(r => {
+      let valNomComplet = findColumnValue(r, 'nom_complet');
+      let valNom = findColumnValue(r, 'nom', ['prenom']); 
+      let valPrenom = findColumnValue(r, 'prenoms', ['nom']); 
+      let nomFinal = '';
+      let prenomFinal = '';
+
+      if (valNomComplet) {
+         const parts = String(valNomComplet).trim().split(/\s+/);
+         nomFinal = parts.shift(); 
+         prenomFinal = parts.join(' '); 
+      } else if (valNom) {
+         if (!valPrenom || String(valPrenom).trim() === '') {
+             const parts = String(valNom).trim().split(/\s+/);
+             nomFinal = parts.shift();
+             prenomFinal = parts.join(' ');
+         } else {
+             nomFinal = valNom;
+             prenomFinal = valPrenom;
+         }
+      }
+
+      let matricule = findColumnValue(r, 'matricule');
+      if (!matricule && !nomFinal) return null;
+
+      return {
+        id: uuid(),
+        matricule: String(matricule || 'Inconnu').trim(),
+        nom: String(nomFinal || '').trim(),
+        prenoms: String(prenomFinal || '').trim(),
+        sexe: findColumnValue(r, 'sexe') || '',
+        dateNaissance: findColumnValue(r, 'dateNaissance') || '',
+        classe: findColumnValue(r, 'classe') || '',
+        moyennes: { 'Annuelle': {}, '1TR': {}, '2TR': {}, '3TR': {} },
+        rangs: { 'Annuelle': '', '1TR': '', '2TR': '', '3TR': '' }
+      };
+    }).filter(s => s !== null && s.nom !== '');
+
+    const parseGrades = (pattern, key) => {
+       const shName = wb.SheetNames.find(n => n.match(pattern));
+       if(!shName) return;
+       const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
+       rows.forEach(row => {
+          const mat = String(findColumnValue(row, 'matricule') || '').trim();
+          const st = students.find(s => s.matricule === mat);
+          if(st) {
+             Object.keys(row).forEach(colRaw => {
+                const colClean = normalizeStr(colRaw);
+                Object.keys(DICTIONARY).forEach(dictKey => {
+                   if(['matricule','nom','prenoms','nom_complet'].includes(dictKey)) return;
+                   const aliases = DICTIONARY[dictKey];
+                   if(aliases.some(alias => colClean.includes(normalizeStr(alias)))) {
+                      let val = parseFloat(row[colRaw]);
+                      if(!isNaN(val)) st.moyennes[key][dictKey] = val;
+                   }
+                });
+             });
+             const mg = findColumnValue(row, 'moyenne'); if(mg) st.moyennes[key]['Moy_generale'] = parseFloat(mg);
+             const rg = findColumnValue(row, 'rang'); if(rg) st.rangs[key] = rg;
+          }
+       });
+    };
+    
+    parseGrades(/1.*(TR|Trim)/i, '1TR');
+    parseGrades(/2.*(TR|Trim)/i, '2TR');
+    parseGrades(/3.*(TR|Trim)/i, '3TR');
+    parseGrades(/Ann|Synthese|Global/i, 'Annuelle');
+
+    await studentsStore.save(getSelectedYear(), students);
+    await loadStudentsForYear();
+    alert(`${students.length} élèves importés.`);
+  } catch(e) {
+    alert("Erreur: " + e.message);
+  }
+}
+
+/* --- CLASSEMENTS & NOTES --- */
+function getSubjectDisplayName(k){
+  const names = {'maths':'Maths', 'francais':'Français', 'anglais':'Anglais', 'physique':'Physique', 'svt':'SVT', 'hg':'Hist-Géo', 'eps':'EPS', 'philosophie':'Philo', 'lv2':'LV2', 'conduite':'Conduite', 'art_plastique':'Arts'};
+  return names[k] || k.charAt(0).toUpperCase() + k.slice(1);
+}
+function getSubjectsOrder(cls){
+  const c = (cls||'').toLowerCase();
+  if(c.match(/^(6|5|4|3)/)) return ['francais','maths','anglais','physique','svt','hg','eps','art_plastique','conduite'];
+  return ['francais','maths','anglais','hg','svt','physique','eps'];
+}
+function getStudentNote(s, period, subjectKey) {
+  const m = s.moyennes[period];
+  if (!m) return -1;
+  if (m[subjectKey] !== undefined) return m[subjectKey];
+  return -1;
+}
+
+function renderRankingsToContainer(containerId) {
+  const container = document.getElementById(containerId);
+  const scope = document.getElementById('rank-scope').value;
+  const classKey = document.getElementById('rank-class-filter').value;
+  const subjFilter = document.getElementById('subject-filter').value;
+  
+  const students = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(classKey));
+  if(students.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center">Aucun élève.</div>'; return; }
+  
+  let subjects = [subjFilter]; 
+  let html = '';
+  
+  subjects.forEach(sub => {
+     let ranking = students.map(s => { return { s: s, val: getStudentNote(s, scope, sub) }; }).filter(x => x.val != null && !isNaN(x.val) && x.val >= 0);
+     if(ranking.length === 0) return;
+     ranking.sort((a,b) => b.val - a.val);
+     
+     html += `<div class="card" style="padding:0;overflow:hidden">
+              <div style="background:var(--brand-light);padding:8px;font-weight:700;text-align:center;color:var(--brand-dark);font-size:13px">${getSubjectDisplayName(sub)}</div>
+              <div class="table-wrap" style="max-height:300px;border:none">
+              <table><tbody>`;
+     ranking.forEach((item, i) => {
+        let style = (i<3)?'font-weight:bold;background:#fffbeb':'';
+        html += `<tr style="${style}">
+           <td style="width:30px">#${i+1}</td>
+           <td><span class="name-part" style="font-size:12px">${h(item.s.nom)}</span> ${h(item.s.prenoms)}</td>
+           <td style="text-align:right;font-weight:bold">${item.val.toFixed(2)}</td>
+        </tr>`;
+     });
+     html += `</tbody></table></div></div>`;
+  });
+  container.innerHTML = html || '<div style="text-align:center">Pas de données.</div>';
+}
+
+function renderGrades(s){
+  const tbody = document.querySelector('#grades-table tbody');
+  tbody.innerHTML = '';
+  getSubjectsOrder(s.classe).forEach(sub => {
+    const g = (p) => { let v = getStudentNote(s, p, sub); return (v>=0) ? v.toFixed(2) : '—'; };
+    tbody.innerHTML += `<tr><td>${getSubjectDisplayName(sub)}</td><td>${g('1TR')}</td><td>${g('2TR')}</td><td>${g('3TR')}</td><td>${g('Annuelle')}</td></tr>`;
+  });
+  const getM = (p) => { const v = s.moyennes[p]?.Moy_generale; return v?v.toFixed(2):'—'; };
+  tbody.innerHTML += `<tr style="font-weight:bold;background:var(--surface-2)"><td>MOYENNE GEN.</td><td>${getM('1TR')}</td><td>${getM('2TR')}</td><td>${getM('3TR')}</td><td>${getM('Annuelle')}</td></tr>`;
+}
+
+function renderKPIs(s){
+  const anns = s.moyennes['Annuelle']?.Moy_generale;
+  document.getElementById('kpi-avg').innerHTML = `T1: <b>${s.moyennes['1TR']?.Moy_generale?.toFixed(2)||'—'}</b> • T2: <b>${s.moyennes['2TR']?.Moy_generale?.toFixed(2)||'—'}</b> • T3: <b>${s.moyennes['3TR']?.Moy_generale?.toFixed(2)||'—'}</b><br><br><span style="font-size:1.3em;color:var(--brand)">Annuelle: ${anns?.toFixed(2)||'—'}</span>`;
+  document.getElementById('kpi-status').textContent = (anns >= 10) ? 'Admis' : 'Refusé';
+  document.getElementById('kpi-status').className = (anns >= 10) ? 'badge' : 'badge';
+  document.getElementById('kpi-status').style.background = (anns >= 10) ? '#dcfce7' : '#fee2e2';
+  document.getElementById('kpi-status').style.color = (anns >= 10) ? '#16a34a' : '#dc2626';
+}
+
+/* ====== LYCAM LOGIC ====== */
+function deleteLycam(id){ 
+    if(confirm('Supprimer ce résultat ?')){ 
+        allTestResults = allTestResults.filter(t => t.id !== id); 
+        storage.save('LYCAMTestResults', allTestResults); 
+        renderLycamGlobal();
+    } 
+}
+
+function startLycamTest(student) {
+    if(!student) return;
+    currentLycamCandidate = student;
+    const container = document.getElementById('lycam-questions-container');
+    container.innerHTML = '';
+    document.getElementById('lycam-candidate-name').textContent = `${student.nom} ${student.prenoms}`;
+    
+    LYCAM_QUESTIONS.forEach(q => {
+        const block = document.createElement('div');
+        block.className = 'question-block';
+        let html = `<div class="question-text">${q.id}. ${q.text}</div>`;
+        q.options.forEach(opt => {
+            html += `<label class="option-label"><input type="radio" name="q_${q.id}" value="${opt}" data-qid="${q.id}"> ${opt}</label>`;
+        });
+        block.innerHTML = html;
+        container.appendChild(block);
+    });
+    document.getElementById('modal-lycam-test').style.display = 'flex';
+}
+
+function submitLycamTest() {
+    if(!currentLycamCandidate) return;
+    
+    const answers = {};
+    let totalScore = 0;
+    const dimensionScores = {};
+    Object.keys(LYCAM_DIMENSIONS).forEach(k => dimensionScores[k] = 0);
+    
+    for(let i=1; i<=LYCAM_QUESTIONS.length; i++) {
+        const selected = document.querySelector(`input[name="q_${i}"]:checked`);
+        const val = selected ? selected.value : '';
+        const risk = getRiskScore(i, val);
+        const dim = LYCAM_QUESTIONS.find(q => q.id === i).dimension;
+        
+        totalScore += risk;
+        if(dim) dimensionScores[dim] += risk;
+        answers[i] = val;
+    }
+
+    const riskDimensions = [];
+    Object.keys(dimensionScores).forEach(key => {
+        if(dimensionScores[key] >= LYCAM_DIMENSIONS[key].threshold) riskDimensions.push(LYCAM_DIMENSIONS[key].label);
+    });
+
+    const result = {
+        id: uuid(),
+        matricule: currentLycamCandidate.matricule,
+        at: new Date().toISOString(),
+        answers: answers,
+        totalScore: totalScore,
+        dimensionScores: dimensionScores,
+        riskDimensions: riskDimensions,
+        reason: "Test complet"
+    };
+
+    allTestResults.push(result);
+    storage.save('LYCAMTestResults', allTestResults);
+    
+    document.getElementById('modal-lycam-test').style.display = 'none';
+    
+    // Mettre à jour l'affichage
+    renderLycamGlobal();
+    renderLycamCandidates();
+}
+
+// Fonction utilitaire pour switcher les vues LYCAM
+function switchLycamView(view) {
+    document.getElementById('lycam-view-candidates').style.display = (view === 'candidates') ? 'flex' : 'none';
+    document.getElementById('lycam-view-results').style.display = (view === 'results') ? 'flex' : 'none';
+    
+    // Mettre à jour les tabs
+    const tabs = document.querySelectorAll('#lycamMainPanel .tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    if(view === 'candidates') tabs[0].classList.add('active');
+    else tabs[1].classList.add('active');
+
+    if(view === 'results') renderLycamGlobal();
+    if(view === 'candidates') renderLycamCandidates();
+}
+
+function renderLycamCandidates() {
+    const filterClass = document.getElementById('lycam-class-filter').value;
+    const searchQuery = document.getElementById('lycam-search-candidate').value.toLowerCase();
+    
+    let candidates = allStudents;
+    if (filterClass !== '__ALL__') candidates = candidates.filter(s => normalizeClasseKey(s.classe) === filterClass);
+    if (searchQuery) candidates = candidates.filter(s => s.nom.toLowerCase().includes(searchQuery) || s.prenoms.toLowerCase().includes(searchQuery) || s.matricule.toLowerCase().includes(searchQuery));
+
+    const tbody = document.querySelector('#lycam-candidates-table tbody');
+    tbody.innerHTML = '';
+
+    candidates.slice(0, 100).forEach(s => { // Limit display for perf
+        // Check if test already done
+        const existing = allTestResults.filter(t => t.matricule === s.matricule);
+        const lastTest = existing.length > 0 ? existing.sort((a,b)=>b.at.localeCompare(a.at))[0] : null;
+        
+        let statusHtml = '<span class="badge" style="background:#f1f5f9;color:#94a3b8">Non testé</span>';
+        if(lastTest) statusHtml = `<span class="badge" style="background:#e0e7ff;color:#4f46e5">Testé le ${fmtDate(lastTest.at)}</span>`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-family:'Courier New'">${s.matricule}</td>
+            <td><b>${s.nom}</b> ${s.prenoms}</td>
+            <td>${s.classe}</td>
+            <td>${statusHtml}</td>
+            <td><button class="btn lycam-btn btn-launch-test" style="padding:4px 8px;font-size:11px">Lancer Test</button></td>
+        `;
+        tr.querySelector('.btn-launch-test').onclick = (e) => { e.stopPropagation(); startLycamTest(s); };
+        tbody.appendChild(tr);
+    });
+}
+
+function renderLycamGlobal() {
+    const tableBody = document.querySelector('#lycam-global-table tbody');
+    tableBody.innerHTML = '';
+
+    const studentTests = {};
+    allTestResults.forEach(t => {
+        if(!studentTests[t.matricule] || t.at > studentTests[t.matricule].at) {
+            studentTests[t.matricule] = t;
+        }
+    });
+
+    Object.values(studentTests).sort((a,b) => b.totalScore - a.totalScore).forEach(t => {
+        const student = allStudents.find(s => s.matricule === t.matricule);
+        if(!student) return;
+
+        const score = t.totalScore !== undefined ? t.totalScore : (t.total || 0);
+        let statusBadge = score >= LYCAM_TOTAL_THRESHOLD ? '<span class="badge risk-badge">Risque Élevé</span>' : '<span class="badge ok-badge">Faible Risque</span>';
+
+        // Génération du détail des scores par dimension
+        let dimHtml = '';
+        if(t.dimensionScores) {
+            // Ordre précis
+            const dimKeys = ['AF','PS','RS','CS','AB','BS','IE'];
+            dimHtml = dimKeys.map(k => {
+                const val = t.dimensionScores[k] || 0;
+                const isRisk = val >= LYCAM_DIMENSIONS[k].threshold;
+                const colorStyle = isRisk ? 'background:#fee2e2;color:#dc2626;border-color:#fca5a5' : 'background:#dcfce7;color:#16a34a;border-color:#86efac';
+                return `<div class="dim-score-box" style="${colorStyle}">${k}:${val}</div>`;
+            }).join('');
+        } else {
+            dimHtml = '<span style="color:#94a3b8;font-size:11px">Ancien format</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <div style="font-weight:bold">${student.nom} ${student.prenoms}</div>
+                <div style="font-size:11px;color:#64748b">${student.classe}</div>
+            </td>
+            <td style="font-weight:bold;text-align:center;font-size:15px">${score}</td>
+            <td>${dimHtml}</td>
+            <td>${fmtDate(t.at)}</td>
+            <td><button class="btn ghost btn-del-lycam"><i class="fa fa-trash"></i></button></td>
+        `;
+        tr.querySelector('.btn-del-lycam').onclick = () => deleteLycam(t.id);
+        tableBody.appendChild(tr);
+    });
+}
+
+function renderVisits(s){
+  const tb = document.querySelector('#visits-table tbody'); tb.innerHTML = '';
+  allVisits.filter(v => v.matricule === s.matricule).forEach(v => { tb.innerHTML += `<tr><td>${fmtDate(v.at)}</td><td>${v.details}</td></tr>`; });
+}
+function renderCoachings(s){
+  const tb = document.querySelector('#coach-table tbody'); tb.innerHTML = '';
+  coachingData.filter(c => c.matricule === s.matricule).forEach(c => { tb.innerHTML += `<tr><td>${fmtDate(c.at)}</td><td>${c.status}</td><td>${c.actions}</td></tr>`; });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  document.querySelectorAll('#studentPanel .tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('#studentPanel .tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('#studentPanel > div[id^="tab-"]').forEach(d=>d.style.display='none');
+      document.getElementById('tab-'+t.dataset.tab).style.display = 'block';
+    });
+  });
+
+  await loadGlobalData();
+  await loadStudentsForYear();
+
+  document.getElementById('school-year').addEventListener('change', async () => {
+    await loadStudentsForYear();
+  });
+
+  document.getElementById('excel-file').addEventListener('change', e => { if(e.target.files[0]) handleExcel(e.target.files[0]); });
+  
+  // Navigation
+  document.getElementById('backToListBtn').addEventListener('click', leaveDetailMode);
+  document.querySelectorAll('.close-panel').forEach(b => b.addEventListener('click', leaveDetailMode));
+  
+  // Open Rankings
+  document.getElementById('btn-open-rankings').addEventListener('click', () => {
+    document.getElementById('rosterPanel').style.display = 'none';
+    document.getElementById('rankingsPanel').style.display = 'flex';
+    document.getElementById('rankingsPanel').style.flexDirection = 'column';
+    const mainSel = document.getElementById('class-filter');
+    const rankSel = document.getElementById('rank-class-filter');
+    rankSel.innerHTML = '';
+    Array.from(mainSel.options).forEach(opt => { if(opt.value !== '__ALL__') rankSel.add(new Option(opt.text, opt.value)); });
+    if(mainSel.value !== '__ALL__') rankSel.value = mainSel.value;
+    renderRankingsToContainer('rankings-container');
+  });
+
+  // Open LYCAM Main Panel
+  document.getElementById('btn-open-lycam-main').addEventListener('click', () => {
+    document.getElementById('rosterPanel').style.display = 'none';
+    document.getElementById('lycamMainPanel').style.display = 'flex';
+    document.getElementById('lycamMainPanel').style.flexDirection = 'column';
+    populateClassFilter(); // Ensure filters are synced
+    switchLycamView('candidates'); // Default view
+  });
+
+  document.getElementById('class-filter').addEventListener('change', () => renderRoster());
+  document.getElementById('refresh-roster').addEventListener('click', () => renderRoster());
+  document.getElementById('search').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    const res = allStudents.filter(s => s.nom.toLowerCase().includes(q) || s.prenoms.toLowerCase().includes(q) || s.matricule.toLowerCase().includes(q));
+    renderRoster(res);
+  });
+  
+  // Rankings Listeners
+  document.getElementById('rank-class-filter').addEventListener('change', () => renderRankingsToContainer('rankings-container'));
+  document.getElementById('subject-filter').addEventListener('change', () => renderRankingsToContainer('rankings-container'));
+  document.getElementById('rank-scope').addEventListener('change', () => renderRankingsToContainer('rankings-container'));
+
+  // LYCAM Panel Listeners
+  document.getElementById('lycam-class-filter').addEventListener('change', () => renderLycamCandidates());
+  document.getElementById('lycam-search-candidate').addEventListener('input', () => renderLycamCandidates());
+
+  // Add Student Logic
+  document.getElementById('btn-add-student').addEventListener('click', () => document.getElementById('modal-add-student').style.display = 'flex');
+  document.getElementById('btn-cancel-add').addEventListener('click', () => document.getElementById('modal-add-student').style.display = 'none');
+  document.getElementById('btn-submit-add').addEventListener('click', async () => {
+    const form = document.getElementById('form-add-student');
+    const fd = new FormData(form);
+    allStudents.push({ id: uuid(), matricule: fd.get('matricule'), nom: fd.get('nom'), prenoms: fd.get('prenoms'), sexe: fd.get('sexe'), dateNaissance: fd.get('dateNaissance'), classe: fd.get('classe'), moyennes: {'Annuelle':{}}, rangs: {'Annuelle':''} });
+    await studentsStore.save(getSelectedYear(), allStudents);
+    document.getElementById('modal-add-student').style.display = 'none'; form.reset(); renderRoster();
+  });
+
+  // LYCAM Test Logic
+  document.getElementById('btn-cancel-lycam').addEventListener('click', () => document.getElementById('modal-lycam-test').style.display = 'none');
+  document.getElementById('btn-submit-lycam').addEventListener('click', submitLycamTest);
+
+  // Visits & Coaching
+  document.getElementById('btn-add-visit').addEventListener('click', () => {
+    if(!currentStudent) return;
+    allVisits.push({ id: uuid(), matricule: currentStudent.matricule, at: document.getElementById('visit-at').value || new Date().toISOString(), details: document.getElementById('visit-details').value });
+    storage.save('studentVisits', allVisits); renderVisits(currentStudent); document.getElementById('visit-reason').value=''; document.getElementById('visit-details').value='';
+  });
+  document.getElementById('btn-save-coach').addEventListener('click', () => {
+    if(!currentStudent) return;
+    coachingData.push({ id: uuid(), matricule: currentStudent.matricule, at: new Date().toISOString(), status: document.getElementById('coach-status').value, actions: document.getElementById('coach-actions').value });
+    storage.save('LYCAMCoachingData', coachingData); renderCoachings(currentStudent); document.getElementById('coach-actions').value='';
+  });
+});
+</script>
+</body>
+</html>
