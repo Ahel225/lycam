@@ -80,9 +80,121 @@
   .badge{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-muted);}
   
-  .tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:8px;margin-bottom:16px;}
-  .tab{padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;color:var(--text-muted);flex:1;text-align:center;}
-  .tab.active{background:var(--surface);color:var(--brand);box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+
+.tabs::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.tabs::-webkit-scrollbar-thumb:hover {
+  background: var(--brand);
+}
+
+/* Assurez-vous que les tab sont assez larges et ne se rétrécissent pas */
+.tab {
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 0 0 auto; /* IMPORTANT : empêche le rétrécissement */
+  text-align: center;
+  min-width: 120px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: var(--shadow);
+  font-weight: 700;
+}
+
+/* Améliorations spécifiques pour mobile */
+@media (max-width: 768px) {
+  .tabs {
+    gap: 4px;
+    padding: 6px 2px;
+    margin-bottom: 12px;
+    min-height: 44px;
+  }
+  
+  .tab {
+    padding: 12px 16px;
+    min-width: 140px;
+    font-size: 14px;
+  }
+  
+  /* Pour les onglets avec texte long */
+  #lycamMainPanel .tab,
+  #trackingGlobalPanel .tab {
+    min-width: 160px;
+  }
+  
+  /* Assurez-vous que les conteneurs permettent le scroll */
+  #lycamMainPanel,
+  #trackingGlobalPanel,
+  #registryPanel,
+  #studentPanel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+}
+
+/* Assurez-vous que le conteneur principal permet le scroll */
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* Pour les panneaux spécifiques avec onglets */
+#lycamMainPanel,
+#trackingGlobalPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Conteneurs de contenu des onglets - assurez le scroll vertical */
+#lycam-view-candidates,
+#lycam-view-results,
+#track-view-visits,
+#track-view-coaching,
+#tab-identity,
+#tab-grades,
+#tab-visits,
+#tab-coaching {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
+/* Correction spécifique pour la table des candidats LYCAM */
+#lycam-view-candidates .table-wrap,
+#lycam-view-results .table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
 
   .modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9999;backdrop-filter:blur(2px);padding:10px;align-items:center;justify-content:center;}
   .modal-content{background:var(--surface);width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;border-radius:16px;box-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1);animation:slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
@@ -105,6 +217,109 @@
       .toolbar-roster { flex-wrap: wrap; }
       #search { width: 100%; }
   }
+  /* Dans la section des styles CSS, remplacez ou ajoutez : */
+#studentPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+#studentPanel .tabs {
+  flex-shrink: 0;
+}
+
+#studentPanel > div[id^="tab-"] {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+#tab-grades .table-wrap {
+  max-height: 100%;
+  height: calc(100vh - 300px);
+}
+
+#grades-table {
+  margin-bottom: 20px;
+}
+
+/* Ajoutez cette règle pour le conteneur principal */
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Modifiez la section .tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Pour un défilement fluide sur iOS */
+  scrollbar-width: none; /* Masquer la scrollbar sur Firefox */
+  white-space: nowrap;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Masquer la scrollbar sur Chrome/Safari */
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 0 0 auto; /* Empêche le redimensionnement automatique */
+  text-align: center;
+}
+
+/* Pour les onglets spécifiques dans les panneaux */
+#lycamMainPanel .tabs,
+#trackingGlobalPanel .tabs,
+#studentPanel .tabs {
+  min-height: 44px; /* Taille minimum pour le touch */
+}
+
+/* Amélioration du touch sur mobile */
+@media (max-width: 768px) {
+  .tab {
+    padding: 12px 20px; /* Plus grand pour le touch */
+    min-width: 140px; /* Largeur minimum pour être cliquable */
+  }
+  
+  /* Assurez-vous que les panneaux avec onglets sont bien dimensionnés */
+  #lycamMainPanel,
+  #trackingGlobalPanel,
+  #registryPanel,
+  #studentPanel {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Conteneur de contenu des onglets */
+  #lycam-view-candidates,
+  #lycam-view-results,
+  #track-view-visits,
+  #track-view-coaching,
+  #tab-identity,
+  #tab-grades,
+  #tab-visits,
+  #tab-coaching {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
   </style>
 </head>
 <body>
@@ -540,7 +755,7 @@ const DICTIONARY = {
   classe: ['classe','class','groupe','niv'],
   maths: ['math','maths','mathematique','ml'],
   francais: ['fr','fra','francais','français','frs'],
-  anglais: ['ang','angl','anglais','english'],
+  anglais: ['anglais','english','ang.','angl','eng'],
   physique: ['pc','sp','phys','physique'],
   svt: ['svt','bio','biologie','sciences'],
   hg: ['hg','hist','geo','histoire'],
@@ -583,7 +798,25 @@ function fmtDate(d){ if(!d)return'—'; const t=(typeof d==='number')?new Date((
 function fmtDateTime(d){ if(!d)return'—'; const t = new Date(d); return isNaN(t)?String(d): t.toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'}); }
 function uuid(){ return 'id-'+Math.random().toString(36).slice(2); }
 function normalizeClasseKey(s){ return normalizeStr(s).replace('eme','e'); }
-
+function setStatus(msg, type = 'info') {
+  const statusEl = document.getElementById('status');
+  const icons = {
+    info: 'fa-info-circle',
+    success: 'fa-check-circle',
+    warning: 'fa-exclamation-triangle',
+    error: 'fa-times-circle',
+    loading: 'fa-spinner fa-spin'
+  };
+  const colors = {
+    info: 'var(--brand)',
+    success: 'var(--accent)',
+    warning: 'var(--warn)',
+    error: 'var(--danger)',
+    loading: 'var(--brand)'
+  };
+  
+  statusEl.innerHTML = `<i class="fa ${icons[type]}" style="color:${colors[type]}"></i> ${msg}`;
+}
 /* DB STORAGE */
 const idb = {
   db: null,
@@ -644,12 +877,12 @@ async function loadGlobalData() {
 
 async function loadStudentsForYear(){
   const year = getSelectedYear();
-  document.getElementById('status').textContent = 'Chargement...';
+  setStatus('Chargement...', 'loading');
   allStudents = await studentsStore.load(year);
   allStudents.forEach(s => { if(!s.id) s.id = s.matricule || uuid(); });
   populateClassFilter();
   renderRoster();
-  document.getElementById('status').innerHTML = `<i class="fa fa-check-circle" style="color:var(--accent)"></i> ${allStudents.length}`;
+  setStatus(`${allStudents.length} élèves`, 'success');
 }
 
 function populateClassFilter(){
@@ -731,6 +964,7 @@ function leaveDetailMode(){
 /* --- EXCEL IMPORT --- */
 async function handleExcel(file){
   try {
+    setStatus('Importation en cours...', 'loading');
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, {type:'array'});
     const sheetName = wb.SheetNames.find(n => n.match(/effectif|liste|eleve|base/i)) || wb.SheetNames[0];
@@ -738,7 +972,10 @@ async function handleExcel(file){
     
     if(raw.length === 0) throw new Error("Fichier vide");
 
-    const students = raw.map(r => {
+    // Initialiser le tableau students
+    let students = [];
+
+    raw.forEach(r => {
       let valNomComplet = findColumnValue(r, 'nom_complet');
       let valNom = findColumnValue(r, 'nom', ['prenom']); 
       let valPrenom = findColumnValue(r, 'prenoms', ['nom']); 
@@ -761,9 +998,9 @@ async function handleExcel(file){
       }
 
       let matricule = findColumnValue(r, 'matricule');
-      if (!matricule && !nomFinal) return null;
+      if (!matricule && !nomFinal) return;
 
-      return {
+      const student = {
         id: uuid(),
         matricule: String(matricule || 'Inconnu').trim(),
         nom: String(nomFinal || '').trim(),
@@ -774,43 +1011,83 @@ async function handleExcel(file){
         moyennes: { 'Annuelle': {}, '1TR': {}, '2TR': {}, '3TR': {} },
         rangs: { 'Annuelle': '', '1TR': '', '2TR': '', '3TR': '' }
       };
-    }).filter(s => s !== null && s.nom !== '');
+      
+      // Ajouter l'élève au tableau
+      students.push(student);
+    });
 
+    // Filtrer les étudiants valides
+    students = students.filter(s => s !== null && s.nom !== '');
+
+    // Fonction pour parser les notes
     const parseGrades = (pattern, key) => {
-       const shName = wb.SheetNames.find(n => n.match(pattern));
-       if(!shName) return;
-       const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
-       rows.forEach(row => {
-          const mat = String(findColumnValue(row, 'matricule') || '').trim();
-          const st = students.find(s => s.matricule === mat);
-          if(st) {
-             Object.keys(row).forEach(colRaw => {
-                const colClean = normalizeStr(colRaw);
-                Object.keys(DICTIONARY).forEach(dictKey => {
-                   if(['matricule','nom','prenoms','nom_complet'].includes(dictKey)) return;
-                   const aliases = DICTIONARY[dictKey];
-                   if(aliases.some(alias => colClean.includes(normalizeStr(alias)))) {
-                      let val = parseFloat(row[colRaw]);
-                      if(!isNaN(val)) st.moyennes[key][dictKey] = val;
-                   }
-                });
-             });
-             const mg = findColumnValue(row, 'moyenne'); if(mg) st.moyennes[key]['Moy_generale'] = parseFloat(mg);
-             const rg = findColumnValue(row, 'rang'); if(rg) st.rangs[key] = rg;
-          }
-       });
-    };
+   const shName = wb.SheetNames.find(n => n.match(pattern));
+   if(!shName) return;
+   const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
+   
+   console.log(`Parsing ${key} from sheet: ${shName}`);
+   
+   rows.forEach((row, index) => {
+      const mat = String(findColumnValue(row, 'matricule') || '').trim();
+      const st = students.find(s => s.matricule === mat);
+      
+      if(st) {
+         // Debug: Afficher les colonnes disponibles
+         if(index === 0) {
+            console.log('Colonnes disponibles:', Object.keys(row));
+         }
+         
+         // Recherche spécifique pour anglais
+         Object.keys(row).forEach(colRaw => {
+            const colClean = normalizeStr(colRaw);
+            const val = parseFloat(row[colRaw]);
+            
+            // Debug pour anglais
+            if(colClean.includes('angl') || colClean.includes('eng')) {
+                console.log(`Colonne anglaise trouvée: ${colRaw}, valeur: ${val}`);
+            }
+            
+            Object.keys(DICTIONARY).forEach(dictKey => {
+               if(['matricule','nom','prenoms','nom_complet'].includes(dictKey)) return;
+               const aliases = DICTIONARY[dictKey];
+               if(aliases.some(alias => colClean.includes(normalizeStr(alias)))) {
+                  if(!isNaN(val)) {
+                     st.moyennes[key][dictKey] = val;
+                     // Debug
+                     if(dictKey === 'anglais') {
+                        console.log(`Moyenne anglais pour ${st.nom}: ${val}`);
+                     }
+                  }
+               }
+            });
+         });
+         
+         const mg = findColumnValue(row, 'moyenne'); 
+         if(mg) {
+             const mgVal = parseFloat(mg);
+             if(!isNaN(mgVal)) st.moyennes[key]['Moy_generale'] = mgVal;
+         }
+         const rg = findColumnValue(row, 'rang'); 
+         if(rg) st.rangs[key] = rg;
+      }
+   });
+};
     
+    // Parser les notes pour chaque période
     parseGrades(/1.*(TR|Trim)/i, '1TR');
     parseGrades(/2.*(TR|Trim)/i, '2TR');
     parseGrades(/3.*(TR|Trim)/i, '3TR');
     parseGrades(/Ann|Synthese|Global/i, 'Annuelle');
 
+    // Sauvegarder et recharger
     await studentsStore.save(getSelectedYear(), students);
     await loadStudentsForYear();
-    alert(`${students.length} élèves importés.`);
+    setStatus(`${students.length} élèves importés`, 'success');
+    alert(`${students.length} élèves importés avec succès.`);
   } catch(e) {
-    alert("Erreur: " + e.message);
+    console.error("Erreur d'importation:", e);
+    setStatus('Erreur d\'importation', 'error');
+    alert("Erreur lors de l'importation : " + e.message);
   }
 }
 
@@ -1308,6 +1585,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadGlobalData();
   await loadStudentsForYear();
+  
+  // Ajoutez cette fonction après le DOMContentLoaded
+function setupMobileTabs() {
+  const tabsContainers = document.querySelectorAll('.tabs');
+  
+  tabsContainers.forEach(container => {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    container.addEventListener('mousedown', (e) => {
+      isDown = true;
+      startX = e.pageX - container.offsetLeft;
+      scrollLeft = container.scrollLeft;
+      container.style.cursor = 'grabbing';
+    });
+    
+    container.addEventListener('mouseleave', () => {
+      isDown = false;
+      container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mouseup', () => {
+      isDown = false;
+      container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mousemove', (e) => {
+      if(!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - container.offsetLeft;
+      const walk = (x - startX) * 2;
+      container.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Touch events pour mobile
+    container.addEventListener('touchstart', (e) => {
+      isDown = true;
+      startX = e.touches[0].pageX - container.offsetLeft;
+      scrollLeft = container.scrollLeft;
+    });
+    
+    container.addEventListener('touchend', () => {
+      isDown = false;
+    });
+    
+    container.addEventListener('touchmove', (e) => {
+      if(!isDown) return;
+      const x = e.touches[0].pageX - container.offsetLeft;
+      const walk = (x - startX) * 2;
+      container.scrollLeft = scrollLeft - walk;
+    });
+  });
+}
+
+// Appelez cette fonction dans DOMContentLoaded
+document.addEventListener('DOMContentLoaded', async () => {
+  // ... votre code existant ...
+  
+  // Ajoutez cette ligne à la fin
+  setupMobileTabs();
+});
 
   document.getElementById('school-year').addEventListener('change', async () => {
     await loadStudentsForYear();
