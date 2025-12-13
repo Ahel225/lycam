@@ -1144,6 +1144,7 @@ function generateDummyData() {
 }
 
 /* CONFIG & DICTIONARY */
+/* CONFIG & DICTIONARY */
 const CONFIG = { dbName: 'kfwDB', dbVersion: 3 };
 const DICTIONARY = {
   nom_complet: ['nom et prenoms','nom & prenoms','nom_prenom','nom complet','noms et prenoms','noms & prenoms','nom et prenom','nom & prenom','nom prenom','nom_et_prenoms','nom/prenom','full name','fullname'],
@@ -1153,15 +1154,19 @@ const DICTIONARY = {
   sexe: ['sexe','genre','sex'],
   dateNaissance: ['date de naissance','date_naissance','datenaissance','ddn','né le','ne le','ne(e) le','né(e) le','naissance','dob','date n','date.n'],
   classe: ['classe','class','groupe','niv'],
+  compo_francais: ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
+  orthographe: ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
+  expression_orale: ['expression orale','oral','expr orale','expression','expr', 'oral'],
   maths: ['math','maths','mathematique','ml'],
   francais: ['fr','fra','francais','français','frs'],
-  anglais: ['anglais'],
+  anglais: ['anglais','eng','english'],
   physique: ['pc','sp','phys','physique'],
   svt: ['svt','bio','biologie','sciences'],
-  hg: ['hg','hist','geo','histoire'],
+  hg: ['hg','hist','geo','histoire','géographie'],
   eps: ['eps','sport','education physique'],
   philosophie: ['philo','philosophie'],
   lv2: ['lv2','espagnol','allemand','esp','all'],
+  edhc: ['edhc','éducation à la citoyenneté','education citoyenneté','éducation citoyenneté','ed.hc','ed.h.c'],
   art_plastique: ['ap','art','arts','dessin'],
   conduite: ['conduite','cond','comportement'],
   moyenne: ['moy','moyenne','mg','gen','generale'],
@@ -1482,19 +1487,31 @@ const parseGrades = (pattern, key) => {
       }
       
       // 3. Traiter les matières - APPROCHE PLUS PRÉCISE
-      const subjectColumns = {
-        'francais': ['fr','fra','francais','français','frs'],
-        'maths': ['math','maths','mathematique','ml'],
-        'anglais': ['anglais','eng','english'],
-        'physique': ['pc','sp','phys','physique'],
-        'svt': ['svt','bio','biologie','sciences'],
-        'hg': ['hg','hist','geo','histoire','géographie'],
-        'eps': ['eps','sport','education physique'],
-        'philosophie': ['philo','philosophie'],
-        'lv2': ['lv2','espagnol','allemand','esp','all'],
-        'art_plastique': ['ap','art','arts','dessin'],
-        'conduite': ['conduite','cond','comportement']
-      };
+      // Dans parseGrades, ajoutez ces matières dans les recherches
+const subjectColumns = {
+  'compo_francais': ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
+  'orthographe': ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
+  'expression_orale': ['expression orale','oral','expr orale','expression','expr', 'oral'],
+  'francais': ['fr','fra','francais','français','frs'],
+  'maths': ['math','maths','mathematique','ml'],
+  'anglais': ['anglais','eng','english'],
+  'physique': ['pc','sp','phys','physique'],
+  'svt': ['svt','bio','biologie','sciences'],
+  'hg': ['hg','hist','geo','histoire','géographie'],
+  'eps': ['eps','sport','education physique'],
+  'philosophie': ['philo','philosophie'],
+  'lv2': ['lv2','espagnol','allemand','esp','all'],
+  'edhc': ['edhc','éducation à la citoyenneté','education citoyenneté','éducation citoyenneté','ed.hc','ed.h.c'],
+  'art_plastique': ['ap','art','arts','dessin'],
+  'conduite': ['conduite','cond','comportement']
+};
+
+// Et dans le tableau subjectKeys :
+const subjectKeys = [
+  'compo_francais', 'orthographe', 'expression_orale', // Nouvelles matières en premier
+  'maths', 'francais', 'anglais', 'physique', 'svt', 'hg', 
+  'eps', 'philosophie', 'lv2', 'edhc', 'art_plastique', 'conduite'
+];
       
       Object.keys(row).forEach(colRaw => {
         const colClean = normalizeStr(colRaw);
@@ -1538,14 +1555,243 @@ const parseGrades = (pattern, key) => {
 }
 
 function getSubjectDisplayName(k){
-  const names = {'maths':'Maths', 'francais':'Français', 'anglais':'Anglais', 'physique':'Physique', 'svt':'SVT', 'hg':'Hist-Géo', 'eps':'EPS', 'philosophie':'Philo', 'lv2':'LV2', 'conduite':'Conduite', 'art_plastique':'Arts'};
+  const names = {
+    'compo_francais': 'Composition',
+    'orthographe': 'Orthographe',
+    'expression_orale': 'Expression Orale',
+    'maths': 'Maths', 
+    'francais': 'Français', 
+    'anglais': 'Anglais', 
+    'physique': 'Physique', 
+    'svt': 'SVT', 
+    'hg': 'Hist-Géo', 
+    'eps': 'EPS', 
+    'philosophie': 'Philo', 
+    'lv2': 'LV2', 
+    'edhc': 'EDHC',
+    'art_plastique': 'Arts',
+    'conduite': 'Conduite'
+  };
   return names[k] || k.charAt(0).toUpperCase() + k.slice(1);
 }
-function getSubjectsOrder(cls){
-  const c = (cls||'').toLowerCase();
-  if(c.match(/^(6|5|4|3)/)) return ['francais','maths','anglais','physique','svt','hg','eps','art_plastique','conduite'];
-  return ['francais','maths','anglais','hg','svt','physique','eps'];
+
+/* ====== FONCTIONS D'ANALYSE DE CLASSE ====== */
+
+function parseClasse(classe) {
+    const c = (classe || '').toLowerCase().trim();
+    
+    const result = {
+        niveau: '',
+        cycle: '',
+        serie: '',
+        isPremierCycle: false,
+        isSecondCycle: false,
+        isLycée: false
+    };
+    
+    // Détecter le niveau - LOGIQUE AMÉLIORÉE
+    if (c.includes('6e') || c.includes('6eme') || c.includes('6ème') || c.match(/(^|\D)6($|\D)/)) {
+        result.niveau = '6e';
+        result.cycle = 'premier';
+        result.isPremierCycle = true;
+    } else if (c.includes('5e') || c.includes('5eme') || c.includes('5ème') || c.match(/(^|\D)5($|\D)/)) {
+        result.niveau = '5e';
+        result.cycle = 'premier';
+        result.isPremierCycle = true;
+    } else if (c.includes('4e') || c.includes('4eme') || c.includes('4ème') || c.match(/(^|\D)4($|\D)/)) {
+        result.niveau = '4e';
+        result.cycle = 'premier';
+        result.isPremierCycle = true;
+    } else if (c.includes('3e') || c.includes('3eme') || c.includes('3ème') || c.match(/(^|\D)3($|\D)/)) {
+        result.niveau = '3e';
+        result.cycle = 'premier';
+        result.isPremierCycle = true;
+    } else if (c.includes('2nde') || c.includes('seconde') || c.includes('2nd') || c.match(/^2/)) {
+        result.niveau = '2nde';
+        result.cycle = 'second';
+        result.isSecondCycle = true;
+        result.isLycée = true;
+    } else if (c.includes('1ere') || c.includes('première') || c.includes('1ère') || c.includes('1e') || c.match(/^1/)) {
+        result.niveau = '1ere';
+        result.cycle = 'second';
+        result.isSecondCycle = true;
+        result.isLycée = true;
+    } else if (c.includes('term') || c.includes('tle') || c.includes('terminal') || c.match(/^t/)) {
+        result.niveau = 'terminale';
+        result.cycle = 'second';
+        result.isSecondCycle = true;
+        result.isLycée = true;
+    }
+    
+    // Détecter la série - LOGIQUE AMÉLIORÉE
+    // D'abord chercher une lettre de série (A, B, C, D, F) comme caractère séparé
+    const serieMatch = c.match(/(?:^|\s)([abcdf])(?:\s|$|\d)/i);
+    if (serieMatch) {
+        result.serie = serieMatch[1].toUpperCase();
+    } else {
+        // Sinon, chercher la lettre dans la chaîne
+        if (c.includes('a') && !c.includes('art') && !c.includes('ap') && !c.includes('ad')) {
+            result.serie = 'A';
+        } else if (c.includes('b')) {
+            result.serie = 'B';
+        } else if (c.includes('c')) {
+            result.serie = 'C';
+        } else if (c.includes('d')) {
+            result.serie = 'D';
+        } else if (c.includes('f')) {
+            result.serie = 'F';
+        } else if (c.includes('g')) {
+            result.serie = 'G';
+        }
+    }
+    
+    return result;
 }
+
+function getSubjectsOrder(cls) {
+    const parsed = parseClasse(cls);
+    
+    // Si la classe n'est pas reconnue, retourner une liste minimale
+    if (!parsed.niveau) {
+        // Pour les classes non reconnues, on retourne une liste de base avec conduite en dernier
+        return ['francais', 'maths', 'anglais', 'hg', 'svt', 'physique', 'eps', 'conduite'];
+    }
+    
+    // Premier cycle (6e, 5e, 4e, 3e)
+    if (parsed.isPremierCycle) {
+        let subjects = [
+            'compo_francais', 'orthographe', 'expression_orale',
+            'francais', 'maths', 'anglais', 'physique', 'svt',
+            'eps', 'art_plastique', 'edhc'
+        ];
+        
+        // Pour 4e et 3e seulement, ajouter LV2
+        if (parsed.niveau === '4e' || parsed.niveau === '3e') {
+            subjects = subjects.filter(sub => sub !== 'hg');
+            subjects.push('lv2', 'hg');
+        } else {
+            subjects.push('hg');
+        }
+        
+        // Ajouter la conduite en DERNIÈRE position
+        subjects.push('conduite');
+        
+        return subjects;
+    }
+    
+    // Second cycle (2nde, 1ere, terminale)
+    if (parsed.isSecondCycle) {
+        let baseSubjects = [];
+        
+        // CAS 1: Classes 2nde C, 1ere D, Terminale D
+        if ((parsed.niveau === '2nde' && parsed.serie === 'C') ||
+            (parsed.niveau === '1ere' && parsed.serie === 'D') ||
+            (parsed.niveau === 'terminale' && parsed.serie === 'D')) {
+            
+            // Maths, Physique, SVT en PREMIÈRE position
+            baseSubjects.push('maths', 'physique', 'svt');
+            
+            // Puis les autres matières de base
+            baseSubjects.push('francais', 'anglais', 'eps');
+            
+            // Pour 2nde C seulement, ajouter LV2 avant HG
+            if (parsed.niveau === '2nde' && parsed.serie === 'C') {
+                // On va ajouter HG d'abord, puis insérer LV2 avant
+                baseSubjects.push('hg');
+                const hgIndex = baseSubjects.indexOf('hg');
+                if (hgIndex !== -1) {
+                    baseSubjects.splice(hgIndex, 0, 'lv2');
+                }
+            } else {
+                // Pour 1ere D et Terminale D, pas de LV2
+                baseSubjects.push('hg');
+            }
+            
+            // Philosophie pour 1ere et Terminale
+            if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
+                baseSubjects.push('philosophie');
+            }
+        }
+        
+        // CAS 2: Classes 2nde A, 1ere A, Terminale A
+        else if ((parsed.niveau === '2nde' && parsed.serie === 'A') ||
+                 (parsed.niveau === '1ere' && parsed.serie === 'A') ||
+                 (parsed.niveau === 'terminale' && parsed.serie === 'A')) {
+            
+            // Pour 1ere A et Terminale A: Philosophie en premier
+            if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
+                baseSubjects.push('philosophie');
+            }
+            
+            // Ensuite: Français, Anglais, LV2, Histoire-Géographie
+            baseSubjects.push('francais', 'anglais', 'lv2', 'hg');
+            
+            // Puis les autres matières
+            baseSubjects.push('maths', 'svt', 'eps');
+            
+            // Ajouter Physique sauf pour Terminale A
+            if (!(parsed.niveau === 'terminale' && parsed.serie === 'A')) {
+                // Insérer Physique après SVT
+                const svtIndex = baseSubjects.indexOf('svt');
+                if (svtIndex !== -1) {
+                    baseSubjects.splice(svtIndex + 1, 0, 'physique');
+                }
+            }
+        }
+        
+        // CAS 3: Toutes les autres classes du second cycle
+        else {
+            // Matières de base
+            baseSubjects = ['francais', 'maths', 'anglais', 'svt', 'eps'];
+            
+            // Ajouter physique sauf terminale A (mais ici on n'est pas dans les classes A)
+            const svtIndex = baseSubjects.indexOf('svt');
+            if (svtIndex !== -1) {
+                baseSubjects.splice(svtIndex + 1, 0, 'physique');
+            }
+            
+            // Ajouter HG
+            baseSubjects.push('hg');
+            
+            // Gestion de LV2
+            let shouldAddLV2 = true;
+            
+            // Exceptions où on NE met PAS LV2
+            if ((parsed.niveau === '1ere' && parsed.serie === 'D') || 
+                (parsed.niveau === 'terminale' && parsed.serie === 'D') ||
+                (parsed.niveau === 'terminale' && parsed.serie === 'B') ||
+                (parsed.niveau === '1ere' && parsed.serie === 'B')) {
+                shouldAddLV2 = false;
+            }
+            
+            if (shouldAddLV2) {
+                // Insérer LV2 avant HG si HG existe
+                const hgIndex = baseSubjects.indexOf('hg');
+                if (hgIndex !== -1) {
+                    baseSubjects.splice(hgIndex, 0, 'lv2');
+                }
+            }
+            
+            // Philosophie pour toutes les classes de 1ère et Terminale
+            if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
+                if (!baseSubjects.includes('philosophie')) {
+                    baseSubjects.push('philosophie');
+                }
+            }
+        }
+        
+        // Ajouter la conduite en DERNIÈRE position pour TOUTES les classes du second cycle
+        if (!baseSubjects.includes('conduite')) {
+            baseSubjects.push('conduite');
+        }
+        
+        return baseSubjects;
+    }
+    
+    // Par défaut, retourner une liste minimale avec conduite en dernier
+    return ['francais', 'maths', 'anglais', 'hg', 'svt', 'physique', 'eps', 'conduite'];
+}
+
 function getStudentNote(s, period, subjectKey) {
   const m = s.moyennes[period];
   if (!m) return -1;
