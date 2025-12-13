@@ -320,6 +320,63 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Styles pour les tabs des statistiques */
+#stats-tabs {
+    margin-bottom: 16px;
+}
+
+#stats-overview,
+#stats-topbottom,
+#stats-gender,
+#stats-orientation {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Responsive pour les stats */
+@media (max-width: 768px) {
+    #stats-tabs .tab {
+        min-width: 120px;
+        padding: 10px 12px;
+    }
+    
+    #stats-overview,
+    #stats-topbottom,
+    #stats-gender,
+    #stats-orientation {
+        padding: 8px 0;
+    }
+}
+/* Styles pour les barres de statistiques */
+.stat-bar-container {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+  width: 100%;
+}
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.kpi-value { font-size: 24px; font-weight: 800; color: var(--text); }
+.kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
@@ -343,6 +400,9 @@
         <i class="fa fa-sliders"></i> Configuration & Import
       </summary>
       <div class="toolbar">
+        <button id="btn-generate-demo" class="btn" style="background:var(--warn); color:white">
+    <i class="fa fa-magic"></i> Générer Données Démo
+</button>
         <div class="field" style="flex:1;min-width:200px;">
           <label class="label">Importer Excel</label>
           <input id="excel-file" class="input" type="file" accept=".xlsx,.xls">
@@ -385,7 +445,7 @@
 <div style="display:flex; overflow-x:auto; gap:4px; white-space:nowrap">
     <button id="refresh-roster" class="btn ghost" title="Actualiser"><i class="fa fa-sync"></i></button>
     <button id="btn-open-rankings" class="btn ghost" title="Classements"><i class="fa fa-list-ol"></i></button>
-    
+    <button id="btn-open-stats" class="btn ghost" title="Statistiques Globales"><i class="fa fa-chart-bar"></i> Stats</button>
     <button id="btn-open-lycam-main" class="btn lycam-btn" title="Gestion LYCAM"><i class="fa fa-clipboard-check"></i> LYCAM</button>
     <button id="btn-open-registry" class="btn registry-btn" title="Registre de visites"><i class="fa fa-address-book"></i> Registre</button>
     <button id="btn-open-tracking" class="btn tracking-btn" title="Suivi & Coaching Global"><i class="fa fa-hands-helping"></i> Suivi/Coach</button>
@@ -452,7 +512,7 @@
       <div id="tab-grades" style="display:none">
         <div class="table-wrap">
           <table id="grades-table">
-            <thead><tr><th>Matière</th><th>T1</th><th>T2</th><th>T3</th><th>AN</th></tr></thead>
+            <thead><tr><th>Matière</th><th>1TR</th><th>2TR</th><th>3TR</th><th>Annuelle</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -489,6 +549,7 @@
           <div class="field"><label class="label">Classe</label><select id="rank-class-filter" class="select"></select></div>
           <div class="field"><label class="label">Matière</label>
             <select id="subject-filter" class="select">
+              <option value="Moy_generale">Moyenne G.</option>
               <option value="francais">Français</option>
               <option value="maths">Maths</option>
               <option value="anglais">Anglais</option>
@@ -505,7 +566,53 @@
         </div>
         <div id="rankings-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:12px;overflow-y:auto;padding-bottom:20px"></div>
     </div>
+<div id="statsPanel" class="card section" style="display:none; border-top:4px solid var(--accent)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3><i class="fa fa-chart-bar" style="color:var(--accent)"></i> Statistiques Globales</h3>
+        <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+    </div>
 
+    <div class="toolbar" style="margin-top:0; margin-bottom:15px; background:var(--brand-light); border-color:var(--brand)">
+        <div class="field" style="flex-direction:row; align-items:center; gap:10px; width:100%">
+            <label class="label" style="margin-bottom:0; color:var(--brand-dark)">Période analysée :</label>
+            <select id="stats-period-selector" class="select" style="max-width:200px; font-weight:bold">
+                <option value="1TR">1er Trimestre</option>
+                <option value="2TR">2e Trimestre</option>
+                <option value="3TR">3e Trimestre</option>
+                <option value="Annuelle" selected>Annuelle</option>
+            </select>
+            <span style="font-size:11px; color:var(--text-muted); margin-left:auto"><i class="fa fa-info-circle"></i> Changez la période pour voir les données</span>
+        </div>
+    </div>
+    
+    <div class="tabs" id="stats-tabs">
+        <div class="tab active" onclick="switchStatsView('overview')">Vue d'ensemble</div>
+        <div class="tab" onclick="switchStatsView('repartition')">Répartition</div>
+        <div class="tab" onclick="switchStatsView('topbottom')">Top & Bottom</div>
+        <div class="tab" onclick="switchStatsView('gender')">Par Genre</div>
+        <div class="tab" onclick="switchStatsView('orientation')">Orientation</div>
+    </div>
+
+    <div id="stats-overview" style="display:block; overflow-y:auto; padding:10px 0">
+        <div id="overview-content"></div>
+    </div>
+
+    <div id="stats-repartition" style="display:none; overflow-y:auto; padding:10px 0">
+        <div id="repartition-content"></div>
+    </div>
+    
+    <div id="stats-topbottom" style="display:none; overflow-y:auto; padding:10px 0">
+        <div id="topbottom-content"></div>
+    </div>
+    
+    <div id="stats-gender" style="display:none; overflow-y:auto; padding:10px 0">
+        <div id="gender-content"></div>
+    </div>
+    
+    <div id="stats-orientation" style="display:none; overflow-y:auto; padding:10px 0">
+        <div id="orientation-content"></div>
+    </div>
+</div>
     <div id="lycamMainPanel" class="card section" style="display:none; border-top:4px solid var(--lycam-color)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <h3><i class="fa fa-clipboard-check" style="color:var(--lycam-color)"></i> Gestion LYCAM</h3>
@@ -743,6 +850,251 @@ function getRiskScore(questionId, value) {
   return 0;
 }
 
+/* ====== FONCTION DE GÉNÉRATION DE DONNÉES FICTIVES ====== */
+
+/* ====== FONCTION DE GÉNÉRATION DE DONNÉES FICTIVES ====== */
+
+function generateDummyData() {
+    console.log("Génération des données fictives de démo...");
+
+    // Noms et prénoms ivoiriens
+    const dummyNames = [
+        { nom: "KOUADIO", prenoms: "Jean-Paul", sexe: "M" },
+        { nom: "KONAN", prenoms: "Aminata", sexe: "F" },
+        { nom: "YEO", prenoms: "Sékou", sexe: "M" },
+        { nom: "TRAORÉ", prenoms: "Fatou", sexe: "F" },
+        { nom: "KOUASSI", prenoms: "Koffi", sexe: "M" },
+        { nom: "DIAKITÉ", prenoms: "Mariam", sexe: "F" },
+        { nom: "SORO", prenoms: "Yacouba", sexe: "M" },
+        { nom: "DOSSO", prenoms: "Aïcha", sexe: "F" },
+        { nom: "GNANGA", prenoms: "Bamba", sexe: "M" },
+        { nom: "BAMBA", prenoms: "Kadidia", sexe: "F" },
+        { nom: "KOUAKOU", prenoms: "Moussa", sexe: "M" },
+        { nom: "FADIGA", prenoms: "Aminata", sexe: "F" },
+        { nom: "COULIBALY", prenoms: "Issa", sexe: "M" },
+        { nom: "DIABY", prenoms: "Fatim", sexe: "F" },
+        { nom: "KOUADIO", prenoms: "Eric", sexe: "M" },
+        { nom: "KOUAMÉ", prenoms: "N'Guessan", sexe: "M" },
+        { nom: "KONE", prenoms: "Siaka", sexe: "M" },
+        { nom: "DIBY", prenoms: "Mariam", sexe: "F" },
+        { nom: "BÉDIÉ", prenoms: "Aya", sexe: "F" },
+        { nom: "GBOHOU", prenoms: "Nadège", sexe: "F" },
+        { nom: "KOUADIO", prenoms: "Yao", sexe: "M" },
+        { nom: "OUATTARA", prenoms: "Rokia", sexe: "F" },
+        { nom: "SANGARÉ", prenoms: "Mamadou", sexe: "M" },
+        { nom: "KOUASSI", prenoms: "Akissi", sexe: "F" },
+        { nom: "KOUADIO", prenoms: "N'Dri", sexe: "M" },
+        { nom: "CAMARA", prenoms: "Sékouba", sexe: "M" },
+        { nom: "KOUASSI", prenoms: "Affoué", sexe: "F" },
+        { nom: "KOUAKOU", prenoms: "Kouamé", sexe: "M" },
+        { nom: "BAMBA", prenoms: "Salimata", sexe: "F" },
+        { nom: "KONE", prenoms: "Sita", sexe: "F" }
+    ];
+    
+    // Classes typiques du système ivoirien
+    const classes = ["6e A", "5e B", "4e C", "3e D", "2nde A", "1ère C", "Tle D"];
+    
+    // Fonction utilitaire pour générer des IDs simples
+    const simpleID = (i) => `S${String(i+1).padStart(3, '0')}`;
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randFloat = (min, max) => (Math.random() * (max - min) + min).toFixed(2);
+    
+    // Générer des dates de naissance réalistes pour élèves ivoiriens (2006-2009 pour collège, 2003-2005 pour lycée)
+    const generateBirthDate = (classe) => {
+        if (classe.includes("6e") || classe.includes("5e")) {
+            // 11-13 ans pour 6e-5e
+            return `200${randInt(8, 9)}-${String(randInt(1, 12)).padStart(2, '0')}-${String(randInt(1, 28)).padStart(2, '0')}`;
+        } else if (classe.includes("4e") || classe.includes("3e")) {
+            // 14-16 ans pour 4e-3e
+            return `200${randInt(6, 7)}-${String(randInt(1, 12)).padStart(2, '0')}-${String(randInt(1, 28)).padStart(2, '0')}`;
+        } else {
+            // 16-18 ans pour lycée
+            return `200${randInt(4, 5)}-${String(randInt(1, 12)).padStart(2, '0')}-${String(randInt(1, 28)).padStart(2, '0')}`;
+        }
+    };
+    
+    // Remplir allStudents
+    allStudents = dummyNames.map((data, i) => {
+        const id = simpleID(i);
+        const matricule = `MAT${2024000 + i}`; // Format avec année
+        const classe = classes[i % classes.length];
+        const dateNaissance = generateBirthDate(classe);
+        
+        // Générer des notes réalistes et variées selon le niveau
+        let baseAvg;
+        if (classe.includes("6e") || classe.includes("5e")) {
+            baseAvg = parseFloat(randFloat(10, 15)); // Bonnes moyennes en début de collège
+        } else if (classe.includes("4e") || classe.includes("3e")) {
+            baseAvg = parseFloat(randFloat(8, 14)); // Moyennes plus variées
+        } else {
+            baseAvg = parseFloat(randFloat(7, 13)); // Lycée plus difficile
+        }
+        
+        const mg_annuelle = baseAvg;
+        const mg_1tr = parseFloat(randFloat(mg_annuelle - 3, mg_annuelle + 2));
+        
+        // Sujets selon le cycle
+        let subjects = {};
+        if (classe.includes("6e") || classe.includes("5e") || classe.includes("4e") || classe.includes("3e")) {
+            // Collège
+            subjects = {
+                'maths': parseFloat(randFloat(baseAvg - 4, baseAvg + 4)),
+                'francais': parseFloat(randFloat(baseAvg - 3, baseAvg + 3)),
+                'anglais': parseFloat(randFloat(baseAvg - 2, baseAvg + 2)),
+                'physique': parseFloat(randFloat(baseAvg - 3, baseAvg + 3)),
+                'svt': parseFloat(randFloat(baseAvg - 2, baseAvg + 3)),
+                'hg': parseFloat(randFloat(baseAvg - 1, baseAvg + 2)),
+                'eps': parseFloat(randFloat(12, 18)), // EPS souvent élevée
+                'art_plastique': parseFloat(randFloat(baseAvg, baseAvg + 3)),
+                'conduite': parseFloat(randFloat(10, 16))
+            };
+        } else {
+            // Lycée
+            subjects = {
+                'maths': parseFloat(randFloat(baseAvg - 5, baseAvg + 3)),
+                'francais': parseFloat(randFloat(baseAvg - 3, baseAvg + 2)),
+                'anglais': parseFloat(randFloat(baseAvg - 2, baseAvg + 2)),
+                'physique': parseFloat(randFloat(baseAvg - 4, baseAvg + 2)),
+                'svt': parseFloat(randFloat(baseAvg - 3, baseAvg + 3)),
+                'hg': parseFloat(randFloat(baseAvg - 2, baseAvg + 2)),
+                'eps': parseFloat(randFloat(11, 17)),
+                'philosophie': parseFloat(randFloat(baseAvg - 2, baseAvg + 3)),
+                'lv2': parseFloat(randFloat(baseAvg - 1, baseAvg + 1))
+            };
+        }
+        
+        return {
+            id: id,
+            matricule: matricule,
+            nom: data.nom,
+            prenoms: data.prenoms,
+            sexe: data.sexe,
+            dateNaissance: dateNaissance,
+            classe: classe,
+            moyennes: {
+                '1TR': {
+                    'Moy_generale': mg_1tr,
+                    ...Object.keys(subjects).reduce((acc, sub) => {
+                        acc[sub] = parseFloat(randFloat(subjects[sub] - 2, subjects[sub] + 2));
+                        return acc;
+                    }, {})
+                },
+                '2TR': {
+                    'Moy_generale': parseFloat(randFloat(mg_annuelle - 1, mg_annuelle + 1)),
+                    ...Object.keys(subjects).reduce((acc, sub) => {
+                        acc[sub] = parseFloat(randFloat(subjects[sub] - 1.5, subjects[sub] + 1.5));
+                        return acc;
+                    }, {})
+                },
+                '3TR': {
+                    'Moy_generale': parseFloat(randFloat(mg_annuelle - 0.5, mg_annuelle + 0.5)),
+                    ...Object.keys(subjects).reduce((acc, sub) => {
+                        acc[sub] = parseFloat(randFloat(subjects[sub] - 1, subjects[sub] + 1));
+                        return acc;
+                    }, {})
+                },
+                'Annuelle': {
+                    'Moy_generale': mg_annuelle,
+                    ...subjects
+                }
+            },
+            rangs: {
+                '1TR': randInt(1, 30),
+                '2TR': randInt(1, 30),
+                '3TR': randInt(1, 30),
+                'Annuelle': randInt(1, 30)
+            }
+        };
+    });
+    
+    // Remplir allTestResults (LYCAM)
+    allTestResults = [];
+    allStudents.forEach((s, i) => {
+        // 60% des élèves ont passé le test (plus réaliste)
+        if (Math.random() < 0.6) {
+            const score = randInt(8, 25); // Score total entre 8 et 25
+            const isHighRisk = score >= LYCAM_TOTAL_THRESHOLD;
+            
+            // Générer des scores de dimensions réalistes
+            const dimScores = {};
+            Object.keys(LYCAM_DIMENSIONS).forEach(dim => {
+                // Certaines dimensions ont plus de risques selon le profil
+                if (s.moyennes['Annuelle']?.Moy_generale < 10) {
+                    // Élèves en difficulté scolaire
+                    dimScores[dim] = randInt(1, 4);
+                } else if (s.sexe === 'F' && ['RS', 'CS'].includes(dim)) {
+                    // Filles souvent meilleures en confiance et rendement
+                    dimScores[dim] = randInt(0, 2);
+                } else {
+                    dimScores[dim] = randInt(0, 3);
+                }
+            });
+            
+            allTestResults.push({
+                id: uuid(),
+                matricule: s.matricule,
+                at: new Date(Date.now() - randInt(1, 60) * 24 * 60 * 60 * 1000).toISOString(),
+                totalScore: score,
+                dimensionScores: dimScores,
+                riskDimensions: Object.keys(dimScores).filter(dim => 
+                    dimScores[dim] >= LYCAM_DIMENSIONS[dim].threshold
+                ).map(dim => LYCAM_DIMENSIONS[dim].label)
+            });
+            
+            // Ajouter un suivi pour les élèves à haut risque
+            if (isHighRisk) {
+                coachingData.push({ 
+                    id: uuid(), 
+                    matricule: s.matricule, 
+                    at: new Date(Date.now() - randInt(1, 15) * 24 * 60 * 60 * 1000).toISOString(), 
+                    status: Math.random() > 0.7 ? 'Terminé' : 'En cours', 
+                    actions: `Plan d'action suite au score LYCAM élevé (${score}). Rencontre parentale programmée.`
+                });
+            }
+            
+            // Ajouter quelques visites de suivi
+            if (Math.random() < 0.4) {
+                allVisits.push({
+                    id: uuid(),
+                    matricule: s.matricule,
+                    at: new Date(Date.now() - randInt(1, 45) * 24 * 60 * 60 * 1000).toISOString(),
+                    details: Math.random() > 0.5 
+                        ? "Discussion sur les résultats du 1er trimestre" 
+                        : "Échange sur le comportement en classe"
+                });
+            }
+        }
+    });
+
+    // Ajouter quelques entrées au registre
+    const parentNames = ["KOUADIO", "TRAORÉ", "KONE", "DIABY", "SORO", "CAMARA", "BAMBA", "GBOHOU"];
+    for (let i = 0; i < 8; i++) {
+        allRegistry.push({
+            id: uuid(),
+            at: new Date(Date.now() - randInt(1, 30) * 24 * 60 * 60 * 1000).toISOString(),
+            name: parentNames[i] + " " + (Math.random() > 0.5 ? "Moussa" : "Mariam"),
+            type: Math.random() > 0.3 ? "Parent" : "Élève",
+            contact: `+225 07${randInt(10, 99)} ${randInt(1000, 9999)} ${randInt(1000, 9999)}`,
+            reason: Math.random() > 0.5 ? "Convocation discipline" : "Renseignement orientation"
+        });
+    }
+
+    // Sauvegarde en local storage
+    const currentYear = getSelectedYear();
+    studentsStore.save(currentYear, allStudents);
+    storage.save('LYCAMTestResults', allTestResults);
+    storage.save('studentVisits', allVisits);
+    storage.save('LYCAMCoachingData', coachingData);
+    storage.save('GlobalRegistryData', allRegistry);
+
+    console.log(`Données fictives ivoiriennes générées : ${allStudents.length} élèves, ${allTestResults.length} résultats LYCAM, ${allVisits.length} visites.`);
+    
+    // Recharger l'affichage
+    loadStudentsForYear();
+    renderRegistry();
+    setStatus(`Données de démo générées (${allStudents.length} élèves)`, 'success');
+}
+
 /* CONFIG & DICTIONARY */
 const CONFIG = { dbName: 'kfwDB', dbVersion: 3 };
 const DICTIONARY = {
@@ -755,7 +1107,7 @@ const DICTIONARY = {
   classe: ['classe','class','groupe','niv'],
   maths: ['math','maths','mathematique','ml'],
   francais: ['fr','fra','francais','français','frs'],
-  anglais: ['anglais','english','ang.','angl','eng'],
+  anglais: ['anglais'],
   physique: ['pc','sp','phys','physique'],
   svt: ['svt','bio','biologie','sciences'],
   hg: ['hg','hist','geo','histoire'],
@@ -903,23 +1255,60 @@ function populateClassFilter(){
   if(oldVal && oldVal !== '__ALL__') for(let opt of sel.options){ if(opt.value === oldVal) sel.value = oldVal; }
 }
 
+// --- HELPER LYCAM ---
+function getLycamRiskInfo(score) {
+    const isHighRisk = score >= LYCAM_TOTAL_THRESHOLD;
+    return {
+        label: isHighRisk ? "RISQUE ÉLEVÉ" : "FAIBLE RISQUE",
+        // Rouge pour élevé, Vert pour faible
+        color: isHighRisk ? "#dc2626" : "#16a34a", 
+        bg: isHighRisk ? "#fee2e2" : "#dcfce7",
+        border: isHighRisk ? "#fecaca" : "#bbf7d0",
+        icon: isHighRisk ? "fa-exclamation-circle" : "fa-shield-alt"
+    };
+}
+
 function renderRoster(list) {
   const sel = document.getElementById('class-filter');
   const filterKey = sel.value;
   let rows = list || allStudents;
   if(!list && filterKey !== '__ALL__') rows = allStudents.filter(s => normalizeClasseKey(s.classe) === filterKey);
 
+  // OPTIMISATION : Créer une Map des derniers résultats LYCAM pour accès instantané
+  const lycamMap = new Map();
+  allTestResults.forEach(t => {
+      // On garde le résultat le plus récent pour chaque matricule
+      if(!lycamMap.has(t.matricule) || t.at > lycamMap.get(t.matricule).at) {
+          lycamMap.set(t.matricule, t);
+      }
+  });
+
   const tbody = document.querySelector('#roster tbody');
   tbody.innerHTML = '';
   
   rows.forEach(s => { 
-    const hasLycam = allTestResults.some(t => t.matricule === s.matricule);
-    const lycamIcon = hasLycam ? `<i class="fa fa-check-circle" style="color:var(--accent);margin-left:6px" title="Test LYCAM passé"></i>` : '';
+    // Récupération optimisée du résultat
+    const test = lycamMap.get(s.matricule);
+    let lycamBadge = '';
+    
+    if(test) {
+        const score = test.totalScore !== undefined ? test.totalScore : (test.total || 0);
+        const info = getLycamRiskInfo(score);
+        // Badge joli et optimisé
+        lycamBadge = `<span class="badge" style="background:${info.bg}; color:${info.color}; border:1px solid ${info.border}; font-size:10px; margin-left:8px; padding:2px 8px;">
+            <i class="fa ${info.icon}"></i> ${info.label}
+        </span>`;
+    }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${h(s.matricule)}</td>
-      <td><span class="name-part">${h(s.nom)}</span> ${h(s.prenoms||s.prenom)} ${lycamIcon}</td>
+      <td style="display:flex;align-items:center">
+         <div>
+            <span class="name-part">${h(s.nom)}</span> ${h(s.prenoms||s.prenom)}
+         </div>
+         ${lycamBadge}
+      </td>
       <td><span class="badge" style="background:var(--brand-light);color:var(--brand-dark)">${h(s.classe)}</span></td>
       <td style="text-align:center">${h(s.sexe)}</td>
       <td style="text-align:center;font-size:12px">${fmtDate(s.dateNaissance)}</td>
@@ -1020,59 +1409,68 @@ async function handleExcel(file){
     students = students.filter(s => s !== null && s.nom !== '');
 
     // Fonction pour parser les notes
-    const parseGrades = (pattern, key) => {
-   const shName = wb.SheetNames.find(n => n.match(pattern));
-   if(!shName) return;
-   const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
-   
-   console.log(`Parsing ${key} from sheet: ${shName}`);
-   
-   rows.forEach((row, index) => {
-      const mat = String(findColumnValue(row, 'matricule') || '').trim();
-      const st = students.find(s => s.matricule === mat);
-      
-      if(st) {
-         // Debug: Afficher les colonnes disponibles
-         if(index === 0) {
-            console.log('Colonnes disponibles:', Object.keys(row));
-         }
-         
-         // Recherche spécifique pour anglais
-         Object.keys(row).forEach(colRaw => {
-            const colClean = normalizeStr(colRaw);
-            const val = parseFloat(row[colRaw]);
-            
-            // Debug pour anglais
-            if(colClean.includes('angl') || colClean.includes('eng')) {
-                console.log(`Colonne anglaise trouvée: ${colRaw}, valeur: ${val}`);
-            }
-            
-            Object.keys(DICTIONARY).forEach(dictKey => {
-               if(['matricule','nom','prenoms','nom_complet'].includes(dictKey)) return;
-               const aliases = DICTIONARY[dictKey];
-               if(aliases.some(alias => colClean.includes(normalizeStr(alias)))) {
-                  if(!isNaN(val)) {
-                     st.moyennes[key][dictKey] = val;
-                     // Debug
-                     if(dictKey === 'anglais') {
-                        console.log(`Moyenne anglais pour ${st.nom}: ${val}`);
-                     }
-                  }
-               }
-            });
-         });
-         
-         const mg = findColumnValue(row, 'moyenne'); 
-         if(mg) {
-             const mgVal = parseFloat(mg);
-             if(!isNaN(mgVal)) st.moyennes[key]['Moy_generale'] = mgVal;
-         }
-         const rg = findColumnValue(row, 'rang'); 
-         if(rg) st.rangs[key] = rg;
-      }
-   });
-};
+// Fonction pour parser les notes - VERSION CORRIGÉE
+const parseGrades = (pattern, key) => {
+  const shName = wb.SheetNames.find(n => n.match(pattern));
+  if(!shName) return;
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
+  
+  console.log(`Parsing ${key} from sheet: ${shName}`);
+  
+  rows.forEach((row, index) => {
+    const mat = String(findColumnValue(row, 'matricule') || '').trim();
+    const st = students.find(s => s.matricule === mat);
     
+    if(st) {
+      // 1. D'abord traiter le rang (pour éviter les conflits)
+      const rg = findColumnValue(row, 'rang');
+      if(rg) st.rangs[key] = rg;
+      
+      // 2. Traiter la moyenne générale
+      const mg = findColumnValue(row, 'moyenne'); 
+      if(mg) {
+        const mgVal = parseFloat(mg);
+        if(!isNaN(mgVal)) st.moyennes[key]['Moy_generale'] = mgVal;
+      }
+      
+      // 3. Traiter les matières - APPROCHE PLUS PRÉCISE
+      const subjectColumns = {
+        'francais': ['fr','fra','francais','français','frs'],
+        'maths': ['math','maths','mathematique','ml'],
+        'anglais': ['anglais','eng','english'],
+        'physique': ['pc','sp','phys','physique'],
+        'svt': ['svt','bio','biologie','sciences'],
+        'hg': ['hg','hist','geo','histoire','géographie'],
+        'eps': ['eps','sport','education physique'],
+        'philosophie': ['philo','philosophie'],
+        'lv2': ['lv2','espagnol','allemand','esp','all'],
+        'art_plastique': ['ap','art','arts','dessin'],
+        'conduite': ['conduite','cond','comportement']
+      };
+      
+      Object.keys(row).forEach(colRaw => {
+        const colClean = normalizeStr(colRaw);
+        const val = parseFloat(row[colRaw]);
+        
+        if(!isNaN(val)) {
+          // Vérifier d'abord que ce n'est pas une colonne de rang
+          if(colClean.includes('rang') || colClean.includes('rg') || colClean.includes('rank')) {
+            return; // Ignorer, c'est déjà traité
+          }
+          
+          // Chercher la matière correspondante
+          for(const [subject, aliases] of Object.entries(subjectColumns)) {
+            if(aliases.some(alias => colClean === normalizeStr(alias) || colClean.includes(normalizeStr(alias)))) {
+              st.moyennes[key][subject] = val;
+              break; // Sortir de la boucle une fois trouvé
+            }
+          }
+        }
+      });
+    }
+  });
+};
+
     // Parser les notes pour chaque période
     parseGrades(/1.*(TR|Trim)/i, '1TR');
     parseGrades(/2.*(TR|Trim)/i, '2TR');
@@ -1108,39 +1506,56 @@ function getStudentNote(s, period, subjectKey) {
 }
 
 function renderRankingsToContainer(containerId) {
-  const container = document.getElementById(containerId);
-  const scope = document.getElementById('rank-scope').value;
-  const classKey = document.getElementById('rank-class-filter').value;
-  const subjFilter = document.getElementById('subject-filter').value;
-  
-  container.style.gridTemplateColumns = "repeat(auto-fill, minmax(400px, 1fr))";
+    const container = document.getElementById(containerId);
+    const scope = document.getElementById('rank-scope').value;
+    const classKey = document.getElementById('rank-class-filter').value;
+    const subjFilter = document.getElementById('subject-filter').value;
+    
+    // MODIFICATION 1 : Cartes beaucoup plus larges (550px min au lieu de 400px)
+    container.style.gridTemplateColumns = "repeat(auto-fill, minmax(550px, 1fr))";
 
-  const students = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(classKey));
-  if(students.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center">Aucun élève.</div>'; return; }
-  
-  let subjects = [subjFilter]; 
-  let html = '';
-  
-  subjects.forEach(sub => {
-     let ranking = students.map(s => { return { s: s, val: getStudentNote(s, scope, sub) }; }).filter(x => x.val != null && !isNaN(x.val) && x.val >= 0);
-     if(ranking.length === 0) return;
-     ranking.sort((a,b) => b.val - a.val);
-     
-     html += `<div class="card" style="padding:0;overflow:hidden">
-              <div style="background:var(--brand-light);padding:8px;font-weight:700;text-align:center;color:var(--brand-dark);font-size:13px">${getSubjectDisplayName(sub)}</div>
-              <div class="table-wrap" style="max-height:300px;border:none">
-              <table><tbody>`;
-     ranking.forEach((item, i) => {
-        let style = (i<3)?'font-weight:bold;background:#fffbeb':'';
-        html += `<tr style="${style}">
-           <td style="width:30px">#${i+1}</td>
-           <td><span class="name-part" style="font-size:12px">${h(item.s.nom)}</span> ${h(item.s.prenoms)}</td>
-           <td style="text-align:right;font-weight:bold">${item.val.toFixed(2)}</td>
-        </tr>`;
-     });
-     html += `</tbody></table></div></div>`;
-  });
-  container.innerHTML = html || '<div style="text-align:center">Pas de données.</div>';
+    const students = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(classKey));
+    if(students.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center">Aucun élève.</div>'; return; }
+    
+    let subjects = [subjFilter]; 
+    let html = '';
+    
+    subjects.forEach(sub => {
+        // Calculer la moyenne de classe pour cette matière
+        const classAverage = calculateClassAverage(students, sub, scope);
+        const avgColor = classAverage >= 10 ? 'var(--accent)' : 'var(--danger)';
+        
+        let ranking = students.map(s => { 
+            return { s: s, val: getStudentNote(s, scope, sub) }; 
+        }).filter(x => x.val != null && !isNaN(x.val) && x.val >= 0);
+        
+        if(ranking.length === 0) return;
+        ranking.sort((a,b) => b.val - a.val);
+        
+        html += `<div class="card" style="padding:0;overflow:hidden">
+                <div style="background:var(--brand-light);padding:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;color:var(--brand-dark);font-size:14px">
+                    <span>${getSubjectDisplayName(sub)}</span>
+                    <span style="background:white;padding:2px 10px;border-radius:12px;font-size:12px;color:${avgColor};border:1px solid var(--border)">
+                        Moy.classe: ${classAverage ? classAverage.toFixed(2) : '—'}
+                    </span>
+                </div>
+                <div class="table-wrap" style="max-height:600px;border:none">
+                <table><tbody>`;
+        
+        ranking.forEach((item, i) => {
+            let style = (i<3)?'font-weight:bold;background:#fffbeb':'';
+            
+            // MODIFICATION 3 : Ajout de l'événement onclick et du curseur pointer
+            // On utilise l'ID pour retrouver l'objet élève de manière sûre
+            html += `<tr style="${style}; cursor:pointer" onclick="openStudent(allStudents.find(s => s.id === '${item.s.id}'))">
+               <td style="width:40px; padding:10px 8px">#${i+1}</td>
+               <td style="padding:10px 8px"><span class="name-part" style="font-size:13px">${h(item.s.nom)}</span> ${h(item.s.prenoms)}</td>
+               <td style="text-align:right;font-weight:bold;font-size:14px;padding:10px 12px">${item.val.toFixed(2)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+    });
+    container.innerHTML = html || '<div style="text-align:center">Pas de données.</div>';
 }
 
 // CORRECTION: Better logic for trends
@@ -1149,7 +1564,7 @@ async function renderGrades(s){
   const thead = document.querySelector('#grades-table thead tr');
   
   // Clean headers (visual check)
-  if(!thead.innerHTML.includes('Matière')) thead.innerHTML = `<th>Matière</th><th>T1</th><th>T2</th><th>T3</th><th>AN</th>`;
+  if(!thead.innerHTML.includes('Matière')) thead.innerHTML = `<th>Matière</th><th>1TR</th><th>2TR</th><th>3TR</th><th>Annuelle</th>`;
   
   tbody.innerHTML = '';
   
@@ -1233,7 +1648,7 @@ async function renderGrades(s){
 
 function renderKPIs(s){
   const anns = s.moyennes['Annuelle']?.Moy_generale;
-  document.getElementById('kpi-avg').innerHTML = `T1: <b>${s.moyennes['1TR']?.Moy_generale?.toFixed(2)||'—'}</b> • T2: <b>${s.moyennes['2TR']?.Moy_generale?.toFixed(2)||'—'}</b> • T3: <b>${s.moyennes['3TR']?.Moy_generale?.toFixed(2)||'—'}</b><br><br><span style="font-size:1.3em;color:var(--brand)">Annuelle: ${anns?.toFixed(2)||'—'}</span>`;
+  document.getElementById('kpi-avg').innerHTML = `1TR: <b>${s.moyennes['1TR']?.Moy_generale?.toFixed(2)||'—'}</b> • 2TR: <b>${s.moyennes['2TR']?.Moy_generale?.toFixed(2)||'—'}</b> • 3TR: <b>${s.moyennes['3TR']?.Moy_generale?.toFixed(2)||'—'}</b><br><br><span style="font-size:1.3em;color:var(--brand)">Annuelle: ${anns?.toFixed(2)||'—'}</span>`;
   document.getElementById('kpi-status').textContent = (anns >= 10) ? 'Admis' : 'Refusé';
   document.getElementById('kpi-status').className = (anns >= 10) ? 'badge' : 'badge';
   document.getElementById('kpi-status').style.background = (anns >= 10) ? '#dcfce7' : '#fee2e2';
@@ -1370,8 +1785,9 @@ function renderLycamGlobal() {
         if(!student) return;
 
         const score = t.totalScore !== undefined ? t.totalScore : (t.total || 0);
-        let statusBadge = score >= LYCAM_TOTAL_THRESHOLD ? '<span class="badge risk-badge">Risque Élevé</span>' : '<span class="badge ok-badge">Faible Risque</span>';
+        const info = getLycamRiskInfo(score); // Utilise notre helper
 
+        // Construction des dimensions (inchangé)
         let dimHtml = '';
         if(t.dimensionScores) {
             const dimKeys = ['AF','PS','RS','CS','AB','BS','IE'];
@@ -1386,12 +1802,20 @@ function renderLycamGlobal() {
         }
 
         const tr = document.createElement('tr');
+        // MODIFICATION ICI : Risque devant le score
         tr.innerHTML = `
             <td>
                 <div style="font-weight:bold">${student.nom} ${student.prenoms}</div>
                 <div style="font-size:11px;color:#64748b">${student.classe}</div>
             </td>
-            <td style="font-weight:bold;text-align:center;font-size:15px">${score}</td>
+            <td style="text-align:center">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
+                    <span class="badge" style="background:${info.bg}; color:${info.color}; border:1px solid ${info.border}; text-transform:uppercase; font-size:11px">
+                        ${info.label}
+                    </span>
+                    <span style="font-weight:800; font-size:16px; color:var(--text)">Score : ${score}</span>
+                </div>
+            </td>
             <td>${dimHtml}</td>
             <td>${fmtDate(t.at)}</td>
             <td><button class="btn ghost btn-del-lycam"><i class="fa fa-trash"></i></button></td>
@@ -1542,6 +1966,297 @@ async function exportFullBackup() {
     URL.revokeObjectURL(url);
 }
 
+/* ====== STATISTIQUES GLOBALES CORRIGÉES ====== */
+
+// Récupère la période choisie (1TR, 2TR, etc.)
+function getStatsPeriod() {
+    const el = document.getElementById('stats-period-selector');
+    return el ? el.value : 'Annuelle';
+}
+
+function switchStatsView(view) {
+    const views = ['overview', 'repartition', 'topbottom', 'gender', 'orientation'];
+    views.forEach(v => {
+        const el = document.getElementById(`stats-${v}`);
+        if(el) el.style.display = 'none';
+        
+        const tab = document.querySelector(`#stats-tabs .tab[onclick*="${v}"]`);
+        if(tab) tab.classList.remove('active');
+    });
+    
+    const targetEl = document.getElementById(`stats-${view}`);
+    if(targetEl) targetEl.style.display = 'block';
+    
+    const targetTab = document.querySelector(`#stats-tabs .tab[onclick*="${view}"]`);
+    if(targetTab) targetTab.classList.add('active');
+    
+    // Rafraîchir la vue demandée
+    if(view === 'overview') renderOverviewStats();
+    else if(view === 'repartition') renderRepartitionStats();
+    else if(view === 'topbottom') renderTopBottomStats();
+    else if(view === 'gender') renderGenderStats();
+    else if(view === 'orientation') renderOrientationStats();
+}
+
+// Recalculer quand on change la période
+document.getElementById('stats-period-selector').addEventListener('change', () => {
+    // Trouver l'onglet actif et recharger sa fonction
+    const activeTab = document.querySelector('#stats-tabs .tab.active');
+    if(activeTab) activeTab.click();
+});
+
+function calculateClassAverage(students, subjectKey, period) {
+    let validNotes = 0;
+    let sum = 0;
+    students.forEach(s => {
+        const note = getStudentNote(s, period, subjectKey);
+        // MODIFICATION : Ajout de (note > 1) pour exclure 0 et 1
+        if (note !== -1 && !isNaN(note) && note > 1) {
+            sum += note;
+            validNotes++;
+        }
+    });
+    if (validNotes === 0) return null;
+    return sum / validNotes;
+}
+
+function renderOverviewStats() {
+    const container = document.getElementById('overview-content');
+    const selectedClass = document.getElementById('class-filter').value;
+    const period = getStatsPeriod(); // Utilisation dynamique
+    
+    const classes = selectedClass === '__ALL__' 
+        ? [...new Set(allStudents.map(s => s.classe).filter(Boolean))].sort()
+        : [selectedClass];
+    
+    let html = '<div class="stat-grid">';
+    
+    classes.forEach(cls => {
+        const classStudents = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(cls));
+        if(classStudents.length === 0) return;
+        
+        // Moyenne générale
+        const generalAvg = calculateClassAverage(classStudents, 'Moy_generale', period);
+        const displayAvg = generalAvg !== null ? generalAvg.toFixed(2) : '—';
+        
+        // Taux de réussite (Moyenne >= 10)
+        const passedCount = classStudents.filter(s => getStudentNote(s, period, 'Moy_generale') >= 10).length;
+        const successRate = generalAvg !== null ? Math.round((passedCount / classStudents.length) * 100) : 0;
+        
+        // Couleur dynamique
+        let color = 'var(--text-muted)';
+        if(generalAvg >= 12) color = 'var(--accent)';
+        else if(generalAvg >= 10) color = 'var(--brand)';
+        else if(generalAvg > 0) color = 'var(--danger)';
+
+        html += `
+            <div class="kpi-card">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <h3 style="margin:0; color:var(--brand-dark)">${cls}</h3>
+                    <span class="chip">${classStudents.length} élèves</span>
+                </div>
+                
+                <div style="display:flex; gap:20px; align-items:center; margin-bottom:15px">
+                    <div>
+                        <div class="kpi-label">Moyenne Classe</div>
+                        <div class="kpi-value" style="color:${color}">${displayAvg}</div>
+                    </div>
+                    <div style="flex:1">
+                        <div class="kpi-label">Réussite (${passedCount}/${classStudents.length})</div>
+                        <div style="display:flex; align-items:center; gap:8px">
+                            <div class="stat-bar-container">
+                                <div class="stat-bar-fill" style="width:${successRate}%; background:${successRate>=50?'var(--accent)':'var(--danger)'}"></div>
+                            </div>
+                            <span style="font-weight:bold; font-size:12px">${successRate}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px">
+                    <strong>Période : ${period}</strong>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// NOUVELLE FONCTION : Histogramme de répartition
+function renderRepartitionStats() {
+    const container = document.getElementById('repartition-content');
+    const selectedClass = document.getElementById('class-filter').value;
+    const period = getStatsPeriod();
+    
+    let students = selectedClass === '__ALL__' ? allStudents : allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(selectedClass));
+    
+    // Définir les tranches
+    const ranges = [
+        { label: '0 - 5,99', min: 0, max: 5.99, color: '#ef4444' },
+        { label: '6 - 8,49', min: 6, max: 8.49, color: '#f97316' },
+        { label: '8,5 - 9,99', min: 8.5, max: 9.99, color: '#eab308' },
+        { label: '10 - 11,99', min: 10, max: 11.99, color: '#84cc16' },
+        { label: '12 - 14,99', min: 12, max: 14.99, color: '#22c55e' },
+        { label: '15 et +', min: 15, max: 20, color: '#06b6d4' }
+    ];
+    
+    // Compter
+    const counts = ranges.map(r => 0);
+    let totalWithGrades = 0;
+    
+    students.forEach(s => {
+        const avg = getStudentNote(s, period, 'Moy_generale');
+        
+        // MODIFICATION : On ne compte que si la moyenne est strictement supérieure à 1
+        if(avg > 1) {
+            totalWithGrades++;
+            const idx = ranges.findIndex(r => avg >= r.min && avg <= r.max);
+            if(idx !== -1) counts[idx]++;
+        }
+    });
+
+    if(totalWithGrades === 0) {
+        container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted)">Aucune note trouvée pour la période <b>${period}</b>.</div>`;
+        return;
+    }
+
+    let html = `<div class="card"><h4 style="margin-top:0">Répartition des Moyennes Générales (${period})</h4><div style="display:flex; flex-direction:column; gap:12px;">`;
+    
+    ranges.forEach((r, idx) => {
+        const count = counts[idx];
+        const pct = ((count / totalWithGrades) * 100).toFixed(1);
+        
+        html += `
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px">
+                    <span style="font-weight:600">${r.label}</span>
+                    <span>${count} élèves (${pct}%)</span>
+                </div>
+                <div class="stat-bar-container" style="height:12px; margin-top:0">
+                    <div class="stat-bar-fill" style="width:${pct}%; background:${r.color}"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function renderTopBottomStats() {
+    const container = document.getElementById('topbottom-content');
+    const selectedClass = document.getElementById('class-filter').value;
+    const period = getStatsPeriod();
+    
+    const classStudents = selectedClass === '__ALL__' 
+        ? allStudents
+        : allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(selectedClass));
+    
+// Dans renderTopBottomStats, remplacez la ligne sortedStudents :
+    const sortedStudents = classStudents
+        .map(s => ({ ...s, val: getStudentNote(s, period, 'Moy_generale') }))
+        // MODIFICATION : Filtre > 1
+        .filter(s => s.val !== -1 && !isNaN(s.val) && s.val > 1)
+        .sort((a, b) => b.val - a.val);
+        
+    if(sortedStudents.length === 0) {
+        container.innerHTML = `<div style="padding:20px; text-align:center">Aucune donnée pour ${period}</div>`;
+        return;
+    }
+    
+    const top10 = sortedStudents.slice(0, 10);
+    const bottom10 = sortedStudents.slice(-10).reverse(); // Pire en haut de la liste bottom
+
+    // Fonction helper pour générer table
+    const makeTable = (list, title, colorIcon) => {
+        let h = `<div class="card" style="flex:1"><h4 style="margin-top:0; border-bottom:1px solid var(--border); padding-bottom:10px"><i class="fa ${colorIcon}"></i> ${title} (${period})</h4>
+        <div class="table-wrap"><table style="font-size:12px"><thead><tr><th>#</th><th>Nom</th><th>Classe</th><th>Moy</th></tr></thead><tbody>`;
+        list.forEach((s, i) => {
+            h += `<tr onclick="openStudent(allStudents.find(x=>x.id=='${s.id}'))">
+                <td>${i+1}</td>
+                <td><b>${s.nom}</b> ${s.prenoms.substring(0,10)}...</td>
+                <td><span class="badge">${s.classe}</span></td>
+                <td style="font-weight:bold">${s.val.toFixed(2)}</td>
+            </tr>`;
+        });
+        h += `</tbody></table></div></div>`;
+        return h;
+    };
+
+    container.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:16px">
+        ${makeTable(top10, 'Les Meilleurs', 'fa-trophy" style="color:var(--warn)')}
+        ${makeTable(bottom10, 'En Difficulté', 'fa-arrow-down" style="color:var(--danger)')}
+    </div>`;
+}
+
+function renderGenderStats() {
+    const container = document.getElementById('gender-content');
+    const selectedClass = document.getElementById('class-filter').value;
+    const period = getStatsPeriod();
+    
+    const classStudents = selectedClass === '__ALL__' 
+        ? allStudents
+        : allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(selectedClass));
+    
+    const male = classStudents.filter(s => s.sexe === 'M');
+    const female = classStudents.filter(s => s.sexe === 'F');
+    
+    const calcAvg = (list) => calculateClassAverage(list, 'Moy_generale', period) || 0;
+    const avgM = calcAvg(male);
+    const avgF = calcAvg(female);
+    
+    container.innerHTML = `
+        <div class="stat-grid" style="margin-bottom:20px">
+            <div class="kpi-card" style="text-align:center">
+                <i class="fa fa-female" style="font-size:30px; color:#ec4899"></i>
+                <div class="kpi-value">${avgF.toFixed(2)}</div>
+                <div class="kpi-label">Moyenne Filles (${female.length})</div>
+            </div>
+            <div class="kpi-card" style="text-align:center">
+                <i class="fa fa-male" style="font-size:30px; color:#3b82f6"></i>
+                <div class="kpi-value">${avgM.toFixed(2)}</div>
+                <div class="kpi-label">Moyenne Garçons (${male.length})</div>
+            </div>
+        </div>
+        <div class="card" style="padding:10px; background:var(--brand-light); text-align:center; font-size:13px">
+            Basé sur les données : <b>${period}</b>
+        </div>
+    `;
+}
+
+function renderOrientationStats() {
+    const container = document.getElementById('orientation-content');
+    const period = getStatsPeriod();
+    
+    // Filtrer Cycle 1
+    const students = allStudents.filter(s => (s.classe||'').match(/^(6|5|4|3)/));
+    const subjects = ['maths','physique','anglais','francais'];
+    
+    let html = `<div style="margin-bottom:10px;font-size:12px;color:var(--text-muted)">Période: ${period} | Élèves concernés: ${students.length} (6e à 3e)</div>
+    <div class="stat-grid">`;
+    
+    subjects.forEach(sub => {
+        const avg = calculateClassAverage(students, sub, period) || 0;
+        // Compter ceux qui ont la moyenne
+        const ok = students.filter(s => getStudentNote(s, period, sub) >= 10).length;
+        const pct = ((ok/students.length)*100).toFixed(0);
+        
+        html += `
+        <div class="kpi-card">
+            <div style="font-weight:bold; margin-bottom:8px; text-transform:capitalize">${sub}</div>
+            <div class="kpi-value" style="color:${avg>=10?'var(--accent)':'var(--danger)'}">${avg.toFixed(2)}</div>
+            <div class="stat-bar-container">
+                <div class="stat-bar-fill" style="width:${pct}%; background:var(--brand)"></div>
+            </div>
+            <div style="font-size:11px; margin-top:4px">${ok} élèves ≥ 10 (${pct}%)</div>
+        </div>`;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
 async function importFullBackup(file) {
     if(!confirm("ATTENTION : Cette action va écraser/fusionner les données existantes. Voulez-vous continuer ?")) {
         document.getElementById('input-import-backup').value = '';
@@ -1582,7 +2297,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('tab-'+t.dataset.tab).style.display = 'block';
     });
   });
+// Ouvrir les statistiques
+document.getElementById('btn-open-stats').addEventListener('click', () => {
+    document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
+    document.getElementById('statsPanel').style.display = 'flex';
+    document.getElementById('statsPanel').style.flexDirection = 'column';
+    renderOverviewStats();
+});
 
+// Mettre à jour les statistiques quand on change de classe
+document.getElementById('class-filter').addEventListener('change', () => {
+    if(document.getElementById('statsPanel').style.display === 'flex') {
+        renderOverviewStats();
+    }
+});
   await loadGlobalData();
   await loadStudentsForYear();
   
@@ -1740,7 +2468,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     coachingData.push({ id: uuid(), matricule: currentStudent.matricule, at: new Date().toISOString(), status: document.getElementById('coach-status').value, actions: document.getElementById('coach-actions').value });
     storage.save('LYCAMCoachingData', coachingData); renderCoachings(currentStudent); document.getElementById('coach-actions').value='';
   });
+  document.getElementById('btn-generate-demo').addEventListener('click', () => {
+    if(confirm("Générer des données fictives ivoiriennes ? Cela remplacera les données existantes.")) {
+        generateDummyData();
+    }
 });
+});
+
 </script>
 </body>
 </html>
