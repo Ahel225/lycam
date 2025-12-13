@@ -377,6 +377,36 @@
 }
 .kpi-value { font-size: 24px; font-weight: 800; color: var(--text); }
 .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+/* Ajouter ces styles dans la section CSS LYCAM */
+.question-block.missing {
+    border: 2px solid var(--danger) !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    padding: 12px;
+    border-radius: 8px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.question-block.missing .question-text {
+    color: var(--danger) !important;
+    font-weight: 800 !important;
+}
+
+.missing-label {
+    color: var(--danger) !important;
+    font-weight: 600 !important;
+}
+
+.required-asterisk {
+    color: var(--danger);
+    font-weight: bold;
+    margin-left: 2px;
+}
   </style>
 </head>
 <body>
@@ -764,16 +794,34 @@
 </div>
 
 <div id="modal-lycam-test" class="modal">
-    <div class="modal-content">
-        <div style="padding:20px;border-bottom:1px solid var(--border);background:var(--surface-2);border-radius:16px 16px 0 0">
-            <h3 style="margin:0">Test LYCAM</h3>
-            <div id="lycam-candidate-name" style="font-weight:bold;color:var(--lycam-color)"></div>
-            <div style="font-size:12px;color:var(--text-muted)">Cochez la réponse donnée par l'élève.</div>
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+        <div style="padding:20px;border-bottom:1px solid var(--border);background:var(--surface-2);border-radius:16px 16px 0 0; position: sticky; top: 0; z-index: 10;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin:0">Test LYCAM</h3>
+                    <div id="lycam-candidate-name" style="font-weight:bold;color:var(--lycam-color); margin-top: 4px;"></div>
+                    <div style="font-size:12px;color:var(--text-muted); margin-top: 2px;">
+                        <i class="fa fa-exclamation-circle"></i> Toutes les questions sont obligatoires
+                    </div>
+                </div>
+                <div id="lycam-progress" style="background: var(--surface); padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: var(--lycam-color); border: 1px solid var(--border);">
+                    0/41 répondues
+                </div>
+            </div>
+            <!-- La div d'erreur sera ajoutée dynamiquement -->
         </div>
-        <div class="modal-body" id="lycam-questions-container"></div>
-        <div class="modal-footer">
-            <button type="button" id="btn-cancel-lycam" class="btn ghost">Annuler</button>
-            <button type="button" id="btn-submit-lycam" class="btn lycam-btn">Valider le test</button>
+        
+        <div class="modal-body" id="lycam-questions-container" style="padding: 20px; overflow-y: auto;">
+            <!-- Les questions seront insérées ici -->
+        </div>
+        
+        <div class="modal-footer" style="position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border);">
+            <button type="button" id="btn-cancel-lycam" class="btn ghost">
+                <i class="fa fa-times"></i> Annuler
+            </button>
+            <button type="button" id="btn-submit-lycam" class="btn lycam-btn">
+                <i class="fa fa-check-circle"></i> Valider le test
+            </button>
         </div>
     </div>
 </div>
@@ -1671,17 +1719,92 @@ function startLycamTest(student) {
     container.innerHTML = '';
     document.getElementById('lycam-candidate-name').textContent = `${student.nom} ${student.prenoms}`;
     
+    // Réinitialiser le message d'erreur
+    const errorDiv = document.getElementById('lycam-error-message');
+    if (errorDiv) errorDiv.style.display = 'none';
+    
     LYCAM_QUESTIONS.forEach(q => {
         const block = document.createElement('div');
         block.className = 'question-block';
-        let html = `<div class="question-text">${q.id}. ${q.text}</div>`;
+        block.id = `q-block-${q.id}`;
+        // Ajouter un astérisque pour indiquer que c'est obligatoire
+        let html = `<div class="question-text">${q.id}. ${q.text}<span class="required-asterisk">*</span></div>`;
         q.options.forEach(opt => {
             html += `<label class="option-label"><input type="radio" name="q_${q.id}" value="${opt}" data-qid="${q.id}"> ${opt}</label>`;
         });
         block.innerHTML = html;
         container.appendChild(block);
     });
+    
+    // Ajouter un écouteur pour retirer le style "missing" quand une réponse est sélectionnée
+    container.addEventListener('change', function(e) {
+        if (e.target.type === 'radio') {
+            const questionId = e.target.getAttribute('data-qid');
+            const questionBlock = document.getElementById(`q-block-${questionId}`);
+            if (questionBlock) {
+                questionBlock.classList.remove('missing');
+                // Retirer aussi le style des labels
+                const labels = questionBlock.querySelectorAll('.option-label');
+                labels.forEach(label => label.classList.remove('missing-label'));
+            }
+            
+            // Mettre à jour le compteur
+            updateMissingQuestionsCount();
+        }
+    });
+    
     document.getElementById('modal-lycam-test').style.display = 'flex';
+    
+    // Faire défiler vers le haut du modal
+    container.scrollTop = 0;
+}
+function updateLycamProgress() {
+    const totalQuestions = LYCAM_QUESTIONS.length;
+    let answeredCount = 0;
+    
+    for(let i = 1; i <= totalQuestions; i++) {
+        const selected = document.querySelector(`input[name="q_${i}"]:checked`);
+        if(selected) answeredCount++;
+    }
+    
+    const progressDiv = document.getElementById('lycam-progress');
+    if (progressDiv) {
+        const percentage = Math.round((answeredCount / totalQuestions) * 100);
+        progressDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 60px; background: var(--border); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div style="width: ${percentage}%; background: ${answeredCount === totalQuestions ? 'var(--accent)' : 'var(--lycam-color)'}; height: 100%;"></div>
+                </div>
+                <span>${answeredCount}/${totalQuestions}</span>
+            </div>
+        `;
+    }
+    
+    return answeredCount;
+    // Ajouter un écouteur pour retirer le style "missing" quand une réponse est sélectionnée
+container.addEventListener('change', function(e) {
+    if (e.target.type === 'radio') {
+        const questionId = e.target.getAttribute('data-qid');
+        const questionBlock = document.getElementById(`q-block-${questionId}`);
+        if (questionBlock) {
+            questionBlock.classList.remove('missing');
+            // Retirer aussi le style des labels
+            const labels = questionBlock.querySelectorAll('.option-label');
+            labels.forEach(label => label.classList.remove('missing-label'));
+        }
+        
+        // Mettre à jour le compteur et la progression
+        updateMissingQuestionsCount();
+        updateLycamProgress();
+        
+        // Cacher le message d'erreur si toutes les questions sont maintenant remplies
+        const missingCount = updateMissingQuestionsCount();
+        if (missingCount === 0) {
+            const errorDiv = document.getElementById('lycam-error-message');
+            if (errorDiv) errorDiv.style.display = 'none';
+        }
+    }
+});
 }
 
 function submitLycamTest() {
@@ -1692,7 +1815,66 @@ function submitLycamTest() {
     const dimensionScores = {};
     Object.keys(LYCAM_DIMENSIONS).forEach(k => dimensionScores[k] = 0);
     
-    for(let i=1; i<=LYCAM_QUESTIONS.length; i++) {
+    // Vérifier d'abord si toutes les questions sont renseignées
+    const missingQuestions = [];
+    
+    for(let i = 1; i <= LYCAM_QUESTIONS.length; i++) {
+        const selected = document.querySelector(`input[name="q_${i}"]:checked`);
+        const val = selected ? selected.value : '';
+        
+        if (!val) {
+            missingQuestions.push(i);
+        }
+    }
+    
+    // Si des questions manquent, mettre en évidence et empêcher la soumission
+    if (missingQuestions.length > 0) {
+        // Retirer d'abord tous les styles "missing"
+        document.querySelectorAll('.question-block').forEach(block => {
+            block.classList.remove('missing');
+        });
+        
+        // Appliquer le style "missing" aux questions non renseignées
+        missingQuestions.forEach(qId => {
+            const questionBlock = document.getElementById(`q-block-${qId}`);
+            if (questionBlock) {
+                questionBlock.classList.add('missing');
+                
+                // Mettre aussi en évidence les labels
+                const labels = questionBlock.querySelectorAll('.option-label');
+                labels.forEach(label => label.classList.add('missing-label'));
+            }
+        });
+        
+        // Afficher un message d'erreur
+        const errorDiv = document.getElementById('lycam-error-message');
+        if (!errorDiv) {
+            // Créer le message d'erreur s'il n'existe pas
+            const modalHeader = document.querySelector('#modal-lycam-test .modal-content > div:first-child');
+            const errorMsg = document.createElement('div');
+            errorMsg.id = 'lycam-error-message';
+            errorMsg.style.cssText = 'color:var(--danger);font-size:12px;margin-top:8px;padding:8px;background:rgba(239,68,68,0.1);border-radius:6px;border:1px solid rgba(239,68,68,0.3);';
+            modalHeader.appendChild(errorMsg);
+        }
+        
+        const errorMsg = document.getElementById('lycam-error-message');
+        errorMsg.innerHTML = `<i class="fa fa-exclamation-triangle"></i> <strong>${missingQuestions.length} question(s) non renseignée(s)</strong> : ${missingQuestions.join(', ')}. Veuillez répondre à toutes les questions avant de valider.`;
+        errorMsg.style.display = 'block';
+        
+        // Faire défiler vers la première question manquante
+        const firstMissing = document.getElementById(`q-block-${missingQuestions[0]}`);
+        if (firstMissing) {
+            firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Mettre à jour le compteur
+        updateMissingQuestionsCount();
+        
+        return; // Ne pas soumettre le test
+    }
+    
+    // Si toutes les questions sont renseignées, procéder au calcul
+    for(let i = 1; i <= LYCAM_QUESTIONS.length; i++) {
         const selected = document.querySelector(`input[name="q_${i}"]:checked`);
         const val = selected ? selected.value : '';
         const risk = getRiskScore(i, val);
@@ -1721,9 +1903,40 @@ function submitLycamTest() {
 
     allTestResults.push(result);
     storage.save('LYCAMTestResults', allTestResults);
+    
+    // Cacher le message d'erreur s'il existe
+    const errorDiv = document.getElementById('lycam-error-message');
+    if (errorDiv) errorDiv.style.display = 'none';
+    
     document.getElementById('modal-lycam-test').style.display = 'none';
     renderLycamGlobal();
     renderLycamCandidates();
+    
+    // Afficher un message de succès
+    setStatus(`Test LYCAM enregistré pour ${currentLycamCandidate.nom} ${currentLycamCandidate.prenoms} (Score: ${totalScore})`, 'success');
+}
+
+function updateMissingQuestionsCount() {
+    const totalQuestions = LYCAM_QUESTIONS.length;
+    let answeredCount = 0;
+    
+    for(let i = 1; i <= totalQuestions; i++) {
+        const selected = document.querySelector(`input[name="q_${i}"]:checked`);
+        if(selected) answeredCount++;
+    }
+    
+    const missingCount = totalQuestions - answeredCount;
+    const submitBtn = document.getElementById('btn-submit-lycam');
+    
+    if (missingCount === 0) {
+        submitBtn.innerHTML = '<i class="fa fa-check-circle"></i> Valider le test';
+        submitBtn.style.background = 'var(--lycam-color)';
+    } else {
+        submitBtn.innerHTML = `<i class="fa fa-exclamation-triangle"></i> Valider (${missingCount} manquante${missingCount > 1 ? 's' : ''})`;
+        submitBtn.style.background = 'var(--danger)';
+    }
+    
+    return missingCount;
 }
 
 function switchLycamView(view) {
@@ -2454,8 +2667,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await studentsStore.save(getSelectedYear(), allStudents);
     document.getElementById('modal-add-student').style.display = 'none'; form.reset(); renderRoster();
   });
-
-  document.getElementById('btn-cancel-lycam').addEventListener('click', () => document.getElementById('modal-lycam-test').style.display = 'none');
+document.getElementById('btn-cancel-lycam').addEventListener('click', () => {
+    // Réinitialiser les styles
+    document.querySelectorAll('.question-block').forEach(block => {
+        block.classList.remove('missing');
+    });
+    document.getElementById('modal-lycam-test').style.display = 'none';
+});
   document.getElementById('btn-submit-lycam').addEventListener('click', submitLycamTest);
 
   document.getElementById('btn-add-visit').addEventListener('click', () => {
