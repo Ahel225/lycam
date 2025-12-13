@@ -1135,7 +1135,7 @@ function generateDummyData() {
     storage.save('LYCAMCoachingData', coachingData);
     storage.save('GlobalRegistryData', allRegistry);
 
-    console.log(`Données fictives ivoiriennes générées : ${allStudents.length} élèves, ${allTestResults.length} résultats LYCAM, ${allVisits.length} visites.`);
+    console.log(`Données fictives générées : ${allStudents.length} élèves, ${allTestResults.length} résultats LYCAM, ${allVisits.length} visites.`);
     
     // Recharger l'affichage
     loadStudentsForYear();
@@ -2687,7 +2687,7 @@ document.getElementById('btn-cancel-lycam').addEventListener('click', () => {
     storage.save('LYCAMCoachingData', coachingData); renderCoachings(currentStudent); document.getElementById('coach-actions').value='';
   });
   document.getElementById('btn-generate-demo').addEventListener('click', () => {
-    if(confirm("Générer des données fictives ivoiriennes ? Cela remplacera les données existantes.")) {
+    if(confirm("Générer des données fictives ? Cela remplacera les données existantes.")) {
         generateDummyData();
     }
 });
