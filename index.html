@@ -1628,6 +1628,7 @@ function getSubjectDisplayName(k){
 /* ====== FONCTIONS D'ANALYSE DE CLASSE ====== */
 
 function parseClasse(classe) {
+    // 1. Nettoyage : minuscules et trim
     const c = (classe || '').toLowerCase().trim();
     
     const result = {
@@ -1639,64 +1640,68 @@ function parseClasse(classe) {
         isLycée: false
     };
     
-    // Détecter le niveau - LOGIQUE AMÉLIORÉE
-    if (c.includes('6e') || c.includes('6eme') || c.includes('6ème') || c.match(/(^|\D)6($|\D)/)) {
-        result.niveau = '6e';
-        result.cycle = 'premier';
-        result.isPremierCycle = true;
-    } else if (c.includes('5e') || c.includes('5eme') || c.includes('5ème') || c.match(/(^|\D)5($|\D)/)) {
-        result.niveau = '5e';
-        result.cycle = 'premier';
-        result.isPremierCycle = true;
-    } else if (c.includes('4e') || c.includes('4eme') || c.includes('4ème') || c.match(/(^|\D)4($|\D)/)) {
-        result.niveau = '4e';
-        result.cycle = 'premier';
-        result.isPremierCycle = true;
-    } else if (c.includes('3e') || c.includes('3eme') || c.includes('3ème') || c.match(/(^|\D)3($|\D)/)) {
-        result.niveau = '3e';
-        result.cycle = 'premier';
-        result.isPremierCycle = true;
-    } else if (c.includes('2nde') || c.includes('seconde') || c.includes('2nd') || c.match(/^2/)) {
-        result.niveau = '2nde';
-        result.cycle = 'second';
-        result.isSecondCycle = true;
-        result.isLycée = true;
-    } else if (c.includes('1ere') || c.includes('première') || c.includes('1ère') || c.includes('1e') || c.match(/^1/)) {
-        result.niveau = '1ere';
-        result.cycle = 'second';
-        result.isSecondCycle = true;
-        result.isLycée = true;
-    } else if (c.includes('term') || c.includes('tle') || c.includes('terminal') || c.match(/^t/)) {
+    // --- DÉTECTION DU NIVEAU ---
+    
+    // Terminale (Tle, Term, Terminale)
+    if (c.match(/^(t|term)/)) {
         result.niveau = 'terminale';
+    } 
+    // Première (1ere, 1ère, 1e, ou commence par 1)
+    else if (c.match(/^1/) || c.match(/1\s*(er|re|e|ère)/)) {
+        result.niveau = '1ere';
+    }
+    // Seconde (2nde, 2nd, ou commence par 2)
+    else if (c.match(/^2/) || c.match(/2\s*(nd|de)/)) {
+        result.niveau = '2nde';
+    }
+    // 3ème : Commence par 3 OU contient "3e/3eme" (mais pas juste un 3 à la fin comme 6eme3)
+    else if (c.match(/^3/) || c.match(/3\s*(e|è|em)/)) {
+        result.niveau = '3e';
+    }
+    // 4ème
+    else if (c.match(/^4/) || c.match(/4\s*(e|è|em)/)) {
+        result.niveau = '4e';
+    }
+    // 5ème
+    else if (c.match(/^5/) || c.match(/5\s*(e|è|em)/)) {
+        result.niveau = '5e';
+    }
+    // 6ème
+    else if (c.match(/^6/) || c.match(/6\s*(e|è|em)/)) {
+        result.niveau = '6e';
+    }
+
+    // --- DÉTECTION DU CYCLE ---
+    if (['6e', '5e', '4e', '3e'].includes(result.niveau)) {
+        result.cycle = 'premier';
+        result.isPremierCycle = true;
+    } else if (['2nde', '1ere', 'terminale'].includes(result.niveau)) {
         result.cycle = 'second';
         result.isSecondCycle = true;
         result.isLycée = true;
     }
+
+    // --- DÉTECTION DE LA SÉRIE (A, C, D...) ---
+    // On cherche une lettre isolée ou en fin de chaîne, en ignorant les mots clés comme "art"
     
-    // Détecter la série - LOGIQUE AMÉLIORÉE
-    // D'abord chercher une lettre de série (A, B, C, D, F) comme caractère séparé
-    const serieMatch = c.match(/(?:^|\s)([abcdf])(?:\s|$|\d)/i);
+    // Regex : Cherche une lettre A,B,C,D,F,G précédée d'un espace, ou collée à la fin (ex: 3eA)
+    // On exclut les cas où la lettre fait partie d'un mot (ex: "Art", "Ap")
+    const serieMatch = c.match(/(?:^|\s|\d)([abcdfgh])(?:\s|$|\d)/i);
+    
     if (serieMatch) {
         result.serie = serieMatch[1].toUpperCase();
     } else {
-        // Sinon, chercher la lettre dans la chaîne
-        if (c.includes('a') && !c.includes('art') && !c.includes('ap') && !c.includes('ad')) {
-            result.serie = 'A';
-        } else if (c.includes('b')) {
-            result.serie = 'B';
-        } else if (c.includes('c')) {
-            result.serie = 'C';
-        } else if (c.includes('d')) {
-            result.serie = 'D';
-        } else if (c.includes('f')) {
-            result.serie = 'F';
-        } else if (c.includes('g')) {
-            result.serie = 'G';
-        }
+        // Fallback pour les cas collés sans espace où le regex précédent échoue (ex: TleD)
+        if (c.includes('a') && !c.includes('art') && !c.includes('ap')) result.serie = 'A';
+        else if (c.includes('c')) result.serie = 'C';
+        else if (c.includes('d')) result.serie = 'D';
+        else if (c.includes('g')) result.serie = 'G';
+        else if (c.includes('f')) result.serie = 'F';
     }
     
     return result;
 }
+
 
 function getSubjectsOrder(cls) {
     const parsed = parseClasse(cls);
