@@ -407,6 +407,56 @@
     font-weight: bold;
     margin-left: 2px;
 }
+
+/* Styles pour l'expansion des niveaux */
+.level-row {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.level-header {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.level-header:hover {
+    background: var(--surface-2);
+}
+
+.level-details {
+    display: none;
+    padding: 16px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    animation: slideDown 0.3s ease-out;
+}
+
+.level-details.open {
+    display: block;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cycle-section {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px dashed var(--border);
+}
+
+.chevron {
+    transition: transform 0.3s;
+}
+.level-details.open + .level-header .chevron, /* Fallback */
+.expanded .chevron {
+    transform: rotate(180deg);
+}
+
   </style>
 </head>
 <body>
@@ -2479,68 +2529,184 @@ function calculateClassAverage(students, subjectKey, period) {
     return sum / validNotes;
 }
 
+// Fonction utilitaire pour générer une carte KPI (réutilisable)
+function generateStatCardHTML(title, students, period, subtitle = "", onClickAction = "") {
+    if (students.length === 0) return '';
+
+    // Calculs
+    const generalAvg = calculateClassAverage(students, 'Moy_generale', period);
+    const displayAvg = generalAvg !== null ? generalAvg.toFixed(2) : '—';
+    const passedCount = students.filter(s => getStudentNote(s, period, 'Moy_generale') >= 10).length;
+    const successRate = generalAvg !== null ? Math.round((passedCount / students.length) * 100) : 0;
+
+    // Couleurs
+    let color = 'var(--text-muted)';
+    if (generalAvg >= 12) color = 'var(--accent)';
+    else if (generalAvg >= 10) color = 'var(--brand)';
+    else if (generalAvg > 0) color = 'var(--danger)';
+
+    const cardStyle = onClickAction ? 'cursor:pointer' : '';
+    const clickAttr = onClickAction ? `onclick="${onClickAction}"` : '';
+    const hoverClass = onClickAction ? 'level-header' : '';
+
+    return `
+        <div class="kpi-card ${hoverClass}" style="${cardStyle}" ${clickAttr}>
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                <div>
+                    <h3 style="margin:0; color:var(--brand-dark); font-size:16px">${title}</h3>
+                    ${subtitle ? `<div style="font-size:11px; color:var(--text-muted)">${subtitle}</div>` : ''}
+                </div>
+                <span class="chip">${students.length} élèves</span>
+            </div>
+            
+            <div style="display:flex; gap:20px; align-items:center;">
+                <div>
+                    <div class="kpi-label">Moyenne</div>
+                    <div class="kpi-value" style="color:${color}">${displayAvg}</div>
+                </div>
+                <div style="flex:1">
+                    <div class="kpi-label">Réussite (${passedCount})</div>
+                    <div style="display:flex; align-items:center; gap:8px">
+                        <div class="stat-bar-container">
+                            <div class="stat-bar-fill" style="width:${successRate}%; background:${successRate>=50?'var(--accent)':'var(--danger)'}"></div>
+                        </div>
+                        <span style="font-weight:bold; font-size:12px">${successRate}%</span>
+                    </div>
+                </div>
+                ${onClickAction ? '<i class="fa fa-chevron-down chevron" style="color:var(--text-muted)"></i>' : ''}
+            </div>
+        </div>
+    `;
+}
+
 function renderOverviewStats() {
     const container = document.getElementById('overview-content');
     const selectedClass = document.getElementById('class-filter').value;
-    const period = getStatsPeriod(); // Utilisation dynamique
-    
-    const classes = selectedClass === '__ALL__' 
-        ? [...new Set(allStudents.map(s => s.classe).filter(Boolean))].sort()
-        : [selectedClass];
-    
-    let html = '<div class="stat-grid">';
-    
-    classes.forEach(cls => {
-        const classStudents = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(cls));
-        if(classStudents.length === 0) return;
-        
-        // Moyenne générale
-        const generalAvg = calculateClassAverage(classStudents, 'Moy_generale', period);
-        const displayAvg = generalAvg !== null ? generalAvg.toFixed(2) : '—';
-        
-        // Taux de réussite (Moyenne >= 10)
-        const passedCount = classStudents.filter(s => getStudentNote(s, period, 'Moy_generale') >= 10).length;
-        const successRate = generalAvg !== null ? Math.round((passedCount / classStudents.length) * 100) : 0;
-        
-        // Couleur dynamique
-        let color = 'var(--text-muted)';
-        if(generalAvg >= 12) color = 'var(--accent)';
-        else if(generalAvg >= 10) color = 'var(--brand)';
-        else if(generalAvg > 0) color = 'var(--danger)';
+    const period = getStatsPeriod();
 
-        html += `
-            <div class="kpi-card">
-                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
-                    <h3 style="margin:0; color:var(--brand-dark)">${cls}</h3>
-                    <span class="chip">${classStudents.length} élèves</span>
-                </div>
-                
-                <div style="display:flex; gap:20px; align-items:center; margin-bottom:15px">
-                    <div>
-                        <div class="kpi-label">Moyenne Classe</div>
-                        <div class="kpi-value" style="color:${color}">${displayAvg}</div>
-                    </div>
-                    <div style="flex:1">
-                        <div class="kpi-label">Réussite (${passedCount}/${classStudents.length})</div>
-                        <div style="display:flex; align-items:center; gap:8px">
-                            <div class="stat-bar-container">
-                                <div class="stat-bar-fill" style="width:${successRate}%; background:${successRate>=50?'var(--accent)':'var(--danger)'}"></div>
-                            </div>
-                            <span style="font-weight:bold; font-size:12px">${successRate}%</span>
-                        </div>
-                    </div>
-                </div>
+    // 1. SI UNE CLASSE SPÉCIFIQUE EST SÉLECTIONNÉE (Ancien comportement)
+    if (selectedClass !== '__ALL__') {
+        const classStudents = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(selectedClass));
+        container.innerHTML = `<div class="stat-grid">${generateStatCardHTML(selectedClass, classStudents, period, "Classe unique")}</div>`;
+        return;
+    }
 
-                <div style="font-size:12px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px">
-                    <strong>Période : ${period}</strong>
-                </div>
-            </div>
-        `;
+    // 2. SI "TOUTES LES CLASSES" : VUE HIÉRARCHIQUE
+    
+    // Initialisation des groupes
+    const groups = {
+        premierCycle: [],
+        secondCycle: [],
+        niveaux: {
+            '6e': [], '5e': [], '4e': [], '3e': [],
+            '2nde': [], '1ere': [], 'terminale': []
+        },
+        classesDetails: {} // Contiendra les élèves groupés par classe exacte (ex: '6e A')
+    };
+
+    // Distribution des élèves
+    allStudents.forEach(s => {
+        const p = parseClasse(s.classe);
+        
+        // Par Cycle
+        if (p.isPremierCycle) groups.premierCycle.push(s);
+        if (p.isSecondCycle) groups.secondCycle.push(s);
+
+        // Par Niveau standardisé
+        if (p.niveau && groups.niveaux[p.niveau]) {
+            groups.niveaux[p.niveau].push(s);
+        }
+
+        // Par Classe exacte pour le détail
+        const cleanClass = s.classe.trim();
+        if (!groups.classesDetails[cleanClass]) groups.classesDetails[cleanClass] = [];
+        groups.classesDetails[cleanClass].push(s);
     });
+
+    let html = '';
+
+    // --- SECTION CYCLES ---
+    html += `<h4 style="margin-top:0; color:var(--text-muted); text-transform:uppercase; font-size:12px">Statistiques par Cycle</h4>`;
+    html += `<div class="stat-grid cycle-section">`;
+    if (groups.premierCycle.length > 0) {
+        html += generateStatCardHTML('Premier Cycle', groups.premierCycle, period, '6ème à 3ème');
+    }
+    if (groups.secondCycle.length > 0) {
+        html += generateStatCardHTML('Second Cycle', groups.secondCycle, period, '2nde à Terminale');
+    }
+    html += `</div>`;
+
+    // --- SECTION NIVEAUX ---
+    html += `<h4 style="color:var(--text-muted); text-transform:uppercase; font-size:12px; margin-bottom:12px">Statistiques par Niveau (Cliquez pour voir les classes)</h4>`;
     
-    html += '</div>';
+    // Ordre d'affichage
+    const order = ['6e', '5e', '4e', '3e', '2nde', '1ere', 'terminale'];
+
+    order.forEach(niveauKey => {
+        const studentsInLevel = groups.niveaux[niveauKey];
+        if (!studentsInLevel || studentsInLevel.length === 0) return;
+
+        // Titre d'affichage (ex: '6e' -> 'Niveau 6ème')
+        const displayTitle = niveauKey === 'terminale' ? 'Terminale' : 
+                             (niveauKey === '1ere' ? 'Première' : 
+                             (niveauKey === '2nde' ? 'Seconde' : 
+                             niveauKey.replace('e', 'ème')));
+
+        // Générer le conteneur principal du niveau
+        const detailId = `details-${niveauKey}`;
+        
+        html += `<div class="level-row" id="row-${niveauKey}">`;
+        
+        // En-tête du niveau (Cliquable)
+        html += generateStatCardHTML(
+            `Niveau ${displayTitle}`, 
+            studentsInLevel, 
+            period, 
+            'Cliquez pour dérouler les classes', 
+            `toggleLevelDetails('${detailId}', 'row-${niveauKey}')`
+        );
+
+        // Zone de détails (Classes individuelles)
+        html += `<div id="${detailId}" class="level-details">`;
+        html += `<div class="stat-grid">`;
+        
+        // Trouver toutes les classes qui appartiennent à ce niveau
+        const classesInThisLevel = Object.keys(groups.classesDetails).filter(cls => {
+            const p = parseClasse(cls);
+            return p.niveau === niveauKey;
+        }).sort();
+
+        classesInThisLevel.forEach(clsName => {
+            html += generateStatCardHTML(clsName, groups.classesDetails[clsName], period);
+        });
+
+        html += `</div></div>`; // Fin grid details + Fin level-details
+        html += `</div>`; // Fin level-row
+    });
+
     container.innerHTML = html;
 }
+
+// Fonction pour gérer l'ouverture/fermeture
+function toggleLevelDetails(detailId, rowId) {
+    const detailEl = document.getElementById(detailId);
+    const rowEl = document.getElementById(rowId);
+    
+    // Fermer les autres (optionnel, pour faire un effet accordéon)
+    // document.querySelectorAll('.level-details').forEach(el => {
+    //    if(el.id !== detailId) el.classList.remove('open');
+    // });
+    // document.querySelectorAll('.level-row').forEach(el => el.classList.remove('expanded'));
+
+    if (detailEl.classList.contains('open')) {
+        detailEl.classList.remove('open');
+        rowEl.classList.remove('expanded');
+    } else {
+        detailEl.classList.add('open');
+        rowEl.classList.add('expanded');
+    }
+}
+
 
 // NOUVELLE FONCTION : Histogramme de répartition
 function renderRepartitionStats() {
