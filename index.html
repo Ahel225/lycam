@@ -6,6 +6,7 @@
   <title>Gestionnaire d'Élèves Pro — v5.6</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
   :root { 
     --bg:#f1f5f9; 
@@ -457,7 +458,25 @@
     transform: rotate(180deg);
 }
 
-  </style>
+#cio-table th, #cio-table td { border: 1px solid #ccc; padding: 4px 2px; }
+#cio-table th { background: #f8fafc; font-weight: bold; color: #475569; position: sticky; top: 0; z-index: 5; }
+/* Alternance de couleurs pour les groupes de lignes par niveau */
+.cio-group-bg { background-color: #f9f9f9; }
+.cio-total-row { font-weight: bold; background-color: #eef2ff; color: #3730a3; }
+.cio-cycle-row { background-color: #3730a3; color: white; font-weight: bold; text-transform: uppercase; }
+
+#cio-table-container {
+    overflow-x: auto;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+#cio-table {
+    min-width: 2500px; 
+}
+  
+    </style>
 </head>
 <body>
 
@@ -529,7 +548,7 @@
     <button id="btn-open-lycam-main" class="btn lycam-btn" title="Gestion LYCAM"><i class="fa fa-clipboard-check"></i> LYCAM</button>
     <button id="btn-open-registry" class="btn registry-btn" title="Registre de visites"><i class="fa fa-address-book"></i> Registre</button>
     <button id="btn-open-tracking" class="btn tracking-btn" title="Suivi & Coaching Global"><i class="fa fa-hands-helping"></i> Suivi/Coach</button>
-    
+    <button id="btn-open-cio" class="btn" style="background:#7c3aed; color:white" title="Rapport CIO"><i class="fa fa-table"></i> CIO</button>
     <button id="btn-add-student" class="btn"><i class="fa fa-plus"></i></button>
 </div>
       </div>
@@ -583,6 +602,13 @@
               <div id="kpi-avg" style="font-size:14px;line-height:1.6;color:var(--text)"></div>
               <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:center">
                  <div>Rang: <strong id="kpi-rank" style="font-size:16px"></strong></div>
+                 <div class="field" style="margin-bottom:10px">
+    <label class="label">Statut</label>
+    <div id="st-status" class="input" style="background:var(--surface-2); display:flex; align-items:center; gap:8px">
+        <span id="st-redoublant-badge"></span>
+        <span id="st-exclu-badge"></span>
+    </div>
+</div>
                  <span id="kpi-status" class="badge"></span>
               </div>
            </div>
@@ -651,7 +677,46 @@
         <h3><i class="fa fa-chart-bar" style="color:var(--accent)"></i> Statistiques Globales</h3>
         <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
     </div>
+<div id="academicReportPanel" class="card section" style="display:none; border-top:4px solid var(--accent)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        
+        <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+       
+</button>
+    </div>
 
+    <div class="toolbar" style="margin-top:0; margin-bottom:15px; background:var(--brand-light); border-color:var(--brand)">
+        <div class="field" style="flex-direction:row; align-items:center; gap:10px; width:100%">
+            <label class="label" style="margin-bottom:0; color:var(--brand-dark)">Trimestre analysé :</label>
+            <select id="report-trimester-selector" class="select" style="max-width:150px; font-weight:bold">
+                <option value="1TR" selected>1er Trimestre</option>
+                <option value="2TR">2e Trimestre</option>
+                <option value="3TR">3e Trimestre</option>
+                <option value="Annuelle">Annuelle</option>
+            </select>
+            
+            <div style="display:flex; gap:8px; margin-left:auto">
+                <button id="btn-refresh-report" class="btn ghost">
+                    <i class="fa fa-sync"></i> Actualiser
+                </button>
+                <button id="btn-export-report-pdf" class="btn" style="background:var(--accent)">
+                    <i class="fa fa-file-pdf"></i> Exporter PDF
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div style="overflow:auto; border:1px solid var(--border); border-radius:8px; background:white; padding:10px; margin-top:10px">
+        <table id="academic-report-table" style="border-collapse: collapse; width: 100%; font-family: sans-serif; text-align: center; font-size: 0.75em; min-width: 2500px">
+            <!-- Le tableau sera généré dynamiquement ici -->
+        </table>
+    </div>
+    
+    <div style="margin-top:15px; padding:10px; background:var(--surface-2); border-radius:6px; font-size:12px; color:var(--text-muted)">
+        <i class="fa fa-info-circle"></i> Ce rapport présente le détail des résultats par discipline, niveau et genre. 
+        Les données sont calculées automatiquement à partir des notes importées.
+    </div>
+</div>
     <div class="toolbar" style="margin-top:0; margin-bottom:15px; background:var(--brand-light); border-color:var(--brand)">
         <div class="field" style="flex-direction:row; align-items:center; gap:10px; width:100%">
             <label class="label" style="margin-bottom:0; color:var(--brand-dark)">Période analysée :</label>
@@ -815,6 +880,66 @@
              </div>
         </div>
     </div>
+    <div id="cioPanel" class="card section" style="display:none; border-top:4px solid #7c3aed">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3><i class="fa fa-table" style="color:#7c3aed"></i> Rapport Trimestriel (Modèle CIO)</h3>
+            <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+        </div>
+
+        <div class="toolbar" style="margin-top:0; margin-bottom:15px; background:#f5f3ff; border-color:#7c3aed">
+            <div class="field" style="flex-direction:row; align-items:center; gap:10px;">
+                <label class="label" style="margin-bottom:0; color:#5b21b6">Période :</label>
+                <select id="cio-period-selector" class="select" style="max-width:200px; font-weight:bold">
+                    <option value="1TR">1er Trimestre</option>
+                    <option value="2TR">2e Trimestre</option>
+                    <option value="3TR">3e Trimestre</option>
+                </select>
+                <button id="btn-export-cio" class="btn" style="background:#10b981; color:white; margin-left:auto">
+                    <i class="fa fa-file-excel"></i> Exporter Excel
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrap" id="cio-table-container">
+            <table id="cio-table" border="1" style="border-collapse: collapse; width: 100%; font-family: sans-serif; text-align: center; font-size: 0.70em;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th rowspan="3" style="min-width:60px">Niveaux</th>
+                        <th rowspan="3" style="min-width:50px">Genre</th>
+                        <th colspan="3">COMPO. FR</th>
+                        <th colspan="3">ORTH/GRAM</th>
+                        <th colspan="3">FRANÇAIS (second cycle)</th>
+                        <th colspan="3">ANGLAIS</th>
+                        <th colspan="3">ALLEMAND</th>
+                        <th colspan="3">ESPAGNOL</th>
+                        <th colspan="3">HG</th>
+                        <th colspan="3">MATHS</th>
+                        <th colspan="3">PC</th>
+                        <th colspan="3">SVT</th>
+                        <th colspan="3">PHILO</th>
+                    </tr>
+                    <tr style="background-color: #f2f2f2;">
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                        <th rowspan="2">Eff.</th><th colspan="2">Moy < 10</th>
+                    </tr>
+                    <tr style="background-color: #f2f2f2;">
+                        <th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th><th>Eff.</th><th>%</th>
+                    </tr>
+                </thead>
+                <tbody id="cio-tbody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
 
   </div>
 </div>
@@ -948,7 +1073,6 @@ function getRiskScore(questionId, value) {
   return 0;
 }
 
-/* ====== FONCTION DE GÉNÉRATION DE DONNÉES FICTIVES ====== */
 
 /* ====== FONCTION DE GÉNÉRATION DE DONNÉES FICTIVES ====== */
 
@@ -1060,30 +1184,45 @@ function generateDummyData() {
                 'lv2': parseFloat(randFloat(baseAvg - 1, baseAvg + 1))
             };
         }
-        
+        // Déterminer la langue LV2 selon la classe
+let lv2Language = 'lv2'; // Par défaut
+if (classe.includes('Esp') || classe.includes('esp')) {
+    lv2Language = 'espagnol';
+} else if (classe.includes('All') || classe.includes('all')) {
+    lv2Language = 'allemand';
+}
         return {
-            id: id,
-            matricule: matricule,
-            nom: data.nom,
-            prenoms: data.prenoms,
-            sexe: data.sexe,
-            dateNaissance: dateNaissance,
-            classe: classe,
-            moyennes: {
-                '1TR': {
-                    'Moy_generale': mg_1tr,
-                    ...Object.keys(subjects).reduce((acc, sub) => {
-                        acc[sub] = parseFloat(randFloat(subjects[sub] - 2, subjects[sub] + 2));
-                        return acc;
-                    }, {})
-                },
-                '2TR': {
-                    'Moy_generale': parseFloat(randFloat(mg_annuelle - 1, mg_annuelle + 1)),
-                    ...Object.keys(subjects).reduce((acc, sub) => {
-                        acc[sub] = parseFloat(randFloat(subjects[sub] - 1.5, subjects[sub] + 1.5));
-                        return acc;
-                    }, {})
-                },
+    id: id,
+    matricule: matricule,
+    nom: data.nom,
+    prenoms: data.prenoms,
+    sexe: data.sexe,
+    dateNaissance: dateNaissance,
+    classe: classe,
+    redoublant: Math.random() < 0.1,
+    moyennes: {
+        '1TR': {
+            'Moy_generale': mg_1tr,
+            'lv2': subjects['lv2'],
+            'lv2_language': lv2Language,
+            ...Object.keys(subjects).reduce((acc, sub) => {
+                if (sub !== 'lv2') {
+                    acc[sub] = parseFloat(randFloat(subjects[sub] - 2, subjects[sub] + 2));
+                }
+                return acc;
+            }, {})
+        },
+        '2TR': {
+            'Moy_generale': parseFloat(randFloat(mg_annuelle - 1, mg_annuelle + 1)),
+            'lv2': parseFloat(randFloat(subjects['lv2'] - 1.5, subjects['lv2'] + 1.5)),
+            'lv2_language': lv2Language,
+            ...Object.keys(subjects).reduce((acc, sub) => {
+                if (sub !== 'lv2') {
+                    acc[sub] = parseFloat(randFloat(subjects[sub] - 1.5, subjects[sub] + 1.5));
+                }
+                return acc;
+            }, {})
+        },
                 '3TR': {
                     'Moy_generale': parseFloat(randFloat(mg_annuelle - 0.5, mg_annuelle + 0.5)),
                     ...Object.keys(subjects).reduce((acc, sub) => {
@@ -1186,18 +1325,20 @@ function generateDummyData() {
     storage.save('GlobalRegistryData', allRegistry);
 
     console.log(`Données fictives générées : ${allStudents.length} élèves, ${allTestResults.length} résultats LYCAM, ${allVisits.length} visites.`);
-    
+     
+      // Vider le cache de langue
+clearClassLanguageCache();
     // Recharger l'affichage
     loadStudentsForYear();
     renderRegistry();
     setStatus(`Données de démo générées (${allStudents.length} élèves)`, 'success');
+  
 }
 
 /* CONFIG & DICTIONARY */
-/* CONFIG & DICTIONARY */
 const CONFIG = { dbName: 'kfwDB', dbVersion: 3 };
 const DICTIONARY = {
-  nom_complet: ['nom et prenoms','nom & prenoms','nom_prenom','nom complet','noms et prenoms','noms & prenoms','nom et prenom','nom & prenom','nom prenom','nom_et_prenoms','nom/prenom','full name','fullname'],
+  nom_complet: ['nom et prenoms','Nom & Prenoms','nom & prenoms','nom_prenom','nom complet','noms et prenoms','noms & prenoms','nom et prenom','nom & prenom','nom prenom','nom_et_prenoms','nom/prenom','full name','fullname'],
   matricule: ['matricule','mat','mat.','id','code','num'],
   nom: ['nom','noms','surname','familyname','name'],
   prenoms: ['prenom','prenoms','firstname','pren'],
@@ -1215,12 +1356,14 @@ const DICTIONARY = {
   hg: ['hg','hist','geo','histoire','géographie'],
   eps: ['eps','sport','education physique'],
   philosophie: ['philo','philosophie'],
-  lv2: ['lv2','espagnol','allemand','esp','all'],
+  lv2: ['lv2', 'langue', 'langue2', '2ndlangue', 'langue vivante 2', 'langue vivante ii', 
+      'espagnol', 'esp', 'español', 'allemand', 'all', 'deutsch'],
   edhc: ['edhc','éducation à la citoyenneté','education citoyenneté','éducation citoyenneté','ed.hc','ed.h.c'],
   art_plastique: ['ap','art','arts','dessin'],
   conduite: ['conduite','cond','comportement'],
   moyenne: ['moy','moyenne','mg','gen','generale'],
-  rang: ['rg','rang','rank']
+  rang: ['rg','rang','rank'],
+  redoublant: ['redoublant', 'red', 'r', 'statut', 'redouble']
 };
 
 function normalizeStr(str) {
@@ -1246,9 +1389,15 @@ let coachingData = [];
 let allRegistry = []; 
 let currentStudent = null;
 let currentLycamCandidate = null;
+let classLanguageCache = {}; // Cache pour les langues des classes
+
+
 
 function getSelectedYear(){ return document.getElementById('school-year').value; }
-function h(x){ return (x==null)?'':String(x); }
+function h(x){ 
+    if(x === undefined || x === 'undefined' || x === null) return '';
+    return String(x).trim(); 
+}
 function fmtDate(d){ if(!d)return'—'; const t=(typeof d==='number')?new Date((d-(25567+2))*86400*1000):new Date(d); return isNaN(t)?String(d):t.toLocaleDateString('fr-FR'); }
 function fmtDateTime(d){ if(!d)return'—'; const t = new Date(d); return isNaN(t)?String(d): t.toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'}); }
 function uuid(){ return 'id-'+Math.random().toString(36).slice(2); }
@@ -1272,6 +1421,88 @@ function setStatus(msg, type = 'info') {
   
   statusEl.innerHTML = `<i class="fa ${icons[type]}" style="color:${colors[type]}"></i> ${msg}`;
 }
+
+/* ====== FONCTIONS DE DÉTECTION DE LANGUE LV2 ====== */
+
+function detectClassLanguage(classe) {
+    if (!classe) return 'lv2';
+    
+    // Normaliser le nom de la classe
+    const normalizedClass = normalizeClasseKey(classe);
+    
+    // Vérifier le cache d'abord
+    if (classLanguageCache[normalizedClass]) {
+        return classLanguageCache[normalizedClass];
+    }
+    
+    // Détection à partir du nom de la classe
+    const classeLower = classe.toLowerCase();
+    let detectedLanguage = 'lv2'; // Par défaut
+    
+    if (classeLower.includes('esp') || classeLower.includes('espagnol')) {
+        detectedLanguage = 'espagnol';
+    } else if (classeLower.includes('all') || classeLower.includes('allemand')) {
+        detectedLanguage = 'allemand';
+    } else {
+        // Si la classe ne contient pas d'indication, regarder les élèves de cette classe
+        const studentsInClass = allStudents.filter(s => normalizeClasseKey(s.classe) === normalizedClass);
+        if (studentsInClass.length > 0) {
+            // Vérifier la langue la plus fréquente parmi les élèves
+            const languageCounts = {};
+            studentsInClass.forEach(s => {
+                // Vérifier chaque période pour trouver la langue
+                ['Annuelle', '1TR', '2TR', '3TR'].forEach(period => {
+                    if (s.moyennes[period] && s.moyennes[period]['lv2_language']) {
+                        const lang = s.moyennes[period]['lv2_language'];
+                        languageCounts[lang] = (languageCounts[lang] || 0) + 1;
+                    }
+                });
+            });
+            
+            // Trouver la langue la plus fréquente
+            let maxCount = 0;
+            for (const [lang, count] of Object.entries(languageCounts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    detectedLanguage = lang;
+                }
+            }
+        }
+    }
+    
+    // Mettre en cache
+    classLanguageCache[normalizedClass] = detectedLanguage;
+    return detectedLanguage;
+}
+
+function getStudentLV2Language(student) {
+    if (!student || !student.moyennes) return 'lv2';
+    
+    // Chercher dans toutes les périodes
+    for (const period of ['Annuelle', '1TR', '2TR', '3TR']) {
+        if (student.moyennes[period] && student.moyennes[period]['lv2_language']) {
+            return student.moyennes[period]['lv2_language'];
+        }
+    }
+    
+    // Sinon, détecter à partir de la classe
+    const classe = student.classe;
+    if (!classe) return 'lv2';
+    
+    const normalizedClass = classe.toLowerCase();
+    if (normalizedClass.includes('esp') || normalizedClass.includes('espagnol')) {
+        return 'espagnol';
+    } else if (normalizedClass.includes('all') || normalizedClass.includes('allemand')) {
+        return 'allemand';
+    }
+    
+    return 'lv2';
+}
+
+function clearClassLanguageCache() {
+    classLanguageCache = {};
+}
+
 /* DB STORAGE */
 const idb = {
   db: null,
@@ -1331,6 +1562,8 @@ async function loadGlobalData() {
 }
 
 async function loadStudentsForYear(){
+  // Vider le cache de langue
+  clearClassLanguageCache();
   const year = getSelectedYear();
   setStatus('Chargement...', 'loading');
   allStudents = await studentsStore.load(year);
@@ -1345,17 +1578,60 @@ function populateClassFilter(){
   const selLycam = document.getElementById('lycam-class-filter'); 
   
   const oldVal = sel.value;
-  const classes = [...new Set(allStudents.map(s => s.classe).filter(Boolean))].sort();
   
+  // Récupérer toutes les classes uniques et les trier intelligemment
+  const allClasses = [...new Set(allStudents.map(s => s.classe).filter(Boolean))];
+  
+  // Fonction de tri personnalisée pour les classes françaises
+  const sortClasses = (classes) => {
+    const order = {
+      '6e': 1, '6ème': 1, 'sixième': 1,
+      '5e': 2, '5ème': 2, 'cinquième': 2,
+      '4e': 3, '4ème': 3, 'quatrième': 3,
+      '3e': 4, '3ème': 4, 'troisième': 4,
+      '2nde': 5, 'seconde': 5,
+      '1ère': 6, '1ere': 6, 'première': 6,
+      'tle': 7, 'term': 7, 'terminale': 7
+    };
+    
+    return classes.sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      
+      // Chercher l'ordre dans la table
+      for (const [key, value] of Object.entries(order)) {
+        if (aLower.includes(key)) {
+          for (const [key2, value2] of Object.entries(order)) {
+            if (bLower.includes(key2)) {
+              return value - value2;
+            }
+          }
+        }
+      }
+      
+      // Si non trouvé, tri alphabétique
+      return a.localeCompare(b);
+    });
+  };
+  
+  const sortedClasses = sortClasses(allClasses);
+  
+  // Vider et remplir les select
   sel.innerHTML = '<option value="__ALL__">Toutes les classes</option>';
   selLycam.innerHTML = '<option value="__ALL__">Toutes les classes</option>';
   
-  classes.forEach(c => {
-      sel.add(new Option(c, normalizeClasseKey(c)));
-      selLycam.add(new Option(c, normalizeClasseKey(c)));
+  sortedClasses.forEach(c => {
+      const opt1 = new Option(c, normalizeClasseKey(c));
+      const opt2 = new Option(c, normalizeClasseKey(c));
+      sel.add(opt1);
+      selLycam.add(opt2);
   });
   
-  if(oldVal && oldVal !== '__ALL__') for(let opt of sel.options){ if(opt.value === oldVal) sel.value = oldVal; }
+  if(oldVal && oldVal !== '__ALL__') {
+    for(let opt of sel.options){ 
+      if(opt.value === oldVal) sel.value = oldVal;
+    }
+  }
 }
 
 // --- HELPER LYCAM ---
@@ -1377,10 +1653,8 @@ function renderRoster(list) {
   let rows = list || allStudents;
   if(!list && filterKey !== '__ALL__') rows = allStudents.filter(s => normalizeClasseKey(s.classe) === filterKey);
 
-  // OPTIMISATION : Créer une Map des derniers résultats LYCAM pour accès instantané
   const lycamMap = new Map();
   allTestResults.forEach(t => {
-      // On garde le résultat le plus récent pour chaque matricule
       if(!lycamMap.has(t.matricule) || t.at > lycamMap.get(t.matricule).at) {
           lycamMap.set(t.matricule, t);
       }
@@ -1390,34 +1664,44 @@ function renderRoster(list) {
   tbody.innerHTML = '';
   
   rows.forEach(s => { 
-    // Récupération optimisée du résultat
     const test = lycamMap.get(s.matricule);
     let lycamBadge = '';
     
     if(test) {
         const score = test.totalScore !== undefined ? test.totalScore : (test.total || 0);
         const info = getLycamRiskInfo(score);
-        // Badge joli et optimisé
         lycamBadge = `<span class="badge" style="background:${info.bg}; color:${info.color}; border:1px solid ${info.border}; font-size:10px; margin-left:8px; padding:2px 8px;">
             <i class="fa ${info.icon}"></i> ${info.label}
         </span>`;
     }
 
+    // CORRECTION : Formatage correct de la date de naissance
+    const birthDate = s.dateNaissance ? fmtDate(s.dateNaissance) : '—';
+    
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${h(s.matricule)}</td>
       <td style="display:flex;align-items:center">
          <div>
-            <span class="name-part">${h(s.nom)}</span> ${h(s.prenoms||s.prenom)}
+            <span class="name-part">${h(s.nom)}</span> ${h(s.prenoms||s.prenom||'')}
          </div>
          ${lycamBadge}
       </td>
       <td><span class="badge" style="background:var(--brand-light);color:var(--brand-dark)">${h(s.classe)}</span></td>
-      <td style="text-align:center">${h(s.sexe)}</td>
-      <td style="text-align:center;font-size:12px">${fmtDate(s.dateNaissance)}</td>
+      <td style="text-align:center">${h(s.sexe) || '—'}</td>
+      <td style="text-align:center;font-size:12px">${birthDate}</td>
       <td style="text-align:center"><button class="btn ghost btn-view" style="padding:2px 6px;font-size:11px"><i class="fa fa-eye"></i></button></td>
     `;
-    tr.onclick = (e) => { openStudent(s); };
+    tr.onclick = (e) => { 
+      if (!e.target.classList.contains('btn-view')) {
+        openStudent(s); 
+      }
+    };
+    // Ajouter un événement spécifique au bouton "vue"
+    tr.querySelector('.btn-view').onclick = (e) => {
+      e.stopPropagation();
+      openStudent(s);
+    };
     tbody.appendChild(tr);
   });
   
@@ -1431,11 +1715,17 @@ async function openStudent(s){
   document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
   document.getElementById('studentPanel').style.display = 'block';
   
-  document.getElementById('st-name').textContent = `${s.nom} ${s.prenoms||s.prenom}`;
+  const nom = h(s.nom);
+const prenoms = h(s.prenoms || s.prenom);
+document.getElementById('st-name').textContent = `${nom} ${prenoms}`.trim();
   document.getElementById('st-mat').textContent = s.matricule;
   document.getElementById('st-class').textContent = s.classe;
   document.getElementById('st-sex').textContent = s.sexe;
   document.getElementById('st-born').textContent = fmtDate(s.dateNaissance);
+  
+  // Ajoutez cet appel
+  renderStudentStatus(s);
+  
   await renderGrades(s);
   renderVisits(s);
   renderCoachings(s);
@@ -1454,160 +1744,69 @@ function leaveDetailMode(){
 }
 
 /* --- EXCEL IMPORT --- */
-async function handleExcel(file){
-  try {
-    setStatus('Importation en cours...', 'loading');
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data, {type:'array'});
-    const sheetName = wb.SheetNames.find(n => n.match(/effectif|liste|eleve|base/i)) || wb.SheetNames[0];
-    const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:''});
+
+
+function determineStudentStatus(student) {
+    const moyenneAnnuelle = student.moyennes['Annuelle']?.Moy_generale;
     
-    if(raw.length === 0) throw new Error("Fichier vide");
-
-    // Initialiser le tableau students
-    let students = [];
-
-    raw.forEach(r => {
-      let valNomComplet = findColumnValue(r, 'nom_complet');
-      let valNom = findColumnValue(r, 'nom', ['prenom']); 
-      let valPrenom = findColumnValue(r, 'prenoms', ['nom']); 
-      let nomFinal = '';
-      let prenomFinal = '';
-
-      if (valNomComplet) {
-         const parts = String(valNomComplet).trim().split(/\s+/);
-         nomFinal = parts.shift(); 
-         prenomFinal = parts.join(' '); 
-      } else if (valNom) {
-         if (!valPrenom || String(valPrenom).trim() === '') {
-             const parts = String(valNom).trim().split(/\s+/);
-             nomFinal = parts.shift();
-             prenomFinal = parts.join(' ');
-         } else {
-             nomFinal = valNom;
-             prenomFinal = valPrenom;
-         }
-      }
-
-      let matricule = findColumnValue(r, 'matricule');
-      if (!matricule && !nomFinal) return;
-
-      const student = {
-        id: uuid(),
-        matricule: String(matricule || 'Inconnu').trim(),
-        nom: String(nomFinal || '').trim(),
-        prenoms: String(prenomFinal || '').trim(),
-        sexe: findColumnValue(r, 'sexe') || '',
-        dateNaissance: findColumnValue(r, 'dateNaissance') || '',
-        classe: findColumnValue(r, 'classe') || '',
-        moyennes: { 'Annuelle': {}, '1TR': {}, '2TR': {}, '3TR': {} },
-        rangs: { 'Annuelle': '', '1TR': '', '2TR': '', '3TR': '' }
-      };
-      
-      // Ajouter l'élève au tableau
-      students.push(student);
-    });
-
-    // Filtrer les étudiants valides
-    students = students.filter(s => s !== null && s.nom !== '');
-
-    // Fonction pour parser les notes
-// Fonction pour parser les notes - VERSION CORRIGÉE
-const parseGrades = (pattern, key) => {
-  const shName = wb.SheetNames.find(n => n.match(pattern));
-  if(!shName) return;
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], {defval:''});
-  
-  console.log(`Parsing ${key} from sheet: ${shName}`);
-  
-  rows.forEach((row, index) => {
-    const mat = String(findColumnValue(row, 'matricule') || '').trim();
-    const st = students.find(s => s.matricule === mat);
-    
-    if(st) {
-      // 1. D'abord traiter le rang (pour éviter les conflits)
-      const rg = findColumnValue(row, 'rang');
-      if(rg) st.rangs[key] = rg;
-      
-      // 2. Traiter la moyenne générale
-      const mg = findColumnValue(row, 'moyenne'); 
-      if(mg) {
-        const mgVal = parseFloat(mg);
-        if(!isNaN(mgVal)) st.moyennes[key]['Moy_generale'] = mgVal;
-      }
-      
-      // 3. Traiter les matières - APPROCHE PLUS PRÉCISE
-      // Dans parseGrades, ajoutez ces matières dans les recherches
-const subjectColumns = {
-  'compo_francais': ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
-  'orthographe': ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
-  'expression_orale': ['expression orale','oral','expr orale','expression','expr', 'oral'],
-  'francais': ['fr','fra','francais','français','frs'],
-  'maths': ['math','maths','mathematique','ml'],
-  'anglais': ['anglais','eng','english'],
-  'physique': ['pc','sp','phys','physique'],
-  'svt': ['svt','bio','biologie','sciences'],
-  'hg': ['hg','hist','geo','histoire','géographie'],
-  'eps': ['eps','sport','education physique'],
-  'philosophie': ['philo','philosophie'],
-  'lv2': ['lv2','espagnol','allemand','esp','all'],
-  'edhc': ['edhc','éducation à la citoyenneté','education citoyenneté','éducation citoyenneté','ed.hc','ed.h.c'],
-  'art_plastique': ['ap','art','arts','dessin'],
-  'conduite': ['conduite','cond','comportement']
-};
-
-// Et dans le tableau subjectKeys :
-const subjectKeys = [
-  'compo_francais', 'orthographe', 'expression_orale', // Nouvelles matières en premier
-  'maths', 'francais', 'anglais', 'physique', 'svt', 'hg', 
-  'eps', 'philosophie', 'lv2', 'edhc', 'art_plastique', 'conduite'
-];
-      
-      Object.keys(row).forEach(colRaw => {
-        const colClean = normalizeStr(colRaw);
-        const val = parseFloat(row[colRaw]);
-        
-        if(!isNaN(val)) {
-          // Vérifier d'abord que ce n'est pas une colonne de rang
-          if(colClean.includes('rang') || colClean.includes('rg') || colClean.includes('rank')) {
-            return; // Ignorer, c'est déjà traité
-          }
-          
-          // Chercher la matière correspondante
-          for(const [subject, aliases] of Object.entries(subjectColumns)) {
-            if(aliases.some(alias => colClean === normalizeStr(alias) || colClean.includes(normalizeStr(alias)))) {
-              st.moyennes[key][subject] = val;
-              break; // Sortir de la boucle une fois trouvé
-            }
-          }
-        }
-      });
+    if (moyenneAnnuelle === undefined || moyenneAnnuelle === -1) {
+        return { 
+            status: 'Non évalué', 
+            badge: '<span class="badge" style="background:#e2e8f0; color:#64748b"><i class="fa fa-question"></i> Non évalué</span>',
+            isExclu: false,
+            isRedoublantNextYear: false
+        };
     }
-  });
-};
-
-    // Parser les notes pour chaque période
-    parseGrades(/1.*(TR|Trim)/i, '1TR');
-    parseGrades(/2.*(TR|Trim)/i, '2TR');
-    parseGrades(/3.*(TR|Trim)/i, '3TR');
-    parseGrades(/Ann|Synthese|Global/i, 'Annuelle');
-
-    // Sauvegarder et recharger
-    await studentsStore.save(getSelectedYear(), students);
-    await loadStudentsForYear();
-    setStatus(`${students.length} élèves importés`, 'success');
-    alert(`${students.length} élèves importés avec succès.`);
-  } catch(e) {
-    console.error("Erreur d'importation:", e);
-    setStatus('Erreur d\'importation', 'error');
-    alert("Erreur lors de l'importation : " + e.message);
-  }
+    
+    // Élève redoublant (début d'année)
+    if (student.redoublant) {
+        if (moyenneAnnuelle < 10) {
+            return { 
+                status: 'Exclu (Redoublant < 10)', 
+                badge: '<span class="badge" style="background:#fee2e2; color:#dc2626"><i class="fa fa-times-circle"></i> Exclu</span>',
+                isExclu: true,
+                isRedoublantNextYear: false
+            };
+        } else {
+            return { 
+                status: 'Admis', 
+                badge: '<span class="badge" style="background:#dcfce7; color:#16a34a"><i class="fa fa-check-circle"></i> Admis</span>',
+                isExclu: false,
+                isRedoublantNextYear: false
+            };
+        }
+    }
+    // Élève nouveau (non redoublant)
+    else {
+        if (moyenneAnnuelle < 8.5) {
+            return { 
+                status: 'Renvoyé (< 8.5)', 
+                badge: '<span class="badge" style="background:#ef4444; color:white"><i class="fa fa-ban"></i> Renvoyé</span>',
+                isExclu: true,
+                isRedoublantNextYear: false
+            };
+        } else if (moyenneAnnuelle >= 8.5 && moyenneAnnuelle <= 9.99) {
+            return { 
+                status: 'Redouble (8.5-9.99)', 
+                badge: '<span class="badge" style="background:#fef3c7; color:#d97706"><i class="fa fa-redo"></i> Redouble</span>',
+                isExclu: false,
+                isRedoublantNextYear: true
+            };
+        } else {
+            return { 
+                status: 'Admis', 
+                badge: '<span class="badge" style="background:#dcfce7; color:#16a34a"><i class="fa fa-check-circle"></i> Admis</span>',
+                isExclu: false,
+                isRedoublantNextYear: false
+            };
+        }
+    }
 }
 
-function getSubjectDisplayName(k){
+function getSubjectDisplayName(k, studentOrClass = null){
   const names = {
     'compo_francais': 'Composition',
-    'orthographe': 'Orthographe',
+    'orthographe': 'Orthographe', 
     'expression_orale': 'Expression Orale',
     'maths': 'Maths', 
     'francais': 'Français', 
@@ -1617,98 +1816,497 @@ function getSubjectDisplayName(k){
     'hg': 'Hist-Géo', 
     'eps': 'EPS', 
     'philosophie': 'Philo', 
-    'lv2': 'LV2', 
+    'lv2': 'LV2', // Valeur par défaut
     'edhc': 'EDHC',
     'art_plastique': 'Arts',
     'conduite': 'Conduite'
   };
+  
+  // Détection spéciale pour LV2
+  if (k === 'lv2') {
+    let classe = null;
+    let student = null;
+    
+    // Déterminer la source de l'information
+    if (typeof studentOrClass === 'object' && studentOrClass !== null) {
+      // Si c'est un objet élève
+      student = studentOrClass;
+      classe = student.classe;
+    } else if (typeof studentOrClass === 'string') {
+      // Si c'est juste le nom de la classe
+      classe = studentOrClass;
+    }
+    
+    // Essayer d'abord de récupérer la langue stockée dans l'élève (si disponible)
+    if (student && student.moyennes) {
+      // Chercher dans toutes les périodes
+      for (const period of ['Annuelle', '1TR', '2TR', '3TR']) {
+        if (student.moyennes[period] && student.moyennes[period]['lv2_language']) {
+          const lang = student.moyennes[period]['lv2_language'];
+          if (lang === 'espagnol') return 'Espagnol';
+          if (lang === 'allemand') return 'Allemand';
+        }
+      }
+    }
+    
+    // Sinon, détecter à partir de la classe
+    if (classe) {
+      const lang = detectClassLanguage(classe);
+      if (lang === 'espagnol') return 'Espagnol';
+      if (lang === 'allemand') return 'Allemand';
+    }
+    
+    // Par défaut
+    return 'LV2';
+  }
+  
   return names[k] || k.charAt(0).toUpperCase() + k.slice(1);
 }
 
 /* ====== FONCTIONS D'ANALYSE DE CLASSE ====== */
-
 function parseClasse(classe) {
-    // 1. Nettoyage : minuscules et trim
-    const c = (classe || '').toLowerCase().trim();
+    if (!classe) return { niveau: '', cycle: '', serie: '', isPremierCycle: false, isSecondCycle: false, isLycée: false };
     
+    const c = (classe || '').toLowerCase().trim();
     const result = {
         niveau: '',
         cycle: '',
         serie: '',
+        sousSerie: '',
         isPremierCycle: false,
         isSecondCycle: false,
         isLycée: false
     };
     
-    // --- DÉTECTION DU NIVEAU ---
-    
-    // Terminale (Tle, Term, Terminale)
-    if (c.match(/^(t|term)/)) {
-        result.niveau = 'terminale';
-    } 
-    // Première (1ere, 1ère, 1e, ou commence par 1)
-    else if (c.match(/^1/) || c.match(/1\s*(er|re|e|ère)/)) {
-        result.niveau = '1ere';
-    }
-    // Seconde (2nde, 2nd, ou commence par 2)
-    else if (c.match(/^2/) || c.match(/2\s*(nd|de)/)) {
-        result.niveau = '2nde';
-    }
-    // 3ème : Commence par 3 OU contient "3e/3eme" (mais pas juste un 3 à la fin comme 6eme3)
-    else if (c.match(/^3/) || c.match(/3\s*(e|è|em)/)) {
-        result.niveau = '3e';
-    }
-    // 4ème
-    else if (c.match(/^4/) || c.match(/4\s*(e|è|em)/)) {
-        result.niveau = '4e';
-    }
-    // 5ème
-    else if (c.match(/^5/) || c.match(/5\s*(e|è|em)/)) {
-        result.niveau = '5e';
-    }
-    // 6ème
-    else if (c.match(/^6/) || c.match(/6\s*(e|è|em)/)) {
+    // Détection du niveau
+    if (c.includes('6') || c.includes('6e') || c.includes('six')) {
         result.niveau = '6e';
+    } else if (c.includes('5') || c.includes('5e') || c.includes('cinq')) {
+        result.niveau = '5e';
+    } else if (c.includes('4') || c.includes('4e') || c.includes('quatre')) {
+        result.niveau = '4e';
+    } else if (c.includes('3') || c.includes('3e') || c.includes('trois')) {
+        result.niveau = '3e';
+    } else if (c.includes('2nde') || c.includes('2nd') || (c.includes('2') && c.includes('de'))) {
+        result.niveau = '2nde';
+    } else if (c.includes('1ère') || c.includes('1ere') || c.includes('1re') || (c.includes('1') && c.includes('ère'))) {
+        result.niveau = '1ere';
+    } else if (c.includes('tle') || c.includes('term') || c.includes('terminal')) {
+        result.niveau = 'Tle';
     }
-
-    // --- DÉTECTION DU CYCLE ---
+    
+    // Détection du cycle
     if (['6e', '5e', '4e', '3e'].includes(result.niveau)) {
         result.cycle = 'premier';
         result.isPremierCycle = true;
-    } else if (['2nde', '1ere', 'terminale'].includes(result.niveau)) {
+    } else if (['2nde', '1ere', 'Tle'].includes(result.niveau)) {
         result.cycle = 'second';
         result.isSecondCycle = true;
         result.isLycée = true;
     }
-
-    // --- DÉTECTION DE LA SÉRIE (A, C, D...) ---
-    // On cherche une lettre isolée ou en fin de chaîne, en ignorant les mots clés comme "art"
     
-    // Regex : Cherche une lettre A,B,C,D,F,G précédée d'un espace, ou collée à la fin (ex: 3eA)
-    // On exclut les cas où la lettre fait partie d'un mot (ex: "Art", "Ap")
-    const serieMatch = c.match(/(?:^|\s|\d)([abcdfgh])(?:\s|$|\d)/i);
-    
-    if (serieMatch) {
-        result.serie = serieMatch[1].toUpperCase();
-    } else {
-        // Fallback pour les cas collés sans espace où le regex précédent échoue (ex: TleD)
-        if (c.includes('a') && !c.includes('art') && !c.includes('ap')) result.serie = 'A';
-        else if (c.includes('c')) result.serie = 'C';
-        else if (c.includes('d')) result.serie = 'D';
-        else if (c.includes('g')) result.serie = 'G';
-        else if (c.includes('f')) result.serie = 'F';
+    // Détection de la série
+    if (c.includes('a1')) {
+        result.serie = 'A';
+        result.sousSerie = '1';
+    } else if (c.includes('a2')) {
+        result.serie = 'A';
+        result.sousSerie = '2';
+    } else if (c.includes('a') && !c.includes('art') && !c.includes('ap')) {
+        result.serie = 'A';
+    } else if (c.includes('c')) {
+        result.serie = 'C';
+    } else if (c.includes('d')) {
+        result.serie = 'D';
+    } else if (c.includes('b')) {
+        result.serie = 'B';
+    } else if (c.includes('g')) {
+        result.serie = 'G';
+    } else if (c.includes('f')) {
+        result.serie = 'F';
     }
     
     return result;
 }
 
+// --- Fonction principale ---
+/* --- EXCEL IMPORT --- */
+/* --- EXCEL IMPORT --- */
+async function handleExcel(file){
+  try {
+    setStatus('Importation en cours...', 'loading');
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {type:'array'});
+    
+    // 1. CHERCHER LA FEUILLE DES NOTES (Moy 1TR, 1er TR, etc.)
+    const gradeSheetPatterns = [
+        /1.*(TR|Trim)/i,
+        /2.*(TR|Trim)/i, 
+        /3.*(TR|Trim)/i,
+        /Ann|Synthese|Global|Général/i
+    ];
+    
+    let gradeSheetName = null;
+    for (const pattern of gradeSheetPatterns) {
+        const match = wb.SheetNames.find(n => n.match(pattern));
+        if (match) {
+            gradeSheetName = match;
+            break;
+        }
+    }
+    
+    if (!gradeSheetName) {
+        throw new Error("Aucune feuille de notes trouvée. Cherche : '1TR', '2TR', 'Annuelle', etc.");
+    }
+    
+    console.log("Feuille de notes principale:", gradeSheetName);
+    
+    // 2. CHARGER LES ÉLÈVES DEPUIS LA FEUILLE DES NOTES
+    const gradeData = XLSX.utils.sheet_to_json(wb.Sheets[gradeSheetName], {defval:'', raw: false});
+    
+    if(gradeData.length === 0) throw new Error("Feuille de notes vide");
+    
+    // 3. CRÉER UNE MAP DES ÉLÈVES DEPUIS LES NOTES (source principale)
+    const studentsMap = new Map();
+    
+    gradeData.forEach((row, index) => {
+        // Récupérer le matricule depuis la feuille de notes (priorité absolue)
+        let matricule = findColumnValue(row, 'matricule');
+        
+        // Si pas de matricule dans les notes, essayer autres identifiants
+        if (!matricule) {
+            matricule = findColumnValue(row, 'code') || findColumnValue(row, 'id') || `ELEVE_NOTE_${index + 1}`;
+        }
+        
+        matricule = String(matricule).trim();
+        
+        // Récupérer le nom depuis la feuille de notes
+        let valNomComplet = findColumnValue(row, 'nom_complet');
+        let valNom = findColumnValue(row, 'nom', ['prenom']); 
+        let valPrenom = findColumnValue(row, 'prenoms', ['nom']);
+        let nomFinal = '';
+        let prenomFinal = '';
+
+        if (valNomComplet) {
+            const parts = String(valNomComplet).trim().split(/\s+/);
+            nomFinal = parts.shift(); 
+            prenomFinal = parts.join(' '); 
+        } else if (valNom) {
+            if (!valPrenom || String(valPrenom).trim() === '') {
+                const parts = String(valNom).trim().split(/\s+/);
+                nomFinal = parts.shift();
+                prenomFinal = parts.join(' ');
+            } else {
+                nomFinal = valNom;
+                prenomFinal = valPrenom;
+            }
+        }
+        
+        // Créer l'objet élève de base avec les infos des notes
+        const student = {
+            id: uuid(),
+            matricule: matricule,
+            nom: String(nomFinal || '').trim(),
+            prenoms: String(prenomFinal || '').trim(),
+            // Ces informations seront complétées depuis Effectif
+            sexe: '',
+            dateNaissance: '',
+            classe: '',
+            redoublant: false,
+            moyennes: { 'Annuelle': {}, '1TR': {}, '2TR': {}, '3TR': {} },
+            rangs: { 'Annuelle': '', '1TR': '', '2TR': '', '3TR': '' }
+        };
+        
+        // Ajouter à la map (clé = matricule)
+        studentsMap.set(matricule, student);
+    });
+
+    console.log(`Élèves trouvés dans les notes: ${studentsMap.size}`);
+
+    // 4. CHARGER ET COMPLÉTER AVEC LA FEUILLE EFFECTIF
+    const effectifSheetName = wb.SheetNames.find(n => 
+        n.toLowerCase().includes('effectif') || 
+        n.toLowerCase().includes('élèves') ||
+        n.toLowerCase().includes('liste')
+    );
+    
+    if (effectifSheetName) {
+        console.log("Complétion avec la feuille:", effectifSheetName);
+        const effectifData = XLSX.utils.sheet_to_json(wb.Sheets[effectifSheetName], {defval:'', raw: false});
+        
+        let matchedCount = 0;
+        
+        effectifData.forEach(row => {
+            const mat = String(findColumnValue(row, 'matricule') || '').trim();
+            
+            if (!mat) return; // Ignorer les lignes sans matricule
+            
+            // Chercher l'élève dans notre map (créée depuis les notes)
+            const student = studentsMap.get(mat);
+            
+            if (student) {
+                matchedCount++;
+                
+                // Compléter les informations manquantes
+                if (!student.sexe) {
+                    const sexe = findColumnValue(row, 'sexe') || '';
+                    if (sexe) student.sexe = sexe;
+                }
+                
+                if (!student.dateNaissance) {
+                    let dateNaissance = findColumnValue(row, 'dateNaissance');
+                    if (dateNaissance) {
+                        // Conversion de date
+                        if (!isNaN(dateNaissance) && dateNaissance > 25568) {
+                            try {
+                                const excelEpoch = new Date(1899, 11, 30);
+                                const jsDate = new Date(excelEpoch.getTime() + (dateNaissance - 1) * 24 * 60 * 60 * 1000);
+                                dateNaissance = jsDate.toISOString().split('T')[0];
+                            } catch (e) {
+                                console.warn("Erreur conversion date Excel:", e);
+                                dateNaissance = '';
+                            }
+                        }
+                        student.dateNaissance = dateNaissance;
+                    }
+                }
+                
+                if (!student.classe) {
+                    const classe = findColumnValue(row, 'classe') || '';
+                    if (classe) student.classe = classe;
+                }
+                
+                // Redoublant
+                const redoublantValue = findColumnValue(row, 'redoublant');
+                if (redoublantValue) {
+                    student.redoublant = String(redoublantValue).toUpperCase().trim() === 'R' || 
+                                        String(redoublantValue).toUpperCase().trim() === 'REDOUBLANT' ||
+                                        String(redoublantValue).trim() === '1';
+                }
+            }
+        });
+        
+        console.log(`Élèves complétés depuis Effectif: ${matchedCount}/${studentsMap.size}`);
+        
+        // Identifier les élèves qui n'ont pas été trouvés dans Effectif
+        const missingInEffectif = Array.from(studentsMap.values())
+            .filter(s => !s.sexe || !s.classe)
+            .map(s => s.matricule);
+        
+        if (missingInEffectif.length > 0) {
+            console.warn("Élèves non trouvés dans Effectif:", missingInEffectif);
+            setStatus(`${missingInEffectif.length} élève(s) non trouvé(s) dans Effectif`, 'warning');
+        }
+    } else {
+        console.warn("Feuille Effectif non trouvée - informations limitées");
+        setStatus("Feuille Effectif non trouvée - certaines informations manquent", 'warning');
+    }
+
+    // 5. PARSER LES NOTES DE TOUTES LES FEUILLES DISPONIBLES
+    const studentsList = Array.from(studentsMap.values());
+    
+    // Fonction pour parser les notes depuis une feuille spécifique
+    const parseGradesFromSheet = (sheetPattern, periodKey) => {
+        const sheetName = wb.SheetNames.find(n => n.match(sheetPattern));
+        if(!sheetName) {
+            console.log(`Feuille pour ${periodKey} (pattern: ${sheetPattern}) non trouvée`);
+            return;
+        }
+        
+        console.log(`Chargement des notes ${periodKey} depuis: ${sheetName}`);
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:'', raw: false});
+        
+        let matchedCount = 0;
+        
+        rows.forEach(row => {
+            const mat = String(findColumnValue(row, 'matricule') || '').trim();
+            const student = studentsMap.get(mat);
+            
+            if(student) {
+                matchedCount++;
+                
+                // Traiter le rang
+                const rg = findColumnValue(row, 'rang');
+                if(rg) student.rangs[periodKey] = rg;
+                
+                // Traiter la moyenne générale
+                const mg = findColumnValue(row, 'moyenne'); 
+                if(mg) {
+                    const mgVal = parseFloat(String(mg).replace(',', '.'));
+                    if(!isNaN(mgVal)) {
+                        student.moyennes[periodKey]['Moy_generale'] = mgVal;
+                    }
+                }
+                
+                // Traiter les matières
+                const subjectColumns = {
+                    'compo_francais': ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
+                    'orthographe': ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
+                    'expression_orale': ['expression orale','oral','expr orale','expression','expr', 'oral'],
+                    'francais': ['fr','fra','francais','français','frs'],
+                    'maths': ['math','maths','mathematique','ml'],
+                    'anglais': ['anglais','eng','english'],
+                    'physique': ['pc','sp','phys','physique'],
+                    'svt': ['svt','bio','biologie','sciences'],
+                    'hg': ['hg','hist','geo','histoire','géographie'],
+                    'eps': ['eps','sport','education physique'],
+                    'philosophie': ['philo','philosophie'],
+                    'lv2': ['lv2','espagnol','allemand','esp','all'],
+                    'edhc': ['edhc','éducation à la citoyenneté','education citoyenneté','éducation citoyenneté','ed.hc','ed.h.c'],
+                    'art_plastique': ['ap','art','arts','dessin'],
+                    'conduite': ['conduite','cond','comportement']
+                };
+                
+                Object.keys(row).forEach(colRaw => {
+                    const colClean = normalizeStr(colRaw);
+                    const val = row[colRaw];
+                    
+                    // Ignorer si vide
+                    if (val === '' || val === null || val === undefined) return;
+                    
+                    // Vérifier si c'est une colonne à ignorer (info élève déjà traitée)
+                    if (colClean.includes('nom') || colClean.includes('prenom') || 
+                        colClean.includes('matricule') || colClean.includes('classe') ||
+                        colClean.includes('sexe') || colClean.includes('date') ||
+                        colClean.includes('rang') || (colClean.includes('moy') && colClean.includes('gen'))) {
+                        return;
+                    }
+                    
+                    // Convertir en nombre
+                    const numVal = parseFloat(String(val).replace(',', '.'));
+                    
+                    if(!isNaN(numVal) && numVal !== 0) {
+                        // Chercher la matière correspondante
+                        for(const [subject, aliases] of Object.entries(subjectColumns)) {
+                            for(const alias of aliases) {
+                                const cleanAlias = normalizeStr(alias);
+                                if(colClean === cleanAlias || colClean.includes(cleanAlias)) {
+                                    student.moyennes[periodKey][subject] = numVal;
+                                    return; // Sortir dès qu'on a trouvé
+                                }
+                            }
+                        }
+                        
+                        // Si non trouvé, essayer de deviner par le nom de la colonne
+                        if (colClean.includes('franc') || colClean.includes('fr')) {
+                            student.moyennes[periodKey]['francais'] = numVal;
+                        } else if (colClean.includes('math')) {
+                            student.moyennes[periodKey]['maths'] = numVal;
+                        } else if (colClean.includes('anglais') || colClean.includes('eng')) {
+                            student.moyennes[periodKey]['anglais'] = numVal;
+                        } else if (colClean.includes('phys')) {
+                            student.moyennes[periodKey]['physique'] = numVal;
+                        } else if (colClean.includes('svt') || colClean.includes('bio')) {
+                            student.moyennes[periodKey]['svt'] = numVal;
+                        } else if (colClean.includes('hg') || colClean.includes('hist') || colClean.includes('geo')) {
+                            student.moyennes[periodKey]['hg'] = numVal;
+                        }
+                    }
+                });
+            }
+        });
+        
+        console.log(`  ${matchedCount}/${rows.length} élèves trouvés dans ${sheetName}`);
+    };
+
+    // Parser toutes les feuilles de notes (même celle déjà utilisée pour les noms)
+    parseGradesFromSheet(/1.*(TR|Trim)/i, '1TR');
+    parseGradesFromSheet(/2.*(TR|Trim)/i, '2TR');
+    parseGradesFromSheet(/3.*(TR|Trim)/i, '3TR');
+    parseGradesFromSheet(/Ann|Synthese|Global|Général/i, 'Annuelle');
+
+    // 6. POST-TRAITEMENT ET VALIDATION
+    const finalStudents = Array.from(studentsMap.values());
+    
+    // Filtrer les élèves sans nom (peu probable si on part des notes)
+    const validStudents = finalStudents.filter(s => s.nom && s.nom.trim() !== '');
+    
+    // Calculer les moyennes annuelles si manquantes
+    validStudents.forEach(s => {
+        // Si moyenne annuelle manquante, calculer à partir des trimestres
+        if (!s.moyennes['Annuelle'] || !s.moyennes['Annuelle']['Moy_generale']) {
+            const trimesters = ['1TR', '2TR', '3TR'];
+            let sum = 0;
+            let count = 0;
+            
+            trimesters.forEach(tr => {
+                if (s.moyennes[tr] && s.moyennes[tr]['Moy_generale']) {
+                    sum += s.moyennes[tr]['Moy_generale'];
+                    count++;
+                }
+            });
+            
+            if (count > 0) {
+                if (!s.moyennes['Annuelle']) s.moyennes['Annuelle'] = {};
+                s.moyennes['Annuelle']['Moy_generale'] = sum / count;
+            }
+        }
+        
+        // Nettoyer la classe
+        if (s.classe) {
+            s.classe = s.classe.trim().replace(/\s+/g, ' ');
+        }
+        
+        // Capitaliser le sexe
+        if (s.sexe) {
+            s.sexe = s.sexe.toUpperCase().charAt(0);
+        }
+    });
+
+    console.log(`Import terminé: ${validStudents.length} élèves valides`);
+    console.log("Classes trouvées:", [...new Set(validStudents.map(s => s.classe).filter(Boolean))].sort());
+
+    // 7. SAUVEGARDE ET RECHARGEMENT
+    await studentsStore.save(getSelectedYear(), validStudents);
+    await loadStudentsForYear();
+    
+    // Vider le cache de langue
+    clearClassLanguageCache();
+    
+    setStatus(`${validStudents.length} élèves importés depuis les notes`, 'success');
+    
+    // Afficher un résumé détaillé
+    const summary = `
+IMPORTATION RÉUSSIE (Logique inversée) :
+======================================
+SOURCE PRINCIPALE : Feuille de notes
+• ${validStudents.length} élèves importés depuis les notes
+• ${[...new Set(validStudents.map(s => s.classe).filter(Boolean))].length} classes différentes
+• Feuilles traitées: ${wb.SheetNames.length}
+
+LOGIQUE D'IMPORTATION :
+----------------------
+1. Les matricules et noms viennent des notes (Moy 1TR, etc.)
+2. Les informations complémentaires viennent de Effectif
+3. Seuls les élèves ayant des notes sont importés
+
+STATISTIQUES :
+-------------
+✓ Élèves avec notes: ${validStudents.length}
+✓ Élèves sans classe: ${validStudents.filter(s => !s.classe).length}
+✓ Élèves sans sexe: ${validStudents.filter(s => !s.sexe).length}
+
+CONSEIL :
+--------
+Pour éviter les élèves sans infos, assurez-vous que :
+1. Tous les matricules des notes existent dans Effectif
+2. Les matricules sont identiques dans les deux feuilles
+    `;
+    
+    alert(summary);
+    
+  } catch(e) {
+    console.error("Erreur d'importation complète:", e);
+    setStatus('Erreur d\'importation', 'error');
+    alert(`Erreur lors de l'importation : ${e.message}\n\nNOUVELLE LOGIQUE:\n1. Utilise les matricules des feuilles de notes\n2. Complète avec Effectif\n3. Seuls les élèves avec des notes sont importés`);
+  }
+}
 
 function getSubjectsOrder(cls) {
     const parsed = parseClasse(cls);
     
     // Si la classe n'est pas reconnue, retourner une liste minimale
     if (!parsed.niveau) {
-        // Pour les classes non reconnues, on retourne une liste de base avec conduite en dernier
         return ['francais', 'maths', 'anglais', 'hg', 'svt', 'physique', 'eps', 'conduite'];
     }
     
@@ -1743,26 +2341,19 @@ function getSubjectsOrder(cls) {
             (parsed.niveau === '1ere' && parsed.serie === 'D') ||
             (parsed.niveau === 'terminale' && parsed.serie === 'D')) {
             
-            // Maths, Physique, SVT en PREMIÈRE position
             baseSubjects.push('maths', 'physique', 'svt');
-            
-            // Puis les autres matières de base
             baseSubjects.push('francais', 'anglais', 'eps');
             
-            // Pour 2nde C seulement, ajouter LV2 avant HG
             if (parsed.niveau === '2nde' && parsed.serie === 'C') {
-                // On va ajouter HG d'abord, puis insérer LV2 avant
                 baseSubjects.push('hg');
                 const hgIndex = baseSubjects.indexOf('hg');
                 if (hgIndex !== -1) {
                     baseSubjects.splice(hgIndex, 0, 'lv2');
                 }
             } else {
-                // Pour 1ere D et Terminale D, pas de LV2
                 baseSubjects.push('hg');
             }
             
-            // Philosophie pour 1ere et Terminale
             if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
                 baseSubjects.push('philosophie');
             }
@@ -1773,20 +2364,14 @@ function getSubjectsOrder(cls) {
                  (parsed.niveau === '1ere' && parsed.serie === 'A') ||
                  (parsed.niveau === 'terminale' && parsed.serie === 'A')) {
             
-            // Pour 1ere A et Terminale A: Philosophie en premier
             if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
                 baseSubjects.push('philosophie');
             }
             
-            // Ensuite: Français, Anglais, LV2, Histoire-Géographie
             baseSubjects.push('francais', 'anglais', 'lv2', 'hg');
-            
-            // Puis les autres matières
             baseSubjects.push('maths', 'svt', 'eps');
             
-            // Ajouter Physique sauf pour Terminale A
             if (!(parsed.niveau === 'terminale' && parsed.serie === 'A')) {
-                // Insérer Physique après SVT
                 const svtIndex = baseSubjects.indexOf('svt');
                 if (svtIndex !== -1) {
                     baseSubjects.splice(svtIndex + 1, 0, 'physique');
@@ -1796,22 +2381,17 @@ function getSubjectsOrder(cls) {
         
         // CAS 3: Toutes les autres classes du second cycle
         else {
-            // Matières de base
             baseSubjects = ['francais', 'maths', 'anglais', 'svt', 'eps'];
             
-            // Ajouter physique sauf terminale A (mais ici on n'est pas dans les classes A)
             const svtIndex = baseSubjects.indexOf('svt');
             if (svtIndex !== -1) {
                 baseSubjects.splice(svtIndex + 1, 0, 'physique');
             }
             
-            // Ajouter HG
             baseSubjects.push('hg');
             
-            // Gestion de LV2
             let shouldAddLV2 = true;
             
-            // Exceptions où on NE met PAS LV2
             if ((parsed.niveau === '1ere' && parsed.serie === 'D') || 
                 (parsed.niveau === 'terminale' && parsed.serie === 'D') ||
                 (parsed.niveau === 'terminale' && parsed.serie === 'B') ||
@@ -1820,14 +2400,12 @@ function getSubjectsOrder(cls) {
             }
             
             if (shouldAddLV2) {
-                // Insérer LV2 avant HG si HG existe
                 const hgIndex = baseSubjects.indexOf('hg');
                 if (hgIndex !== -1) {
                     baseSubjects.splice(hgIndex, 0, 'lv2');
                 }
             }
             
-            // Philosophie pour toutes les classes de 1ère et Terminale
             if (parsed.niveau === '1ere' || parsed.niveau === 'terminale') {
                 if (!baseSubjects.includes('philosophie')) {
                     baseSubjects.push('philosophie');
@@ -1835,7 +2413,6 @@ function getSubjectsOrder(cls) {
             }
         }
         
-        // Ajouter la conduite en DERNIÈRE position pour TOUTES les classes du second cycle
         if (!baseSubjects.includes('conduite')) {
             baseSubjects.push('conduite');
         }
@@ -1843,14 +2420,52 @@ function getSubjectsOrder(cls) {
         return baseSubjects;
     }
     
-    // Par défaut, retourner une liste minimale avec conduite en dernier
     return ['francais', 'maths', 'anglais', 'hg', 'svt', 'physique', 'eps', 'conduite'];
 }
 
 function getStudentNote(s, period, subjectKey) {
+  if (!s || !s.moyennes) return -1;
+  
   const m = s.moyennes[period];
   if (!m) return -1;
-  if (m[subjectKey] !== undefined) return m[subjectKey];
+  
+  // Chercher directement
+  if (m[subjectKey] !== undefined && m[subjectKey] !== null) {
+    return parseFloat(m[subjectKey]);
+  }
+  
+  // Pour la moyenne générale, chercher aussi avec différentes clés
+  if (subjectKey === 'Moy_generale') {
+    const possibleKeys = ['Moy_generale', 'moyenne_generale', 'moy_generale', 'moyenne', 'mg'];
+    for (const key of possibleKeys) {
+      if (m[key] !== undefined && m[key] !== null) {
+        return parseFloat(m[key]);
+      }
+    }
+    return -1;
+  }
+  
+  // Pour les matières, chercher avec variations
+  const subjectVariations = {
+    'francais': ['francais', 'fr', 'fra', 'français'],
+    'maths': ['maths', 'math', 'mathematique', 'mat'],
+    'anglais': ['anglais', 'eng', 'english', 'ang'],
+    'physique': ['physique', 'phys', 'pc'],
+    'svt': ['svt', 'bio', 'biologie'],
+    'hg': ['hg', 'hist', 'geo', 'histoire', 'géographie'],
+    'eps': ['eps', 'sport'],
+    'philosophie': ['philosophie', 'philo'],
+    'lv2': ['lv2', 'langue', 'espagnol', 'allemand']
+  };
+  
+  if (subjectVariations[subjectKey]) {
+    for (const variant of subjectVariations[subjectKey]) {
+      if (m[variant] !== undefined && m[variant] !== null) {
+        return parseFloat(m[variant]);
+      }
+    }
+  }
+  
   return -1;
 }
 
@@ -1891,19 +2506,25 @@ function renderRankingsToContainer(containerId) {
                 <div class="table-wrap" style="max-height:600px;border:none">
                 <table><tbody>`;
         
-        ranking.forEach((item, i) => {
-            let style = (i<3)?'font-weight:bold;background:#fffbeb':'';
-            
-            // MODIFICATION 3 : Ajout de l'événement onclick et du curseur pointer
-            // On utilise l'ID pour retrouver l'objet élève de manière sûre
-            html += `<tr style="${style}; cursor:pointer" onclick="openStudent(allStudents.find(s => s.id === '${item.s.id}'))">
-               <td style="width:40px; padding:10px 8px">#${i+1}</td>
-               <td style="padding:10px 8px"><span class="name-part" style="font-size:13px">${h(item.s.nom)}</span> ${h(item.s.prenoms)}</td>
-               <td style="text-align:right;font-weight:bold;font-size:14px;padding:10px 12px">${item.val.toFixed(2)}</td>
-            </tr>`;
+ranking.forEach((item, i) => {
+    let style = (i<3)?'font-weight:bold;background:#fffbeb':'';
+    
+    const studentId = item.s.id || item.s.matricule;
+    const nom = item.s.nom || '';
+    const prenoms = item.s.prenoms || item.s.prenom || '';
+    
+    // Assurer que prenoms n'est pas "undefined"
+    const displayPrenoms = (prenoms === 'undefined' || prenoms === undefined) ? '' : prenoms;
+    
+    html += `<tr style="${style}; cursor:pointer" onclick="openStudent(allStudents.find(s => s.id === '${studentId}'))">
+       <td style="width:40px; padding:10px 8px">#${i+1}</td>
+       <td style="padding:10px 8px"><span class="name-part" style="font-size:13px">${h(nom)}</span> ${h(displayPrenoms)}</td>
+       <td style="text-align:right;font-weight:bold;font-size:14px;padding:10px 12px">${item.val.toFixed(2)}</td>
+    </tr>`;
+});
         });
         html += `</tbody></table></div></div>`;
-    });
+    
     container.innerHTML = html || '<div style="text-align:center">Pas de données.</div>';
 }
 
@@ -1966,14 +2587,31 @@ async function renderGrades(s){
       return `<i class="fa ${icon}" style="color:${color};font-size:11px;margin-left:6px;cursor:help;display:inline-block" title="Année ${prevYearStr}: ${prevVal.toFixed(2)}"></i>`;
   };
 
-  getSubjectsOrder(s.classe).forEach(sub => {
+  // Dans la fonction renderGrades(s), remplacez cette partie :
+getSubjectsOrder(s.classe).forEach(sub => {
+    // Utiliser la nouvelle version de getSubjectDisplayName avec l'élève
+    let displayName = getSubjectDisplayName(sub, s);
+    
     const g = (p) => { 
         let v = getStudentNote(s, p, sub); 
         if(v < 0) return '—';
         return `<span>${v.toFixed(2)}</span>` + getTrendHTML(v, p, sub); 
     };
-    tbody.innerHTML += `<tr><td>${getSubjectDisplayName(sub)}</td><td>${g('1TR')}</td><td>${g('2TR')}</td><td>${g('3TR')}</td><td>${g('Annuelle')}</td></tr>`;
-  });
+    tbody.innerHTML += `<tr><td>${displayName}</td><td>${g('1TR')}</td><td>${g('2TR')}</td><td>${g('3TR')}</td><td>${g('Annuelle')}</td></tr>`;
+});
+
+// Par :
+getSubjectsOrder(s.classe).forEach(sub => {
+    // Utiliser la nouvelle version de getSubjectDisplayName avec l'élève
+    let displayName = getSubjectDisplayName(sub, s);
+    
+    const g = (p) => { 
+        let v = getStudentNote(s, p, sub); 
+        if(v < 0) return '—';
+        return `<span>${v.toFixed(2)}</span>` + getTrendHTML(v, p, sub); 
+    };
+    tbody.innerHTML += `<tr><td>${displayName}</td><td>${g('1TR')}</td><td>${g('2TR')}</td><td>${g('3TR')}</td><td>${g('Annuelle')}</td></tr>`;
+});
 
   const getM = (p) => { 
       const v = s.moyennes[p]?.Moy_generale; 
@@ -2002,6 +2640,49 @@ function renderKPIs(s){
   document.getElementById('kpi-status').className = (anns >= 10) ? 'badge' : 'badge';
   document.getElementById('kpi-status').style.background = (anns >= 10) ? '#dcfce7' : '#fee2e2';
   document.getElementById('kpi-status').style.color = (anns >= 10) ? '#16a34a' : '#dc2626';
+}
+
+function renderStudentStatus(s) {
+    const redoublantBadge = document.getElementById('st-redoublant-badge');
+    const statusContainer = document.getElementById('st-status');
+    
+    // Badge pour redoublant en début d'année
+    if (s.redoublant) {
+        redoublantBadge.innerHTML = `<span class="badge" style="background:#fef3c7; color:#d97706; border:1px solid #fbbf24">
+            <i class="fa fa-history"></i> Redoublant
+        </span>`;
+    } else {
+        redoublantBadge.innerHTML = `<span class="badge" style="background:#e0f2fe; color:#0ea5e9; border:1px solid #7dd3fc">
+            <i class="fa fa-user-plus"></i> Nouveau
+        </span>`;
+    }
+    
+    // Déterminer le statut final
+    const statusInfo = determineStudentStatus(s);
+    
+    // Mettre à jour le statut
+    statusContainer.innerHTML = `
+        <span id="st-redoublant-badge"></span>
+        <span id="st-final-status">${statusInfo.badge}</span>
+    `;
+    
+    // Remplir à nouveau le badge redoublant
+    if (s.redoublant) {
+        document.getElementById('st-redoublant-badge').innerHTML = `<span class="badge" style="background:#fef3c7; color:#d97706; border:1px solid #fbbf24">
+            <i class="fa fa-history"></i> Redoublant
+        </span>`;
+    } else {
+        document.getElementById('st-redoublant-badge').innerHTML = `<span class="badge" style="background:#e0f2fe; color:#0ea5e9; border:1px solid #7dd3fc">
+            <i class="fa fa-user-plus"></i> Nouveau
+        </span>`;
+    }
+    
+    // Ajouter une info-bulle sur la moyenne
+    const moyenneAnnuelle = s.moyennes['Annuelle']?.Moy_generale;
+    const kpiStatus = document.getElementById('kpi-status');
+    if (moyenneAnnuelle !== undefined) {
+        kpiStatus.title = `Moyenne: ${moyenneAnnuelle.toFixed(2)} - ${statusInfo.status}`;
+    }
 }
 
 /* ====== LYCAM LOGIC ====== */
@@ -2082,30 +2763,6 @@ function updateLycamProgress() {
     }
     
     return answeredCount;
-    // Ajouter un écouteur pour retirer le style "missing" quand une réponse est sélectionnée
-container.addEventListener('change', function(e) {
-    if (e.target.type === 'radio') {
-        const questionId = e.target.getAttribute('data-qid');
-        const questionBlock = document.getElementById(`q-block-${questionId}`);
-        if (questionBlock) {
-            questionBlock.classList.remove('missing');
-            // Retirer aussi le style des labels
-            const labels = questionBlock.querySelectorAll('.option-label');
-            labels.forEach(label => label.classList.remove('missing-label'));
-        }
-        
-        // Mettre à jour le compteur et la progression
-        updateMissingQuestionsCount();
-        updateLycamProgress();
-        
-        // Cacher le message d'erreur si toutes les questions sont maintenant remplies
-        const missingCount = updateMissingQuestionsCount();
-        if (missingCount === 0) {
-            const errorDiv = document.getElementById('lycam-error-message');
-            if (errorDiv) errorDiv.style.display = 'none';
-        }
-    }
-});
 }
 
 function submitLycamTest() {
@@ -2538,11 +3195,33 @@ function calculateClassAverage(students, subjectKey, period) {
 function generateStatCardHTML(title, students, period, subtitle = "", onClickAction = "") {
     if (students.length === 0) return '';
 
-    // Calculs
+    // Calculs de base
     const generalAvg = calculateClassAverage(students, 'Moy_generale', period);
     const displayAvg = generalAvg !== null ? generalAvg.toFixed(2) : '—';
+    
+    // Toujours calculer le taux de réussite (≥10)
     const passedCount = students.filter(s => getStudentNote(s, period, 'Moy_generale') >= 10).length;
     const successRate = generalAvg !== null ? Math.round((passedCount / students.length) * 100) : 0;
+    
+    // **INITIALISATION des compteurs pour exclus/redoublants**
+    let excludedCount = 0;
+    let redoublantNextYearCount = 0;
+    
+    // **UNIQUEMENT pour la période Annuelle**
+    if (period === 'Annuelle') {
+        students.forEach(s => {
+            const statusInfo = determineStudentStatus(s);
+            if (statusInfo.isExclu) {
+                excludedCount++;
+            }
+            if (statusInfo.isRedoublantNextYear) {
+                redoublantNextYearCount++;
+            }
+        });
+    }
+    
+    const excludedRate = Math.round((excludedCount / students.length) * 100);
+    const redoublantNextYearRate = Math.round((redoublantNextYearCount / students.length) * 100);
 
     // Couleurs
     let color = 'var(--text-muted)';
@@ -2554,35 +3233,69 @@ function generateStatCardHTML(title, students, period, subtitle = "", onClickAct
     const clickAttr = onClickAction ? `onclick="${onClickAction}"` : '';
     const hoverClass = onClickAction ? 'level-header' : '';
 
-    return `
-        <div class="kpi-card ${hoverClass}" style="${cardStyle}" ${clickAttr}>
-            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
-                <div>
-                    <h3 style="margin:0; color:var(--brand-dark); font-size:16px">${title}</h3>
-                    ${subtitle ? `<div style="font-size:11px; color:var(--text-muted)">${subtitle}</div>` : ''}
-                </div>
-                <span class="chip">${students.length} élèves</span>
-            </div>
-            
-            <div style="display:flex; gap:20px; align-items:center;">
-                <div>
-                    <div class="kpi-label">Moyenne</div>
-                    <div class="kpi-value" style="color:${color}">${displayAvg}</div>
-                </div>
-                <div style="flex:1">
-                    <div class="kpi-label">Réussite (${passedCount})</div>
-                    <div style="display:flex; align-items:center; gap:8px">
-                        <div class="stat-bar-container">
-                            <div class="stat-bar-fill" style="width:${successRate}%; background:${successRate>=50?'var(--accent)':'var(--danger)'}"></div>
+        let html = `
+            <div class="kpi-card ${hoverClass}" style="${cardStyle}" ${clickAttr}>
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <div>
+                        <h3 style="margin:0; color:var(--brand-dark); font-size:16px">${title}</h3>
+                        ${subtitle ? `<div style="font-size:11px; color:var(--text-muted)">${subtitle}</div>` : ''}
+                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px">
+                            <i class="fa fa-calendar-alt"></i> ${period}
                         </div>
-                        <span style="font-weight:bold; font-size:12px">${successRate}%</span>
+                    </div>
+                    <span class="chip">${students.length} élèves</span>
+                </div>
+                
+                <div style="display:flex; gap:20px; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <div class="kpi-label">Moyenne</div>
+                        <div class="kpi-value" style="color:${color}">${displayAvg}</div>
+                    </div>
+                    <div style="flex:1">
+                        <div class="kpi-label">Réussite (≥10)</div>
+                        <div style="display:flex; align-items:center; gap:8px">
+                            <div class="stat-bar-container">
+                                <div class="stat-bar-fill" style="width:${successRate}%; background:${successRate>=50?'var(--accent)':'var(--danger)'}"></div>
+                            </div>
+                            <span style="font-weight:bold; font-size:12px">${successRate}%</span>
+                        </div>
+                    </div>
+                    ${onClickAction ? '<i class="fa fa-chevron-down chevron" style="color:var(--text-muted)"></i>' : ''}
+                </div>`;
+        
+        // **AFFICHAGE CONDITIONNEL pour exclus/redoublants (uniquement Annuelle)**
+        if (period === 'Annuelle') {
+            html += `
+                <div style="border-top:1px dashed var(--border); padding-top:12px;">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+                        <div style="flex:1; text-align:center;">
+                            <div class="kpi-label">Exclus/Renvoyés</div>
+                            <div style="font-weight:800; font-size:18px; color:${excludedCount>0?'var(--danger)':'var(--accent)'}">
+                                ${excludedCount}
+                            </div>
+                            <div class="stat-bar-container" style="height:6px;">
+                                <div class="stat-bar-fill" style="width:${excludedRate}%; background:var(--danger)"></div>
+                            </div>
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px">${excludedRate}%</div>
+                        </div>
+                        <div style="flex:1; text-align:center;">
+                            <div class="kpi-label">Redoublants N+1</div>
+                            <div style="font-weight:800; font-size:18px; color:${redoublantNextYearCount>0?'var(--warn)':'var(--accent)'}">
+                                ${redoublantNextYearCount}
+                            </div>
+                            <div class="stat-bar-container" style="height:6px;">
+                                <div class="stat-bar-fill" style="width:${redoublantNextYearRate}%; background:var(--warn)"></div>
+                            </div>
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px">${redoublantNextYearRate}%</div>
+                        </div>
                     </div>
                 </div>
-                ${onClickAction ? '<i class="fa fa-chevron-down chevron" style="color:var(--text-muted)"></i>' : ''}
-            </div>
-        </div>
-    `;
-}
+            `;
+        }
+    
+        html += `</div>`;
+        return html;
+    }
 
 function renderOverviewStats() {
     const container = document.getElementById('overview-content');
@@ -2867,55 +3580,1957 @@ function renderOrientationStats() {
     <div class="stat-grid">`;
     
     subjects.forEach(sub => {
-        const avg = calculateClassAverage(students, sub, period) || 0;
-        // Compter ceux qui ont la moyenne
-        const ok = students.filter(s => getStudentNote(s, period, sub) >= 10).length;
-        const pct = ((ok/students.length)*100).toFixed(0);
+        const classAverage = calculateClassAverage(students, sub, period);
+        const avgColor = classAverage >= 10 ? 'var(--accent)' : 'var(--danger)';
         
-        html += `
-        <div class="kpi-card">
-            <div style="font-weight:bold; margin-bottom:8px; text-transform:capitalize">${sub}</div>
-            <div class="kpi-value" style="color:${avg>=10?'var(--accent)':'var(--danger)'}">${avg.toFixed(2)}</div>
-            <div class="stat-bar-container">
-                <div class="stat-bar-fill" style="width:${pct}%; background:var(--brand)"></div>
-            </div>
-            <div style="font-size:11px; margin-top:4px">${ok} élèves ≥ 10 (${pct}%)</div>
-        </div>`;
+        let ranking = students.map(s => { 
+            return { s: s, val: getStudentNote(s, period, sub) }; 
+        }).filter(x => x.val != null && !isNaN(x.val) && x.val >= 0);
+        
+        if(ranking.length === 0) return;
+        ranking.sort((a,b) => b.val - a.val);
+        
+        html += `<div class="card" style="padding:0;overflow:hidden">
+                <div style="background:var(--brand-light);padding:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;color:var(--brand-dark);font-size:14px">
+                    <span>${getSubjectDisplayName(sub, students[0]?.classe)}</span>
+                    <span style="background:white;padding:2px 10px;border-radius:12px;font-size:12px;color:${avgColor};border:1px solid var(--border)">
+                        Moy.classe: ${classAverage ? classAverage.toFixed(2) : '—'}
+                    </span>
+                </div>
+            </div>`;
     });
     
     html += '</div>';
     container.innerHTML = html;
 }
 
-async function importFullBackup(file) {
-    if(!confirm("ATTENTION : Cette action va écraser/fusionner les données existantes. Voulez-vous continuer ?")) {
-        document.getElementById('input-import-backup').value = '';
-        return;
-    }
-    
+/* ====== LOGIQUE RAPPORT CIO - VERSION CORRIGÉE ET FONCTIONNELLE ====== */
+function renderCioReport() {
     try {
-        const text = await file.text();
-        const data = JSON.parse(text);
+        console.log("Début de renderCioReport");
+        const period = document.getElementById('cio-period-selector').value;
+        const tbody = document.getElementById('cio-tbody');
+        tbody.innerHTML = '';
 
-        if(!data.meta || !data.localStorage || !data.indexedDB) throw new Error("Format de sauvegarde invalide.");
-
-        // Restore LocalStorage
-        Object.keys(data.localStorage).forEach(k => {
-            storage.save(k, data.localStorage[k]);
+        // 1. Récupérer les élèves qui ont des notes pour cette période
+        const studentsWithGrades = allStudents.filter(student => {
+            if (!student.moyennes || !student.moyennes[period]) {
+                return false;
+            }
+            
+            const periodGrades = student.moyennes[period];
+            
+            // Vérifier s'il y a au moins une note (en excluant les clés spéciales)
+            for (const key in periodGrades) {
+                if (key !== 'lv2_language' && periodGrades[key] !== undefined && periodGrades[key] !== null) {
+                    const val = parseFloat(periodGrades[key]);
+                    if (!isNaN(val) && val >= 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         });
 
-        // Restore IndexedDB
-        for(const year of Object.keys(data.indexedDB)) {
-            await studentsStore.save(year, data.indexedDB[year]);
-        }
+        console.log(`Nombre d'élèves avec notes pour ${period}: ${studentsWithGrades.length}`);
 
-        alert("Restauration complète effectuée avec succès ! La page va se recharger.");
-        location.reload();
-
-    } catch(e) {
-        alert("Erreur lors de la restauration : " + e.message);
+        // 2. PREMIER TABLEAU : Analyse par matière
+        const firstTableHTML = renderFirstTableForHTML(period, studentsWithGrades);
+        
+        // 3. DEUXIÈME TABLEAU : Analyse des moyennes générales
+        const secondTableHTML = renderSecondTableForHTML(period, studentsWithGrades);
+        
+        // 4. Combiner les deux tableaux
+        tbody.innerHTML = firstTableHTML + secondTableHTML;
+        
+        console.log("Rapport CIO généré avec succès");
+        setStatus(`Rapport CIO ${period} généré (${studentsWithGrades.length} élèves)`, 'success');
+        
+    } catch (error) {
+        console.error("Erreur dans renderCioReport:", error);
+        setStatus('Erreur lors de la génération du rapport CIO', 'error');
     }
-    document.getElementById('input-import-backup').value = '';
+}
+
+function renderFirstTableForHTML(period, studentsWithGrades) {
+    let html = '';
+    
+    // Niveaux du premier cycle
+    const premierCycleLevels = [
+        { name: '6ème', filter: (s) => normalizeClasseKey(s.classe).includes('6') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '5ème', filter: (s) => normalizeClasseKey(s.classe).includes('5') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '4ème', filter: (s) => normalizeClasseKey(s.classe).includes('4') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '3ème', filter: (s) => normalizeClasseKey(s.classe).includes('3') && !normalizeClasseKey(s.classe).includes('2nd') && !normalizeClasseKey(s.classe).includes('1er') }
+    ];
+    
+    // Niveaux du second cycle
+    const secondCycleLevels = [
+        { name: '2nde A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+        }},
+        { name: '2nde C', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+        }},
+        { name: '1ère A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+        }},
+        { name: '1ère D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+        }},
+        { name: 'Tle A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('a');
+        }},
+        { name: 'Tle D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('d');
+        }}
+    ];
+    
+    // Matières à analyser
+    const subjects = [
+        'compo_francais', 'orthographe', 'francais', 'anglais', 
+        'allemand', 'espagnol', 'hg', 'maths', 'physique', 'svt', 'philosophie'
+    ];
+    
+    // Fonction pour obtenir une note
+    function getStudentGrade(student, subject) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        
+        const moyennes = student.moyennes[period];
+        const subjectMap = {
+            'compo_francais': ['compo_francais', 'composition', 'compo'],
+            'orthographe': ['orthographe', 'orth', 'dictée'],
+            'francais': ['francais', 'fr', 'français'],
+            'anglais': ['anglais', 'eng', 'english'],
+            'allemand': ['allemand', 'all', 'deutsch'],
+            'espagnol': ['espagnol', 'esp'],
+            'hg': ['hg', 'histoire', 'géographie'],
+            'maths': ['maths', 'math'],
+            'physique': ['physique', 'phys', 'pc'],
+            'svt': ['svt', 'bio'],
+            'philosophie': ['philosophie', 'philo']
+        };
+        
+        const aliases = subjectMap[subject] || [subject];
+        for (const alias of aliases) {
+            if (moyennes[alias] !== undefined && moyennes[alias] !== null) {
+                const val = parseFloat(moyennes[alias]);
+                if (!isNaN(val)) return val;
+            }
+        }
+        return -1;
+    }
+    
+    // Fonction pour traiter un groupe d'élèves
+    function processStudentGroup(students) {
+        const result = {};
+        subjects.forEach(subject => {
+            result[subject] = { eff: 0, under10: 0 };
+            students.forEach(student => {
+                const grade = getStudentGrade(student, subject);
+                if (grade >= 0) {
+                    result[subject].eff++;
+                    if (grade < 10) {
+                        result[subject].under10++;
+                    }
+                }
+            });
+        });
+        return result;
+    }
+    
+    // Fonction pour créer une ligne
+    function createDataRow(data) {
+        let cells = '';
+        subjects.forEach(subject => {
+            const d = data[subject];
+            const percentage = d.eff > 0 ? ((d.under10 / d.eff) * 100).toFixed(1) : '';
+            cells += `
+                <td>${d.eff || ''}</td>
+                <td>${d.under10 || ''}</td>
+                <td>${percentage ? percentage + '%' : ''}</td>
+            `;
+        });
+        return cells;
+    }
+    
+    // Fonction pour créer les lignes d'un niveau
+    function createLevelRows(levelName, levelStudents) {
+        if (levelStudents.length === 0) {
+            let emptyCells = '';
+            for (let i = 0; i < subjects.length; i++) {
+                emptyCells += '<td></td><td></td><td></td>';
+            }
+            return `
+                <tr>
+                    <td rowspan="2" style="font-weight:bold;vertical-align:middle">${levelName}</td>
+                    <td>Fém.</td>
+                    ${emptyCells}
+                </tr>
+                <tr>
+                    <td>Masc.</td>
+                    ${emptyCells}
+                </tr>
+            `;
+        }
+        
+        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
+        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        
+        return `
+            <tr>
+                <td rowspan="2" style="font-weight:bold;vertical-align:middle">${levelName}</td>
+                <td>Fém.</td>
+                ${createDataRow(femaleData)}
+            </tr>
+            <tr>
+                <td>Masc.</td>
+                ${createDataRow(maleData)}
+            </tr>
+        `;
+    }
+    
+    // Fonction pour les totaux de cycle
+    function createCycleTotal(cycleName, cycleStudents) {
+        if (cycleStudents.length === 0) {
+            let emptyCells = '';
+            for (let i = 0; i < subjects.length; i++) {
+                emptyCells += '<td></td><td></td><td></td>';
+            }
+            return `
+                <tr style="border-top:2px solid #000; border-bottom:2px solid #000">
+                    <td rowspan="2" class="cio-cycle-row" style="background:#3730a3;color:white;font-weight:bold;text-align:center">${cycleName}</td>
+                    <td style="background:#e0e7ff;font-weight:bold">Total</td>
+                    ${emptyCells}
+                </tr>
+                <tr style="height:10px; background:white">
+                    <td colspan="${2 + subjects.length * 3}"></td>
+                </tr>
+            `;
+        }
+        
+        const femaleStudents = cycleStudents.filter(s => s.sexe === 'F');
+        const maleStudents = cycleStudents.filter(s => s.sexe === 'M');
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        
+        function createCycleRowData(data) {
+            let cells = '';
+            subjects.forEach(subject => {
+                const d = data[subject];
+                const percentage = d.eff > 0 ? ((d.under10 / d.eff) * 100).toFixed(1) : '';
+                cells += `
+                    <td style="background:#e0e7ff">${d.eff || ''}</td>
+                    <td style="background:#e0e7ff;font-weight:bold;color:#dc2626">${d.under10 || ''}</td>
+                    <td style="background:#e0e7ff">${percentage ? percentage + '%' : ''}</td>
+                `;
+            });
+            return cells;
+        }
+        
+        return `
+            <tr style="border-top:2px solid #000">
+                <td rowspan="2" class="cio-cycle-row" style="background:#3730a3;color:white;font-weight:bold;text-align:center">${cycleName}</td>
+                <td style="background:#e0e7ff;font-weight:bold">Total Fém.</td>
+                ${createCycleRowData(femaleData)}
+            </tr>
+            <tr style="border-bottom:2px solid #000">
+                <td style="background:#e0e7ff;font-weight:bold">Total Masc.</td>
+                ${createCycleRowData(maleData)}
+            </tr>
+            <tr style="height:15px; background:white">
+                <td colspan="${2 + subjects.length * 3}"></td>
+            </tr>
+        `;
+    }
+    
+    // Premier cycle
+    let premierCycleStudents = [];
+    premierCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithGrades.filter(levelDef.filter);
+        html += createLevelRows(levelDef.name, levelStudents);
+        premierCycleStudents = premierCycleStudents.concat(levelStudents);
+    });
+    html += createCycleTotal('1er CYCLE', premierCycleStudents);
+    
+    // Second cycle
+    let secondCycleStudents = [];
+    secondCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithGrades.filter(levelDef.filter);
+        html += createLevelRows(levelDef.name, levelStudents);
+        secondCycleStudents = secondCycleStudents.concat(levelStudents);
+    });
+    html += createCycleTotal('2nd CYCLE', secondCycleStudents);
+    
+    return html;
+}
+
+function renderSecondTableForHTML(period, studentsWithGrades) {
+    let html = '';
+    
+    // Ajouter un séparateur
+    html += `
+        <tr style="height:30px; background:white">
+            <td colspan="35" style="text-align:center; font-weight:bold; font-size:14px; color:#3730a3">
+                ANALYSE DES MOYENNES GÉNÉRALES PAR NIVEAU
+            </td>
+        </tr>
+    `;
+    
+    // Niveaux détaillés
+    const detailedLevels = [
+        // Premier cycle
+        { name: '6ème', cycle: 'premier', filter: (s) => normalizeClasseKey(s.classe).includes('6') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '5ème', cycle: 'premier', filter: (s) => normalizeClasseKey(s.classe).includes('5') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '4ème', cycle: 'premier', filter: (s) => normalizeClasseKey(s.classe).includes('4') && !normalizeClasseKey(s.classe).includes('2nd') },
+        { name: '3ème', cycle: 'premier', filter: (s) => normalizeClasseKey(s.classe).includes('3') && !normalizeClasseKey(s.classe).includes('2nd') },
+        
+        // Second cycle
+        { name: '2nde A', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+        }},
+        { name: '2nde C', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+        }},
+        { name: '1ère A', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+        }},
+        { name: '1ère D', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+        }},
+        { name: 'Tle A', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('a');
+        }},
+        { name: 'Tle D', cycle: 'second', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('d');
+        }}
+    ];
+    
+    // Fonction pour obtenir la moyenne
+    function getStudentAverage(student) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        
+        const moyennes = student.moyennes[period];
+        const possibleKeys = ['Moy_generale', 'moyenne_generale', 'moy_generale', 'moyenne', 'mg'];
+        
+        for (const key of possibleKeys) {
+            if (moyennes[key] !== undefined && moyennes[key] !== null) {
+                const val = parseFloat(moyennes[key]);
+                if (!isNaN(val)) return val;
+            }
+        }
+        return -1;
+    }
+    
+    // Fonction pour calculer les statistiques
+    function calculateLevelStats(levelName, students) {
+        const stats = {
+            name: levelName,
+            total: { F: 0, G: 0, T: 0 },
+            classed: { F: 0, G: 0, T: 0 },
+            notClassed: { F: 0, G: 0, T: 0 },
+            ge_10: { F: 0, G: 0, T: 0 },
+            between_85_10: { F: 0, G: 0, T: 0 },
+            lt_85: { F: 0, G: 0, T: 0 }
+        };
+
+        students.forEach(student => {
+            const isFemale = student.sexe === 'F';
+            const avg = getStudentAverage(student);
+            
+            // Effectif total
+            if (isFemale) stats.total.F++;
+            else stats.total.G++;
+            stats.total.T++;
+            
+            // Classé ou non
+            if (avg >= 0) {
+                if (isFemale) stats.classed.F++;
+                else stats.classed.G++;
+                stats.classed.T++;
+                
+                // Catégories
+                if (avg >= 10) {
+                    if (isFemale) stats.ge_10.F++;
+                    else stats.ge_10.G++;
+                    stats.ge_10.T++;
+                } else if (avg >= 8.5) {
+                    if (isFemale) stats.between_85_10.F++;
+                    else stats.between_85_10.G++;
+                    stats.between_85_10.T++;
+                } else {
+                    if (isFemale) stats.lt_85.F++;
+                    else stats.lt_85.G++;
+                    stats.lt_85.T++;
+                }
+            } else {
+                // Non classé
+                if (isFemale) stats.notClassed.F++;
+                else stats.notClassed.G++;
+                stats.notClassed.T++;
+            }
+        });
+
+        return stats;
+    }
+    
+    // Fonction pour créer une ligne
+    function createLevelRow(stats) {
+        const totalClassedF = stats.classed.F;
+        const totalClassedG = stats.classed.G;
+        const totalClassedT = stats.classed.T;
+        
+        return `
+            <tr style="text-align: center; font-size: 10px;">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td style="font-weight:bold; text-align:left; background:#f8fafc;">${stats.name}</td>
+                
+                <!-- Effectif total -->
+                <td>${stats.total.F}</td>
+                <td>${stats.total.G}</td>
+                <td>${stats.total.T}</td>
+                
+                <!-- Effectif classé -->
+                <td>${stats.classed.F}</td>
+                <td>${stats.classed.G}</td>
+                <td>${stats.classed.T}</td>
+                
+                <!-- Effectif non classé -->
+                <td>${stats.notClassed.F}</td>
+                <td>${stats.notClassed.G}</td>
+                <td>${stats.notClassed.T}</td>
+                
+                <!-- Moyenne ≥ 10 -->
+                <td style="background-color: #d9ead3;">${stats.ge_10.F}</td>
+                <td style="background-color: #d9ead3;">${totalClassedF > 0 ? ((stats.ge_10.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #d9ead3;">${stats.ge_10.G}</td>
+                <td style="background-color: #d9ead3;">${totalClassedG > 0 ? ((stats.ge_10.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #d9ead3;">${stats.ge_10.T}</td>
+                <td style="background-color: #d9ead3;">${totalClassedT > 0 ? ((stats.ge_10.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+                
+                <!-- 8.5-9.99 -->
+                <td style="background-color: #fce4d6;">${stats.between_85_10.F}</td>
+                <td style="background-color: #fce4d6;">${totalClassedF > 0 ? ((stats.between_85_10.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #fce4d6;">${stats.between_85_10.G}</td>
+                <td style="background-color: #fce4d6;">${totalClassedG > 0 ? ((stats.between_85_10.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #fce4d6;">${stats.between_85_10.T}</td>
+                <td style="background-color: #fce4d6;">${totalClassedT > 0 ? ((stats.between_85_10.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+                
+                <!-- < 8.5 -->
+                <td style="background-color: #f4b084;">${stats.lt_85.F}</td>
+                <td style="background-color: #f4b084;">${totalClassedF > 0 ? ((stats.lt_85.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #f4b084;">${stats.lt_85.G}</td>
+                <td style="background-color: #f4b084;">${totalClassedG > 0 ? ((stats.lt_85.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #f4b084;">${stats.lt_85.T}</td>
+                <td style="background-color: #f4b084;">${totalClassedT > 0 ? ((stats.lt_85.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+            </tr>
+        `;
+    }
+    
+    // Calculer les statistiques
+    let premierCycleStats = { 
+        total: { F: 0, G: 0, T: 0 }, 
+        classed: { F: 0, G: 0, T: 0 }, 
+        notClassed: { F: 0, G: 0, T: 0 },
+        ge_10: { F: 0, G: 0, T: 0 }, 
+        between_85_10: { F: 0, G: 0, T: 0 }, 
+        lt_85: { F: 0, G: 0, T: 0 } 
+    };
+    
+    let secondCycleStats = JSON.parse(JSON.stringify(premierCycleStats));
+    let totalStats = JSON.parse(JSON.stringify(premierCycleStats));
+    
+    // Premier cycle
+    const premierCycleLevels = detailedLevels.filter(l => l.cycle === 'premier');
+    premierCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithGrades.filter(levelDef.filter);
+        const stats = calculateLevelStats(levelDef.name, levelStudents);
+        html += createLevelRow(stats);
+        
+        // Ajouter aux totaux
+        ['total', 'classed', 'notClassed', 'ge_10', 'between_85_10', 'lt_85'].forEach(key => {
+            premierCycleStats[key].F += stats[key].F;
+            premierCycleStats[key].G += stats[key].G;
+            premierCycleStats[key].T += stats[key].T;
+            
+            totalStats[key].F += stats[key].F;
+            totalStats[key].G += stats[key].G;
+            totalStats[key].T += stats[key].T;
+        });
+    });
+    
+    html += createLevelRow({ name: '1er CYCLE', ...premierCycleStats });
+    
+    // Second cycle
+    const secondCycleLevels = detailedLevels.filter(l => l.cycle === 'second');
+    secondCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithGrades.filter(levelDef.filter);
+        const stats = calculateLevelStats(levelDef.name, levelStudents);
+        html += createLevelRow(stats);
+        
+        // Ajouter aux totaux
+        ['total', 'classed', 'notClassed', 'ge_10', 'between_85_10', 'lt_85'].forEach(key => {
+            secondCycleStats[key].F += stats[key].F;
+            secondCycleStats[key].G += stats[key].G;
+            secondCycleStats[key].T += stats[key].T;
+            
+            totalStats[key].F += stats[key].F;
+            totalStats[key].G += stats[key].G;
+            totalStats[key].T += stats[key].T;
+        });
+    });
+    
+    html += createLevelRow({ name: '2nd CYCLE', ...secondCycleStats });
+    
+    // Séparateur et total général
+    html += `
+        <tr style="background-color: #4b2c82; height: 12px;">
+            <td colspan="31"></td>
+        </tr>
+    `;
+    
+    html += createLevelRow({ name: 'TOTAL GÉNÉRAL', ...totalStats });
+    
+    return html;
+}
+
+function renderFirstTable(period, studentsWithClass) {
+    // Matières dans l'ordre exact du tableau (11 matières total)
+    const subjects = [
+        'compo_francais', 'orthographe', 'francais', 'anglais', 
+        'allemand', 'espagnol', 'hg', 'maths', 'physique', 'svt', 'philosophie'
+    ];
+
+    // Fonction pour obtenir une note d'un élève - VERSION SIMPLIFIÉE
+    function getStudentGrade(student, subject) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        
+        const moyennes = student.moyennes[period];
+        
+        // Map simplifiée
+        const subjectMap = {
+            'compo_francais': ['compo_francais', 'composition', 'compo'],
+            'orthographe': ['orthographe', 'orth', 'dictée'],
+            'francais': ['francais', 'fr'],
+            'anglais': ['anglais', 'eng'],
+            'allemand': ['allemand', 'all'],
+            'espagnol': ['espagnol', 'esp'],
+            'hg': ['hg', 'hist', 'geo'],
+            'maths': ['maths', 'math'],
+            'physique': ['physique', 'phys', 'pc'],
+            'svt': ['svt', 'bio'],
+            'philosophie': ['philosophie', 'philo']
+        };
+
+        const aliases = subjectMap[subject] || [subject];
+        
+        for (const alias of aliases) {
+            if (moyennes[alias] !== undefined && moyennes[alias] !== null) {
+                const value = parseFloat(moyennes[alias]);
+                if (!isNaN(value)) return value;
+            }
+        }
+        
+        return -1;
+    }
+
+    // Fonction pour traiter un groupe d'élèves
+    function processStudentGroup(students) {
+        const result = {};
+        
+        subjects.forEach(subject => {
+            result[subject] = {
+                eff: 0,
+                under10: 0
+            };
+            
+            students.forEach(student => {
+                const grade = getStudentGrade(student, subject);
+                if (grade >= 0) {
+                    result[subject].eff++;
+                    if (grade < 10) {
+                        result[subject].under10++;
+                    }
+                }
+            });
+        });
+        
+        return result;
+    }
+
+    // Fonction pour créer une ligne de données - CORRIGÉE POUR LES TOTAUX
+    function createDataRow(label, data) {
+        let cells = '';
+        
+        subjects.forEach(subject => {
+            const d = data[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            
+            cells += `
+                <td>${d.eff || ''}</td>
+                <td style="font-weight:bold">${d.under10 || ''}</td>
+                <td style="font-size:0.9em;color:#64748b">${d.eff > 0 ? percentage + '%' : ''}</td>
+            `;
+        });
+        
+        return cells;
+    }
+
+    // Fonction pour créer les totaux de cycle - CORRIGÉE
+    function createCycleTotal(cycleName, cycleStudents) {
+        if (cycleStudents.length === 0) {
+            let emptyCells = '';
+            for (let i = 0; i < subjects.length; i++) {
+                emptyCells += '<td></td><td></td><td></td>';
+            }
+            
+            return `
+                <tr style="border-top:2px solid #000">
+                    <td rowspan="2" class="cio-cycle-row" style="background:#3730a3;color:white;font-weight:bold;text-align:center">${cycleName}</td>
+                    <td style="background:#e0e7ff;font-weight:bold">Total</td>
+                    ${emptyCells}
+                </tr>
+                <tr style="height:15px; background:white">
+                    <td colspan="${2 + subjects.length * 3}"></td>
+                </tr>
+            `;
+        }
+        
+        const femaleStudents = cycleStudents.filter(s => s.sexe === 'F');
+        const maleStudents = cycleStudents.filter(s => s.sexe === 'M');
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        
+        // CORRECTION : Ne pas calculer de total "Ensemble" - seulement Fém et Masc séparés
+        let cycleRows = '';
+        
+        // Ligne Total Fém.
+        cycleRows += `
+            <tr style="border-top:2px solid #000">
+                <td rowspan="2" class="cio-cycle-row" style="background:#3730a3;color:white;font-weight:bold;text-align:center">${cycleName}</td>
+                <td style="background:#e0e7ff;font-weight:bold">Total Fém.</td>
+                ${createCycleRowData(femaleData)}
+            </tr>
+        `;
+        
+        // Ligne Total Masc.
+        cycleRows += `
+            <tr style="border-bottom:2px solid #000">
+                <td style="background:#e0e7ff;font-weight:bold">Total Masc.</td>
+                ${createCycleRowData(maleData)}
+            </tr>
+        `;
+        
+        // Espacement
+        cycleRows += `
+            <tr style="height:15px; background:white">
+                <td colspan="${2 + subjects.length * 3}"></td>
+            </tr>
+        `;
+        
+        return cycleRows;
+    }
+
+    function createCycleRowData(data) {
+        let cells = '';
+        subjects.forEach(subject => {
+            const d = data[subject];
+            const percentage = d.eff > 0 ? ((d.under10 / d.eff) * 100).toFixed(1) : '';
+            
+            cells += `
+                <td style="background:#e0e7ff">${d.eff || ''}</td>
+                <td style="background:#e0e7ff;font-weight:bold;color:#dc2626">${d.under10 || ''}</td>
+                <td style="background:#e0e7ff">${percentage ? percentage + '%' : ''}</td>
+            `;
+        });
+        return cells;
+    }
+
+    // Fonction pour traiter un niveau spécifique
+    function createLevelRows(levelName, levelStudents) {
+        if (levelStudents.length === 0) {
+            let emptyCells = '';
+            for (let i = 0; i < subjects.length; i++) {
+                emptyCells += '<td></td><td></td><td></td>';
+            }
+            
+            return `
+                <tr>
+                    <td rowspan="2" style="font-weight:bold;vertical-align:middle">${levelName}</td>
+                    <td>Fém.</td>
+                    ${emptyCells}
+                </tr>
+                <tr>
+                    <td>Masc.</td>
+                    ${emptyCells}
+                </tr>
+            `;
+        }
+        
+        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
+        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        
+        return `
+            <tr>
+                <td rowspan="2" style="font-weight:bold;vertical-align:middle">${levelName}</td>
+                <td>Fém.</td>
+                ${createDataRow('Fém.', femaleData)}
+            </tr>
+            <tr>
+                <td>Masc.</td>
+                ${createDataRow('Masc.', maleData)}
+            </tr>
+        `;
+    }
+
+    // Premier cycle
+    const premierCycleLevels = [
+        { name: '6ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '5ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '4ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '3ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t') && !c.includes('1er');
+        }}
+    ];
+
+    let premierCycleStudents = [];
+    premierCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithClass.filter(levelDef.filter);
+        tbody.innerHTML += createLevelRows(levelDef.name, levelStudents);
+        premierCycleStudents = premierCycleStudents.concat(levelStudents);
+    });
+    tbody.innerHTML += createCycleTotal('1er CYCLE', premierCycleStudents);
+
+    // Second cycle
+    const secondCycleLevels = [
+        { name: '2nde A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+        }},
+        { name: '2nde C', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+        }},
+        { name: '1ère A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+        }},
+        { name: '1ère D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+        }},
+        { name: 'Tle A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('a');
+        }},
+        { name: 'Tle D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('d');
+        }}
+    ];
+
+    let secondCycleStudents = [];
+    secondCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithClass.filter(levelDef.filter);
+        tbody.innerHTML += createLevelRows(levelDef.name, levelStudents);
+        secondCycleStudents = secondCycleStudents.concat(levelStudents);
+    });
+    tbody.innerHTML += createCycleTotal('2nd CYCLE', secondCycleStudents);
+}
+
+function renderSecondTable(period, studentsWithClass) {
+    // Ajouter un séparateur entre les deux tableaux
+    tbody.innerHTML += `
+        <tr style="height:30px; background:white">
+            <td colspan="31" style="text-align:center; font-weight:bold; font-size:14px; color:#3730a3">
+                ANALYSE DES MOYENNES GÉNÉRALES PAR NIVEAU
+            </td>
+        </tr>
+    `;
+
+    // En-tête simplifié du second tableau
+    tbody.innerHTML += `
+        <tr style="font-size: 10px; font-family: Arial, sans-serif; text-align: center;">
+            <th rowspan="3">DRENA</th>
+            <th rowspan="3">Etablissement</th>
+            <th rowspan="3">Statut</th>
+            <th rowspan="3">NIVEAU</th>
+            <th colspan="3">Effectif total inscrit</th>
+            <th colspan="3">Effectif classé</th>
+            <th colspan="3">Effectif non classé</th>
+            <th colspan="6">Moyenne ≥ 10</th>
+            <th colspan="6">8,50 ≤ Moyenne < 10</th>
+            <th colspan="6">Moyenne < 8,50</th>
+        </tr>
+        <tr style="font-size: 10px; text-align: center;">
+            <th rowspan="2">Filles</th>
+            <th rowspan="2">Garçons</th>
+            <th rowspan="2">Total</th>
+            <th rowspan="2">Filles</th>
+            <th rowspan="2">Garçons</th>
+            <th rowspan="2">Total</th>
+            <th rowspan="2">Filles</th>
+            <th rowspan="2">Garçons</th>
+            <th rowspan="2">Total</th>
+            <th colspan="2">Filles</th>
+            <th colspan="2">Garçons</th>
+            <th colspan="2">Total</th>
+            <th colspan="2">Filles</th>
+            <th colspan="2">Garçons</th>
+            <th colspan="2">Total</th>
+            <th colspan="2">Filles</th>
+            <th colspan="2">Garçons</th>
+            <th colspan="2">Total</th>
+        </tr>
+        <tr style="font-size: 9px; text-align: center;">
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+            <th>Eff.</th><th>%</th>
+        </tr>
+    `;
+
+    // Définir les niveaux pour le second tableau
+    const detailedLevels = [
+        // PREMIER CYCLE
+        { 
+            name: '6ème', 
+            cycle: 'premier', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            }
+        },
+        { 
+            name: '5ème', 
+            cycle: 'premier', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            }
+        },
+        { 
+            name: '4ème', 
+            cycle: 'premier', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            }
+        },
+        { 
+            name: '3ème', 
+            cycle: 'premier', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t') && !c.includes('1er');
+            }
+        },
+        
+        // SECOND CYCLE
+        { 
+            name: '2nde A', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+            }
+        },
+        { 
+            name: '2nde C', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+            }
+        },
+        { 
+            name: '1ère A', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+            }
+        },
+        { 
+            name: '1ère D', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+            }
+        },
+        { 
+            name: 'Tle A', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('a');
+            }
+        },
+        { 
+            name: 'Tle D', 
+            cycle: 'second', 
+            filter: (s) => {
+                const c = normalizeClasseKey(s.classe);
+                return (c.includes('t') || c.includes('term') || c.includes('tle') || c.includes('terminal')) && c.includes('d');
+            }
+        }
+    ];
+
+    // Fonction pour obtenir la moyenne générale d'un élève
+    function getStudentAverage(student) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        const moyennes = student.moyennes[period];
+        
+        const possibleKeys = ['Moy_generale', 'moyenne_generale', 'moy_generale', 'moyenne', 'mg'];
+        for (const key of possibleKeys) {
+            if (moyennes[key] !== undefined && moyennes[key] !== null) {
+                const value = parseFloat(moyennes[key]);
+                if (!isNaN(value)) return value;
+            }
+        }
+        return -1;
+    }
+
+    // Fonction pour calculer les statistiques d'un niveau
+    function calculateLevelStats(levelName, students) {
+        const stats = {
+            name: levelName,
+            total: { F: 0, G: 0, T: 0 },
+            classed: { F: 0, G: 0, T: 0 },
+            notClassed: { F: 0, G: 0, T: 0 },
+            ge_10: { F: 0, G: 0, T: 0 },
+            between_85_10: { F: 0, G: 0, T: 0 },
+            lt_85: { F: 0, G: 0, T: 0 }
+        };
+
+        students.forEach(student => {
+            const isFemale = student.sexe === 'F';
+            const avg = getStudentAverage(student);
+            
+            // Effectif total inscrit
+            if (isFemale) stats.total.F++;
+            else stats.total.G++;
+            stats.total.T++;
+            
+            // Effectif classé (a une moyenne)
+            if (avg >= 0) {
+                if (isFemale) stats.classed.F++;
+                else stats.classed.G++;
+                stats.classed.T++;
+                
+                // Catégories selon la moyenne
+                if (avg >= 10) {
+                    if (isFemale) stats.ge_10.F++;
+                    else stats.ge_10.G++;
+                    stats.ge_10.T++;
+                } else if (avg >= 8.5) {
+                    if (isFemale) stats.between_85_10.F++;
+                    else stats.between_85_10.G++;
+                    stats.between_85_10.T++;
+                } else {
+                    if (isFemale) stats.lt_85.F++;
+                    else stats.lt_85.G++;
+                    stats.lt_85.T++;
+                }
+            } else {
+                // Non classé
+                if (isFemale) stats.notClassed.F++;
+                else stats.notClassed.G++;
+                stats.notClassed.T++;
+            }
+        });
+
+        return stats;
+    }
+
+    // Fonction pour créer une ligne de niveau - CORRIGÉE POUR LES POURCENTAGES
+    function createLevelRow(stats) {
+        // Calculer les pourcentages - par rapport au nombre de filles/garçons classés
+        const calculatePercentage = (part, totalClassed) => {
+            return totalClassed > 0 ? ((part / totalClassed) * 100).toFixed(1) : '';
+        };
+
+        const totalClassedF = stats.classed.F;
+        const totalClassedG = stats.classed.G;
+        const totalClassedT = stats.classed.T;
+
+        return `
+            <tr style="text-align: center; font-size: 10px;">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td style="font-weight:bold; text-align:left; background:#f8fafc;">${stats.name}</td>
+                
+                <!-- Effectif total inscrit -->
+                <td>${stats.total.F || ''}</td>
+                <td>${stats.total.G || ''}</td>
+                <td>${stats.total.T || ''}</td>
+                
+                <!-- Effectif classé -->
+                <td>${stats.classed.F || ''}</td>
+                <td>${stats.classed.G || ''}</td>
+                <td>${stats.classed.T || ''}</td>
+                
+                <!-- Effectif non classé -->
+                <td>${stats.notClassed.F || ''}</td>
+                <td>${stats.notClassed.G || ''}</td>
+                <td>${stats.notClassed.T || ''}</td>
+                
+                <!-- Moyenne ≥ 10 -->
+                <td style="background-color: #d9ead3;">${stats.ge_10.F || ''}</td>
+                <td style="background-color: #d9ead3;">${totalClassedF > 0 ? ((stats.ge_10.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #d9ead3;">${stats.ge_10.G || ''}</td>
+                <td style="background-color: #d9ead3;">${totalClassedG > 0 ? ((stats.ge_10.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #d9ead3;">${stats.ge_10.T || ''}</td>
+                <td style="background-color: #d9ead3;">${totalClassedT > 0 ? ((stats.ge_10.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+                
+                <!-- 8,50 ≤ Moyenne < 10 -->
+                <td style="background-color: #fce4d6;">${stats.between_85_10.F || ''}</td>
+                <td style="background-color: #fce4d6;">${totalClassedF > 0 ? ((stats.between_85_10.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #fce4d6;">${stats.between_85_10.G || ''}</td>
+                <td style="background-color: #fce4d6;">${totalClassedG > 0 ? ((stats.between_85_10.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #fce4d6;">${stats.between_85_10.T || ''}</td>
+                <td style="background-color: #fce4d6;">${totalClassedT > 0 ? ((stats.between_85_10.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+                
+                <!-- Moyenne < 8,50 -->
+                <td style="background-color: #f4b084;">${stats.lt_85.F || ''}</td>
+                <td style="background-color: #f4b084;">${totalClassedF > 0 ? ((stats.lt_85.F / totalClassedF) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #f4b084;">${stats.lt_85.G || ''}</td>
+                <td style="background-color: #f4b084;">${totalClassedG > 0 ? ((stats.lt_85.G / totalClassedG) * 100).toFixed(1) + '%' : ''}</td>
+                <td style="background-color: #f4b084;">${stats.lt_85.T || ''}</td>
+                <td style="background-color: #f4b084;">${totalClassedT > 0 ? ((stats.lt_85.T / totalClassedT) * 100).toFixed(1) + '%' : ''}</td>
+            </tr>
+        `;
+    }
+
+    // Calculer les statistiques par niveau
+    let premierCycleStats = { 
+        total: { F: 0, G: 0, T: 0 }, 
+        classed: { F: 0, G: 0, T: 0 }, 
+        notClassed: { F: 0, G: 0, T: 0 },
+        ge_10: { F: 0, G: 0, T: 0 }, 
+        between_85_10: { F: 0, G: 0, T: 0 }, 
+        lt_85: { F: 0, G: 0, T: 0 } 
+    };
+    
+    let secondCycleStats = JSON.parse(JSON.stringify(premierCycleStats));
+    let totalStats = JSON.parse(JSON.stringify(premierCycleStats));
+
+    // Traiter d'abord le PREMIER CYCLE
+    const premierCycleLevels = detailedLevels.filter(level => level.cycle === 'premier');
+    premierCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithClass.filter(levelDef.filter);
+        const stats = calculateLevelStats(levelDef.name, levelStudents);
+        tbody.innerHTML += createLevelRow(stats);
+        
+        // Ajouter aux totaux
+        ['total', 'classed', 'notClassed', 'ge_10', 'between_85_10', 'lt_85'].forEach(key => {
+            premierCycleStats[key].F += stats[key].F;
+            premierCycleStats[key].G += stats[key].G;
+            premierCycleStats[key].T += stats[key].T;
+            
+            totalStats[key].F += stats[key].F;
+            totalStats[key].G += stats[key].G;
+            totalStats[key].T += stats[key].T;
+        });
+    });
+
+    // Ligne total 1er CYCLE
+    tbody.innerHTML += createLevelRow({
+        name: '1er CYCLE',
+        ...premierCycleStats
+    });
+
+    // Traiter ensuite le SECOND CYCLE
+    const secondCycleLevels = detailedLevels.filter(level => level.cycle === 'second');
+    secondCycleLevels.forEach(levelDef => {
+        const levelStudents = studentsWithClass.filter(levelDef.filter);
+        const stats = calculateLevelStats(levelDef.name, levelStudents);
+        tbody.innerHTML += createLevelRow(stats);
+        
+        // Ajouter aux totaux
+        ['total', 'classed', 'notClassed', 'ge_10', 'between_85_10', 'lt_85'].forEach(key => {
+            secondCycleStats[key].F += stats[key].F;
+            secondCycleStats[key].G += stats[key].G;
+            secondCycleStats[key].T += stats[key].T;
+            
+            totalStats[key].F += stats[key].F;
+            totalStats[key].G += stats[key].G;
+            totalStats[key].T += stats[key].T;
+        });
+    });
+
+    // Ligne total 2nd CYCLE
+    tbody.innerHTML += createLevelRow({
+        name: '2nd CYCLE',
+        ...secondCycleStats
+    });
+
+    // Séparateur
+    tbody.innerHTML += `
+        <tr style="background-color: #4b2c82; height: 12px;">
+            <td colspan="31"></td>
+        </tr>
+    `;
+
+    // Ligne total général
+    tbody.innerHTML += createLevelRow({
+        name: 'TOTAL GÉNÉRAL',
+        ...totalStats
+    });
+}
+
+/* ====== FONCTION D'EXPORT EXCEL POUR LE RAPPORT CIO ====== */
+function exportCIOToExcel() {
+    try {
+        const period = document.getElementById('cio-period-selector').value;
+        const periodLabel = document.getElementById('cio-period-selector').selectedOptions[0].text;
+        const dateStr = new Date().toISOString().slice(0,10);
+        
+        // Demander à l'utilisateur quel rapport exporter
+        const choice = confirm("Voulez-vous exporter les deux rapports ?\n\nOK = Deux fichiers séparés\nAnnuler = Rapport d'analyse uniquement");
+        
+        if (choice) {
+            // Exporter deux fichiers séparés
+            exportFirstTableAsExcel(period, periodLabel, dateStr);
+            // Petit délai pour éviter les conflits
+            setTimeout(() => {
+                exportSecondTableAsExcel(period, periodLabel, dateStr);
+            }, 500);
+        } else {
+            // Exporter seulement le premier tableau (analyse par matière)
+            exportFirstTableAsExcel(period, periodLabel, dateStr);
+        }
+        
+    } catch (error) {
+        console.error("Erreur lors de l'export Excel:", error);
+        setStatus('Erreur lors de l\'export Excel', 'error');
+        alert("Une erreur est survenue lors de l'export : " + error.message);
+    }
+}
+
+/* ====== EXPORT DU PREMIER TABLEAU (ANALYSE PAR MATIÈRE) ====== */
+function exportFirstTableAsExcel(period, periodLabel, dateStr) {
+    try {
+        // Créer un nouveau classeur
+        const wb = XLSX.utils.book_new();
+        
+        // 1. Feuille principale pour le premier tableau
+        const firstTableData = generateFirstTableForExcel(period);
+        const ws1 = XLSX.utils.aoa_to_sheet(firstTableData);
+        
+        // 2. Feuille supplémentaire avec les données brutes
+        const rawDataSheet = generateRawDataSheet(period);
+        const ws2 = XLSX.utils.aoa_to_sheet(rawDataSheet);
+        
+        // 3. Ajouter les feuilles au classeur
+        XLSX.utils.book_append_sheet(wb, ws1, "Analyse par matière");
+        XLSX.utils.book_append_sheet(wb, ws2, "Données brutes");
+        
+        // 4. Générer le fichier Excel
+        const fileName = `CIO_Analyse_Matières_${periodLabel.replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        setStatus(`Fichier 1 exporté: ${fileName}`, 'success');
+        
+    } catch (error) {
+        console.error("Erreur lors de l'export du premier tableau:", error);
+        alert("Erreur lors de l'export du rapport d'analyse : " + error.message);
+    }
+}
+
+/* ====== EXPORT DU SECOND TABLEAU (MOYENNES GÉNÉRALES) ====== */
+function exportSecondTableAsExcel(period, periodLabel, dateStr) {
+    try {
+        // Créer un nouveau classeur
+        const wb = XLSX.utils.book_new();
+        
+        // 1. Feuille principale pour le second tableau
+        const secondTableData = generateSecondTableForExcel(period);
+        const ws1 = XLSX.utils.aoa_to_sheet(secondTableData);
+        
+        // 2. Feuille supplémentaire avec les statistiques détaillées
+        const detailedStatsSheet = generateDetailedStatsSheet(period);
+        const ws2 = XLSX.utils.aoa_to_sheet(detailedStatsSheet);
+        
+        // 3. Ajouter les feuilles au classeur
+        XLSX.utils.book_append_sheet(wb, ws1, "Moyennes générales");
+        XLSX.utils.book_append_sheet(wb, ws2, "Statistiques détaillées");
+        
+        // 4. Générer le fichier Excel
+        const fileName = `CIO_Moyennes_Générales_${periodLabel.replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        setStatus(`Fichier 2 exporté: ${fileName}`, 'success');
+        
+    } catch (error) {
+        console.error("Erreur lors de l'export du second tableau:", error);
+        alert("Erreur lors de l'export du rapport des moyennes : " + error.message);
+    }
+}
+
+/* ====== GÉNÉRATION COMPLÈTE DU PREMIER TABLEAU ====== */
+function generateFirstTableForExcel(period) {
+    const data = [];
+    
+    // Titre principal
+    data.push(["RAPPORT TRIMESTRIEL CIO - ANALYSE PAR MATIÈRE"]);
+    data.push([`Établissement: [NOM DE L'ÉTABLISSEMENT]`]);
+    data.push([`Période: ${period}`]);
+    data.push([`Année scolaire: ${getSelectedYear()}`]);
+    data.push([`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`]);
+    data.push([]);
+    
+    // En-têtes détaillés
+    const mainHeaders = ["", "", "COMPOSITION FRANÇAIS", "", "", "ORTHOGRAPHE/GRAMMAIRE", "", "", 
+                        "FRANÇAIS (2nd cycle)", "", "", "ANGLAIS", "", "", "ALLEMAND", "", "", 
+                        "ESPAGNOL", "", "", "HISTOIRE-GÉOGRAPHIE", "", "", "MATHÉMATIQUES", "", "", 
+                        "PHYSIQUE-CHIMIE", "", "", "SVT", "", "", "PHILOSOPHIE", "", ""];
+    
+    const subHeaders1 = ["Niveau", "Genre", "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "",
+                        "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "",
+                        "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "",
+                        "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", "", "Eff.", "Moy < 10", ""];
+    
+    const subHeaders2 = ["", "", "", "Eff.", "%", "", "Eff.", "%", "",
+                        "Eff.", "%", "", "Eff.", "%", "", "Eff.", "%", "",
+                        "Eff.", "%", "", "Eff.", "%", "", "Eff.", "%", "",
+                        "Eff.", "%", "", "Eff.", "%", "", "Eff.", "%"];
+    
+    data.push(mainHeaders);
+    data.push(subHeaders1);
+    data.push(subHeaders2);
+    data.push([]);
+    
+    // Matières dans l'ordre du tableau
+    const subjects = [
+        'compo_francais', 'orthographe', 'francais', 'anglais', 
+        'allemand', 'espagnol', 'hg', 'maths', 'physique', 'svt', 'philosophie'
+    ];
+    
+    // Fonction pour obtenir une note
+    function getStudentGrade(student, subject) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        
+        const moyennes = student.moyennes[period];
+        const subjectMap = {
+            'compo_francais': ['compo_francais', 'composition', 'compo'],
+            'orthographe': ['orthographe', 'orth', 'dictée'],
+            'francais': ['francais', 'fr', 'français'],
+            'anglais': ['anglais', 'eng', 'english'],
+            'allemand': ['allemand', 'all', 'deutsch'],
+            'espagnol': ['espagnol', 'esp', 'espa'],
+            'hg': ['hg', 'histoire', 'géographie', 'hist-geo', 'histgeo'],
+            'maths': ['maths', 'math', 'mathematique'],
+            'physique': ['physique', 'phys', 'pc'],
+            'svt': ['svt', 'bio', 'biologie', 'sciences'],
+            'philosophie': ['philosophie', 'philo']
+        };
+
+        const aliases = subjectMap[subject] || [subject];
+        for (const alias of aliases) {
+            if (moyennes[alias] !== undefined && moyennes[alias] !== null) {
+                const value = parseFloat(moyennes[alias]);
+                if (!isNaN(value)) return value;
+            }
+        }
+        return -1;
+    }
+    
+    // Fonction pour traiter un groupe d'élèves
+    function processStudentGroup(students) {
+        const result = {};
+        subjects.forEach(subject => {
+            result[subject] = { eff: 0, under10: 0 };
+            students.forEach(student => {
+                const grade = getStudentGrade(student, subject);
+                if (grade >= 0) {
+                    result[subject].eff++;
+                    if (grade < 10) result[subject].under10++;
+                }
+            });
+        });
+        return result;
+    }
+    
+    // ========== PREMIER CYCLE ==========
+    data.push(["PREMIER CYCLE"]);
+    data.push([]);
+    
+    const premierCycleLevels = [
+        { name: '6ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '5ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '4ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }},
+        { name: '3ème', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+        }}
+    ];
+    
+    let premierCycleTotal = { total: { F: 0, G: 0 }, data: {} };
+    subjects.forEach(subject => {
+        premierCycleTotal.data[subject] = { eff: 0, under10: 0 };
+    });
+    
+    premierCycleLevels.forEach(levelDef => {
+        const levelStudents = allStudents.filter(levelDef.filter);
+        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
+        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        
+        // Mettre à jour les totaux du cycle
+        premierCycleTotal.total.F += femaleStudents.length;
+        premierCycleTotal.total.G += maleStudents.length;
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        const totalData = {};
+        
+        subjects.forEach(subject => {
+            totalData[subject] = {
+                eff: femaleData[subject].eff + maleData[subject].eff,
+                under10: femaleData[subject].under10 + maleData[subject].under10
+            };
+            
+            // Ajouter aux totaux du cycle
+            premierCycleTotal.data[subject].eff += totalData[subject].eff;
+            premierCycleTotal.data[subject].under10 += totalData[subject].under10;
+        });
+        
+        // Ligne pour Féminin
+        const femaleRow = [levelDef.name, "F"];
+        subjects.forEach(subject => {
+            const d = femaleData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            femaleRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(femaleRow);
+        
+        // Ligne pour Masculin
+        const maleRow = [levelDef.name, "M"];
+        subjects.forEach(subject => {
+            const d = maleData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            maleRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(maleRow);
+        
+        // Ligne pour Ensemble
+        const totalRow = [levelDef.name, "Ensemble"];
+        subjects.forEach(subject => {
+            const d = totalData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            totalRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(totalRow);
+        
+        data.push([]); // Ligne vide entre les niveaux
+    });
+    
+    // TOTAL PREMIER CYCLE
+    data.push(["TOTAL 1er CYCLE", ""]);
+    const totalRowPremier = ["1er CYCLE", "Total"];
+    subjects.forEach(subject => {
+        const d = premierCycleTotal.data[subject];
+        const totalEff = premierCycleTotal.total.F + premierCycleTotal.total.G;
+        const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+        totalRowPremier.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+    });
+    data.push(totalRowPremier);
+    data.push([""]); // Ligne vide
+    data.push([""]); // Ligne vide
+    
+    // ========== SECOND CYCLE ==========
+    data.push(["SECOND CYCLE"]);
+    data.push([]);
+    
+    const secondCycleLevels = [
+        { name: '2nde A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+        }},
+        { name: '2nde C', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+        }},
+        { name: '1ère A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+        }},
+        { name: '1ère D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+        }},
+        { name: 'Tle A', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle')) && c.includes('a');
+        }},
+        { name: 'Tle D', filter: (s) => {
+            const c = normalizeClasseKey(s.classe);
+            return (c.includes('t') || c.includes('term') || c.includes('tle')) && c.includes('d');
+        }}
+    ];
+    
+    let secondCycleTotal = { total: { F: 0, G: 0 }, data: {} };
+    subjects.forEach(subject => {
+        secondCycleTotal.data[subject] = { eff: 0, under10: 0 };
+    });
+    
+    secondCycleLevels.forEach(levelDef => {
+        const levelStudents = allStudents.filter(levelDef.filter);
+        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
+        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        
+        // Mettre à jour les totaux du cycle
+        secondCycleTotal.total.F += femaleStudents.length;
+        secondCycleTotal.total.G += maleStudents.length;
+        
+        const femaleData = processStudentGroup(femaleStudents);
+        const maleData = processStudentGroup(maleStudents);
+        const totalData = {};
+        
+        subjects.forEach(subject => {
+            totalData[subject] = {
+                eff: femaleData[subject].eff + maleData[subject].eff,
+                under10: femaleData[subject].under10 + maleData[subject].under10
+            };
+            
+            // Ajouter aux totaux du cycle
+            secondCycleTotal.data[subject].eff += totalData[subject].eff;
+            secondCycleTotal.data[subject].under10 += totalData[subject].under10;
+        });
+        
+        // Ligne pour Féminin
+        const femaleRow = [levelDef.name, "F"];
+        subjects.forEach(subject => {
+            const d = femaleData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            femaleRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(femaleRow);
+        
+        // Ligne pour Masculin
+        const maleRow = [levelDef.name, "M"];
+        subjects.forEach(subject => {
+            const d = maleData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            maleRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(maleRow);
+        
+        // Ligne pour Ensemble
+        const totalRow = [levelDef.name, "Ensemble"];
+        subjects.forEach(subject => {
+            const d = totalData[subject];
+            const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+            totalRow.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+        });
+        data.push(totalRow);
+        
+        data.push([]); // Ligne vide entre les niveaux
+    });
+    
+    // TOTAL SECOND CYCLE
+    data.push(["TOTAL 2nd CYCLE", ""]);
+    const totalRowSecond = ["2nd CYCLE", "Total"];
+    subjects.forEach(subject => {
+        const d = secondCycleTotal.data[subject];
+        const totalEff = secondCycleTotal.total.F + secondCycleTotal.total.G;
+        const percentage = d.eff > 0 ? Math.round((d.under10 / d.eff) * 100) : 0;
+        totalRowSecond.push(d.eff || 0, d.under10 || 0, d.eff > 0 ? percentage + '%' : '');
+    });
+    data.push(totalRowSecond);
+    
+    return data;
+}
+
+/* ====== GÉNÉRATION COMPLÈTE DU SECOND TABLEAU ====== */
+function generateSecondTableForExcel(period) {
+    const data = [];
+    
+    // Titre principal
+    data.push(["RAPPORT TRIMESTRIEL CIO - ANALYSE DES MOYENNES GÉNÉRALES"]);
+    data.push([`Établissement: [NOM DE L'ÉTABLISSEMENT]`]);
+    data.push([`Période: ${period}`]);
+    data.push([`Année scolaire: ${getSelectedYear()}`]);
+    data.push([`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`]);
+    data.push([]);
+    
+    // En-têtes détaillés
+    const headers = [
+        "DRENA", "Etablissement", "Statut", "NIVEAU",
+        "Effectif total inscrit", "", "",
+        "Effectif classé", "", "",
+        "Effectif non classé", "", "",
+        "Moyenne ≥ 10", "", "", "", "", "",
+        "8,50 ≤ Moyenne < 10", "", "", "", "", "",
+        "Moyenne < 8,50", "", "", "", "", ""
+    ];
+    
+    const subHeaders = [
+        "", "", "", "",
+        "Filles", "Garçons", "Total",
+        "Filles", "Garçons", "Total",
+        "Filles", "Garçons", "Total",
+        "Eff. F", "% F", "Eff. G", "% G", "Total", "% Total",
+        "Eff. F", "% F", "Eff. G", "% G", "Total", "% Total",
+        "Eff. F", "% F", "Eff. G", "% G", "Total", "% Total"
+    ];
+    
+    data.push(headers);
+    data.push(subHeaders);
+    data.push([]);
+    
+    // Fonction pour obtenir la moyenne générale
+    function getStudentAverage(student) {
+        if (!student.moyennes || !student.moyennes[period]) return -1;
+        const moyennes = student.moyennes[period];
+        
+        const possibleKeys = ['Moy_generale', 'moyenne_generale', 'moy_generale', 'moyenne', 'mg'];
+        for (const key of possibleKeys) {
+            if (moyennes[key] !== undefined && moyennes[key] !== null) {
+                const value = parseFloat(moyennes[key]);
+                if (!isNaN(value)) return value;
+            }
+        }
+        return -1;
+    }
+    
+    // Définir les niveaux
+    const detailedLevels = [
+        // PREMIER CYCLE
+        { name: '6ème', cycle: 'premier' },
+        { name: '5ème', cycle: 'premier' },
+        { name: '4ème', cycle: 'premier' },
+        { name: '3ème', cycle: 'premier' },
+        // SECOND CYCLE
+        { name: '2nde A', cycle: 'second' },
+        { name: '2nde C', cycle: 'second' },
+        { name: '1ère A', cycle: 'second' },
+        { name: '1ère D', cycle: 'second' },
+        { name: 'Tle A', cycle: 'second' },
+        { name: 'Tle D', cycle: 'second' }
+    ];
+    
+    let premierCycleStats = { 
+        total: { F: 0, G: 0, T: 0 }, 
+        classed: { F: 0, G: 0, T: 0 }, 
+        notClassed: { F: 0, G: 0, T: 0 },
+        ge_10: { F: 0, G: 0, T: 0 }, 
+        between_85_10: { F: 0, G: 0, T: 0 }, 
+        lt_85: { F: 0, G: 0, T: 0 } 
+    };
+    
+    let secondCycleStats = JSON.parse(JSON.stringify(premierCycleStats));
+    let totalStats = JSON.parse(JSON.stringify(premierCycleStats));
+    
+    // Traiter chaque niveau
+    detailedLevels.forEach(levelDef => {
+        // Filtrer les élèves pour ce niveau
+        let levelStudents = [];
+        
+        switch(levelDef.name) {
+            case '6ème':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                });
+                break;
+            case '5ème':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                });
+                break;
+            case '4ème':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                });
+                break;
+            case '3ème':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                });
+                break;
+            case '2nde A':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('2') || c.includes('2nd')) && c.includes('a');
+                });
+                break;
+            case '2nde C':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('2') || c.includes('2nd')) && c.includes('c');
+                });
+                break;
+            case '1ère A':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('a');
+                });
+                break;
+            case '1ère D':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('1') || c.includes('1ere') || c.includes('1ère')) && c.includes('d');
+                });
+                break;
+            case 'Tle A':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('t') || c.includes('term') || c.includes('tle')) && c.includes('a');
+                });
+                break;
+            case 'Tle D':
+                levelStudents = allStudents.filter(s => {
+                    const c = normalizeClasseKey(s.classe);
+                    return (c.includes('t') || c.includes('term') || c.includes('tle')) && c.includes('d');
+                });
+                break;
+        }
+        
+        // Calculer les stats pour ce niveau
+        const stats = {
+            name: levelDef.name,
+            total: { F: 0, G: 0, T: 0 },
+            classed: { F: 0, G: 0, T: 0 },
+            notClassed: { F: 0, G: 0, T: 0 },
+            ge_10: { F: 0, G: 0, T: 0 },
+            between_85_10: { F: 0, G: 0, T: 0 },
+            lt_85: { F: 0, G: 0, T: 0 }
+        };
+        
+        levelStudents.forEach(student => {
+            const isFemale = student.sexe === 'F';
+            const avg = getStudentAverage(student);
+            
+            // Effectif total inscrit
+            if (isFemale) stats.total.F++;
+            else stats.total.G++;
+            stats.total.T++;
+            
+            // Effectif classé
+            if (avg >= 0) {
+                if (isFemale) stats.classed.F++;
+                else stats.classed.G++;
+                stats.classed.T++;
+                
+                // Catégories selon la moyenne
+                if (avg >= 10) {
+                    if (isFemale) stats.ge_10.F++;
+                    else stats.ge_10.G++;
+                    stats.ge_10.T++;
+                } else if (avg >= 8.5) {
+                    if (isFemale) stats.between_85_10.F++;
+                    else stats.between_85_10.G++;
+                    stats.between_85_10.T++;
+                } else {
+                    if (isFemale) stats.lt_85.F++;
+                    else stats.lt_85.G++;
+                    stats.lt_85.T++;
+                }
+            } else {
+                // Non classé
+                if (isFemale) stats.notClassed.F++;
+                else stats.notClassed.G++;
+                stats.notClassed.T++;
+            }
+        });
+        
+        // Créer la ligne pour ce niveau
+        const createRow = (label) => {
+            const calculatePercentage = (part, total) => {
+                return total > 0 ? ((part / total) * 100).toFixed(1) : '0.0';
+            };
+            
+            return [
+                "", // DRENA
+                "", // Établissement
+                "", // Statut
+                label, // NIVEAU
+                stats.total.F || 0,
+                stats.total.G || 0,
+                stats.total.T || 0,
+                stats.classed.F || 0,
+                stats.classed.G || 0,
+                stats.classed.T || 0,
+                stats.notClassed.F || 0,
+                stats.notClassed.G || 0,
+                stats.notClassed.T || 0,
+                stats.ge_10.F || 0,
+                calculatePercentage(stats.ge_10.F, stats.total.F) + '%',
+                stats.ge_10.G || 0,
+                calculatePercentage(stats.ge_10.G, stats.total.G) + '%',
+                stats.ge_10.T || 0,
+                calculatePercentage(stats.ge_10.T, stats.total.T) + '%',
+                stats.between_85_10.F || 0,
+                calculatePercentage(stats.between_85_10.F, stats.total.F) + '%',
+                stats.between_85_10.G || 0,
+                calculatePercentage(stats.between_85_10.G, stats.total.G) + '%',
+                stats.between_85_10.T || 0,
+                calculatePercentage(stats.between_85_10.T, stats.total.T) + '%',
+                stats.lt_85.F || 0,
+                calculatePercentage(stats.lt_85.F, stats.total.F) + '%',
+                stats.lt_85.G || 0,
+                calculatePercentage(stats.lt_85.G, stats.total.G) + '%',
+                stats.lt_85.T || 0,
+                calculatePercentage(stats.lt_85.T, stats.total.T) + '%'
+            ];
+        };
+        
+        // Ajouter la ligne du niveau
+        data.push(createRow(levelDef.name));
+        
+        // Ajouter aux totaux du cycle correspondant
+        const targetStats = levelDef.cycle === 'premier' ? premierCycleStats : secondCycleStats;
+        
+        ['total', 'classed', 'notClassed', 'ge_10', 'between_85_10', 'lt_85'].forEach(key => {
+            targetStats[key].F += stats[key].F;
+            targetStats[key].G += stats[key].G;
+            targetStats[key].T += stats[key].T;
+            
+            totalStats[key].F += stats[key].F;
+            totalStats[key].G += stats[key].G;
+            totalStats[key].T += stats[key].T;
+        });
+    });
+    
+    // Ajouter une ligne vide
+    data.push([]);
+    
+    // Fonction pour créer une ligne de total
+    const createTotalRow = (label, stats) => {
+        const calculatePercentage = (part, total) => {
+            return total > 0 ? ((part / total) * 100).toFixed(1) : '0.0';
+        };
+        
+        return [
+            "", // DRENA
+            "", // Établissement
+            "", // Statut
+            label, // NIVEAU
+            stats.total.F || 0,
+            stats.total.G || 0,
+            stats.total.T || 0,
+            stats.classed.F || 0,
+            stats.classed.G || 0,
+            stats.classed.T || 0,
+            stats.notClassed.F || 0,
+            stats.notClassed.G || 0,
+            stats.notClassed.T || 0,
+            stats.ge_10.F || 0,
+            calculatePercentage(stats.ge_10.F, stats.total.F) + '%',
+            stats.ge_10.G || 0,
+            calculatePercentage(stats.ge_10.G, stats.total.G) + '%',
+            stats.ge_10.T || 0,
+            calculatePercentage(stats.ge_10.T, stats.total.T) + '%',
+            stats.between_85_10.F || 0,
+            calculatePercentage(stats.between_85_10.F, stats.total.F) + '%',
+            stats.between_85_10.G || 0,
+            calculatePercentage(stats.between_85_10.G, stats.total.G) + '%',
+            stats.between_85_10.T || 0,
+            calculatePercentage(stats.between_85_10.T, stats.total.T) + '%',
+            stats.lt_85.F || 0,
+            calculatePercentage(stats.lt_85.F, stats.total.F) + '%',
+            stats.lt_85.G || 0,
+            calculatePercentage(stats.lt_85.G, stats.total.G) + '%',
+            stats.lt_85.T || 0,
+            calculatePercentage(stats.lt_85.T, stats.total.T) + '%'
+        ];
+    };
+    
+    // Ajouter les totaux des cycles
+    data.push(createTotalRow('1er CYCLE', premierCycleStats));
+    data.push([]);
+    data.push(createTotalRow('2nd CYCLE', secondCycleStats));
+    data.push([]);
+    data.push(createTotalRow('TOTAL GÉNÉRAL', totalStats));
+    
+    return data;
+}
+
+/* ====== FEUILLE DE DONNÉES BRUTES ====== */
+function generateRawDataSheet(period) {
+    const data = [];
+    
+    data.push(["DONNÉES BRUTES - ANALYSE PAR MATIÈRE"]);
+    data.push([`Période: ${period}`]);
+    data.push([`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`]);
+    data.push([]);
+    
+    // En-têtes
+    const headers = ["Matricule", "Nom", "Prénoms", "Classe", "Sexe", "Date Naissance",
+                    "Français", "Maths", "Anglais", "Physique", "SVT", "HG", 
+                    "Philosophie", "LV2", "Moyenne Générale", "Rang"];
+    
+    data.push(headers);
+    
+    // Ajouter les données des élèves
+    allStudents.forEach(student => {
+        const row = [
+            student.matricule || '',
+            student.nom || '',
+            student.prenoms || '',
+            student.classe || '',
+            student.sexe || '',
+            student.dateNaissance ? fmtDate(student.dateNaissance) : '',
+            getStudentNote(student, period, 'francais') > 0 ? getStudentNote(student, period, 'francais').toFixed(2) : '',
+            getStudentNote(student, period, 'maths') > 0 ? getStudentNote(student, period, 'maths').toFixed(2) : '',
+            getStudentNote(student, period, 'anglais') > 0 ? getStudentNote(student, period, 'anglais').toFixed(2) : '',
+            getStudentNote(student, period, 'physique') > 0 ? getStudentNote(student, period, 'physique').toFixed(2) : '',
+            getStudentNote(student, period, 'svt') > 0 ? getStudentNote(student, period, 'svt').toFixed(2) : '',
+            getStudentNote(student, period, 'hg') > 0 ? getStudentNote(student, period, 'hg').toFixed(2) : '',
+            getStudentNote(student, period, 'philosophie') > 0 ? getStudentNote(student, period, 'philosophie').toFixed(2) : '',
+            getStudentNote(student, period, 'lv2') > 0 ? getStudentNote(student, period, 'lv2').toFixed(2) : '',
+            getStudentNote(student, period, 'Moy_generale') > 0 ? getStudentNote(student, period, 'Moy_generale').toFixed(2) : '',
+            student.rangs && student.rangs[period] ? student.rangs[period] : ''
+        ];
+        
+        data.push(row);
+    });
+    
+    return data;
+}
+
+/* ====== FEUILLE DE STATISTIQUES DÉTAILLÉES ====== */
+function generateDetailedStatsSheet(period) {
+    const data = [];
+    
+    data.push(["STATISTIQUES DÉTAILLÉES PAR CLASSE"]);
+    data.push([`Période: ${period}`]);
+    data.push([`Date d'export: ${new Date().toLocaleDateString('fr-FR')}`]);
+    data.push([]);
+    
+    // En-têtes
+    const headers = ["Classe", "Effectif Total", "Filles", "Garçons", 
+                    "Moyenne Classe", "Moyenne Min", "Moyenne Max", 
+                    "≥ 10", "% ≥ 10", "8.5-9.99", "% 8.5-9.99", 
+                    "< 8.5", "% < 8.5", "Non classés"];
+    
+    data.push(headers);
+    
+    // Grouper les élèves par classe
+    const classes = {};
+    
+    allStudents.forEach(student => {
+        const classe = student.classe || 'Non classé';
+        if (!classes[classe]) {
+            classes[classe] = {
+                students: [],
+                total: 0,
+                female: 0,
+                male: 0,
+                averages: [],
+                ge10: 0,
+                between85_10: 0,
+                lt85: 0,
+                notClassed: 0
+            };
+        }
+        
+        classes[classe].students.push(student);
+        classes[classe].total++;
+        
+        if (student.sexe === 'F') {
+            classes[classe].female++;
+        } else {
+            classes[classe].male++;
+        }
+        
+        const avg = getStudentNote(student, period, 'Moy_generale');
+        if (avg > 0) {
+            classes[classe].averages.push(avg);
+            
+            if (avg >= 10) {
+                classes[classe].ge10++;
+            } else if (avg >= 8.5) {
+                classes[classe].between85_10++;
+            } else {
+                classes[classe].lt85++;
+            }
+        } else {
+            classes[classe].notClassed++;
+        }
+    });
+    
+    // Ajouter les statistiques par classe
+    Object.keys(classes).sort().forEach(classe => {
+        const stats = classes[classe];
+        const classAvg = stats.averages.length > 0 ? 
+            stats.averages.reduce((a, b) => a + b, 0) / stats.averages.length : 0;
+        const minAvg = stats.averages.length > 0 ? Math.min(...stats.averages) : 0;
+        const maxAvg = stats.averages.length > 0 ? Math.max(...stats.averages) : 0;
+        const totalClassed = stats.ge10 + stats.between85_10 + stats.lt85;
+        
+        const row = [
+            classe,
+            stats.total,
+            stats.female,
+            stats.male,
+            classAvg.toFixed(2),
+            minAvg.toFixed(2),
+            maxAvg.toFixed(2),
+            stats.ge10,
+            totalClassed > 0 ? ((stats.ge10 / totalClassed) * 100).toFixed(1) + '%' : '0%',
+            stats.between85_10,
+            totalClassed > 0 ? ((stats.between85_10 / totalClassed) * 100).toFixed(1) + '%' : '0%',
+            stats.lt85,
+            totalClassed > 0 ? ((stats.lt85 / totalClassed) * 100).toFixed(1) + '%' : '0%',
+            stats.notClassed
+        ];
+        
+        data.push(row);
+    });
+    
+    return data;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2944,67 +5559,61 @@ document.getElementById('class-filter').addEventListener('change', () => {
   await loadGlobalData();
   await loadStudentsForYear();
   
-  // Ajoutez cette fonction après le DOMContentLoaded
-function setupMobileTabs() {
-  const tabsContainers = document.querySelectorAll('.tabs');
+  // Setup mobile tabs functionality
+  function setupMobileTabs() {
+    const tabsContainers = document.querySelectorAll('.tabs');
+    
+    tabsContainers.forEach(container => {
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+      
+      container.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+        container.style.cursor = 'grabbing';
+      });
+      
+      container.addEventListener('mouseleave', () => {
+        isDown = false;
+        container.style.cursor = 'grab';
+      });
+      
+      container.addEventListener('mouseup', () => {
+        isDown = false;
+        container.style.cursor = 'grab';
+      });
+      
+      container.addEventListener('mousemove', (e) => {
+        if(!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2;
+        container.scrollLeft = scrollLeft - walk;
+      });
+      
+      // Touch events pour mobile
+      container.addEventListener('touchstart', (e) => {
+        isDown = true;
+        startX = e.touches[0].pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+      });
+      
+      container.addEventListener('touchend', () => {
+        isDown = false;
+      });
+      
+      container.addEventListener('touchmove', (e) => {
+        if(!isDown) return;
+        const x = e.touches[0].pageX - container.offsetLeft;
+        const walk = (x - startX) * 2;
+        container.scrollLeft = scrollLeft - walk;
+      });
+    });
+  }
   
-  tabsContainers.forEach(container => {
-    let isDown = false;
-    let startX;
-    let scrollLeft;
-    
-    container.addEventListener('mousedown', (e) => {
-      isDown = true;
-      startX = e.pageX - container.offsetLeft;
-      scrollLeft = container.scrollLeft;
-      container.style.cursor = 'grabbing';
-    });
-    
-    container.addEventListener('mouseleave', () => {
-      isDown = false;
-      container.style.cursor = 'grab';
-    });
-    
-    container.addEventListener('mouseup', () => {
-      isDown = false;
-      container.style.cursor = 'grab';
-    });
-    
-    container.addEventListener('mousemove', (e) => {
-      if(!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - container.offsetLeft;
-      const walk = (x - startX) * 2;
-      container.scrollLeft = scrollLeft - walk;
-    });
-    
-    // Touch events pour mobile
-    container.addEventListener('touchstart', (e) => {
-      isDown = true;
-      startX = e.touches[0].pageX - container.offsetLeft;
-      scrollLeft = container.scrollLeft;
-    });
-    
-    container.addEventListener('touchend', () => {
-      isDown = false;
-    });
-    
-    container.addEventListener('touchmove', (e) => {
-      if(!isDown) return;
-      const x = e.touches[0].pageX - container.offsetLeft;
-      const walk = (x - startX) * 2;
-      container.scrollLeft = scrollLeft - walk;
-    });
-  });
-}
-
-// Appelez cette fonction dans DOMContentLoaded
-document.addEventListener('DOMContentLoaded', async () => {
-  // ... votre code existant ...
-  
-  // Ajoutez cette ligne à la fin
   setupMobileTabs();
-});
 
   document.getElementById('school-year').addEventListener('change', async () => {
     await loadStudentsForYear();
@@ -3108,6 +5717,52 @@ document.getElementById('btn-cancel-lycam').addEventListener('click', () => {
         generateDummyData();
     }
 });
+
+// Changer de trimestre
+document.getElementById('report-trimester-selector').addEventListener('change', () => renderAcademicReport());
+
+// Exporter en PDF
+document.getElementById('btn-export-report-pdf').addEventListener('click', () => {
+    if (typeof html2pdf === 'undefined') {
+        loadPDFLibrary();
+        setTimeout(() => exportReportToPDF(), 1000);
+    } else {
+        exportReportToPDF();
+    }
+});
+
+// Changer de trimestre
+document.getElementById('report-trimester-selector').addEventListener('change', () => renderAcademicReport());
+
+// Exporter en PDF
+document.getElementById('btn-export-report-pdf').addEventListener('click', async () => {
+    try {
+        await loadPDFLibrary();
+        exportReportToPDF();
+    } catch (error) {
+        alert('Erreur lors du chargement de la bibliothèque PDF : ' + error.message);
+    }
+});
+
+// Bouton Ouvrir CIO
+  const btnCio = document.getElementById('btn-open-cio');
+  if(btnCio) {
+      btnCio.addEventListener('click', () => {
+        document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
+        document.getElementById('cioPanel').style.display = 'flex';
+        document.getElementById('cioPanel').style.flexDirection = 'column';
+        renderCioReport();
+      });
+  }
+
+  // Sélecteur Période CIO
+  const selCio = document.getElementById('cio-period-selector');
+  if(selCio) selCio.addEventListener('change', renderCioReport);
+
+  // Bouton Export CIO
+  const btnExpCio = document.getElementById('btn-export-cio');
+  if(btnExpCio) btnExpCio.addEventListener('click', exportCIOToExcel);
+
 });
 
 </script>
