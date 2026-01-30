@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateforme de Gestion Scolaire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            margin: 30px 0;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .navigation-notice {
+            background-color: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px auto;
+            border-radius: 8px;
+            max-width: 800px;
+            text-align: center;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+        .navigation-notice i {
+            color: #3498db;
+            margin-right: 8px;
+        }
+
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            padding: 25px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-1 .card-header {
+            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+        }
+
+        .card-2 .card-header {
+            background: linear-gradient(135deg, #9b59b6 0%, #34495e 100%);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .card-content {
+            padding: 25px;
+            color: #555;
+        }
+
+        .card-content ul {
+            list-style-type: none;
+            margin: 15px 0;
+        }
+
+        .card-content li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-content li:last-child {
+            border-bottom: none;
+        }
+
+        .card-content li i {
+            margin-right: 10px;
+            color: #3498db;
+            font-size: 1.1rem;
+        }
+
+        .card-2 .card-content li i {
+            color: #9b59b6;
+        }
+
+        .card-button {
+            display: block;
+            width: 80%;
+            margin: 25px auto 15px;
+            padding: 14px;
+            text-align: center;
+            background-color: #3498db;
+            color: white;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .card-2 .card-button {
+            background-color: #9b59b6;
+            box-shadow: 0 4px 10px rgba(155, 89, 182, 0.3);
+        }
+
+        .card-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .card-2 .card-button:hover {
+            box-shadow: 0 6px 15px rgba(155, 89, 182, 0.4);
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .file-indicator {
+            display: inline-block;
+            background-color: #f1f8ff;
+            color: #0366d6;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin: 0 5px;
+            border: 1px solid #d1e6ff;
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .card {
+                max-width: 90%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+                padding: 0 15px;
+            }
+            
+            .card {
+                max-width: 95%;
+            }
+            
+            .card-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Plateforme de Gestion Scolaire</h1>
+        <p>Gérez efficacement les données des élèves et effectuez des tests d'évaluation avec notre interface intuitive et complète.</p>
+        
+    </div>
+
+    <div class="cards-container">
+        <!-- Première carte : Gestionnaire et Suivi des Élèves -->
+        <div class="card card-1">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h2 class="card-title">GESTIONNAIRE ET SUIVI DES ÉLÈVES</h2>
+                <p class="card-description">Outil complet de gestion des informations élèves, suivi académique et administratif.</p>
+            </div>
+            <div class="card-content">
+                <p>Cette carte vous permet d'accéder à toutes les fonctionnalités de gestion des élèves :</p>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Consultation des dossiers élèves</li>
+                    <li><i class="fas fa-check-circle"></i> Suivi des notes et résultats académiques</li>
+                    <li><i class="fas fa-check-circle"></i> Gestion des absences et retards</li>
+                    <li><i class="fas fa-check-circle"></i> Communication avec les familles</li>
+                    <li><i class="fas fa-check-circle"></i> Statistiques et rapports de suivi</li>
+                </ul>
+                <a href="gestionnaire.html" class="card-button">Accéder au Gestionnaire</a>
+            </div>
+        </div>
+
+        <!-- Deuxième carte : Faire un Test PAI -->
+        <div class="card card-2">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h2 class="card-title">FAIRE UN TEST PAI</h2>
+                <p class="card-description">Évaluez les compétences des élèves avec notre plateforme de tests PAI (Plan d'Accompagnement Individualisé).</p>
+            </div>
+            <div class="card-content">
+                <p>Cette interface vous permet de créer, administrer et corriger des tests d'évaluation :</p>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Création de tests personnalisés</li>
+                    <li><i class="fas fa-check-circle"></i> Administration en ligne des évaluations</li>
+                    <li><i class="fas fa-check-circle"></i> Correction automatique et manuelle</li>
+                    <li><i class="fas fa-check-circle"></i> Analyse des résultats et compétences</li>
+                    <li><i class="fas fa-check-circle"></i> Génération de rapports détaillés</li>
+                </ul>
+                <a href="testpai.html" class="card-button">Démarrer un Test PAI</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation pour les boutons
+        document.querySelectorAll('.card-button').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
