@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionnaire PAI - Plan d'Accompagnement Individualisé</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f9ff;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .student-info {
+            background-color: #e8f4ff;
+            padding: 20px;
+            border-bottom: 2px solid #d0e5ff;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-field label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .info-field input, .info-field select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .progress-container {
+            padding: 15px 20px;
+            background-color: #f0f7ff;
+            border-bottom: 1px solid #d0e5ff;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: #4a90e2;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .questionnaire-container {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .sections-sidebar {
+            width: 250px;
+            background-color: #f8fbff;
+            border-right: 1px solid #e0e9ff;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .section-item {
+            padding: 15px 20px;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .section-item:hover {
+            background-color: #e8f2ff;
+        }
+
+        .section-item.active {
+            background-color: #e1eeff;
+            border-left-color: #4a90e2;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .section-item.completed {
+            color: #27ae60;
+        }
+
+        .questions-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+
+        .section-title {
+            color: #2c3e50;
+            border-bottom: 2px solid #4a90e2;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        .question {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f9fbff;
+            border-radius: 8px;
+            border-left: 4px solid #a8c6ff;
+        }
+
+        .question-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .question-instruction {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #d0e5ff;
+            border-radius: 5px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .option:hover {
+            background-color: #f0f7ff;
+            border-color: #4a90e2;
+        }
+
+        .option input {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .option-text {
+            flex: 1;
+        }
+
+        .option.risk {
+            border-color: #ff6b6b;
+            background-color: #fff5f5;
+        }
+
+        .option.risk:hover {
+            background-color: #ffecec;
+        }
+
+        .risk-badge {
+            background-color: #ff6b6b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .multi-select-note {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e9ff;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #4a90e2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3a7bc8;
+        }
+
+        .btn-secondary {
+            background-color: #f0f7ff;
+            color: #4a90e2;
+            border: 1px solid #4a90e2;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e1eeff;
+        }
+
+        .btn-complete {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background-color: #219653;
+        }
+
+        .results-container {
+            padding: 30px;
+            display: none;
+        }
+
+        .results-title {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, #4a90e2, #2c3e50);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-value {
+            font-size: 60px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .vulnerability-level {
+            font-size: 24px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .low {
+            background-color: #27ae60;
+        }
+
+        .medium {
+            background-color: #f39c12;
+        }
+
+        .high {
+            background-color: #e74c3c;
+        }
+
+        .results-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .result-category {
+            background-color: #f9fbff;
+            padding: 20px;
+            border-radius: 8px;
+            border-top: 4px solid #4a90e2;
+        }
+
+        .category-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .category-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+
+        .recommendations {
+            background-color: #fff9e6;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border-left: 4px solid #f1c40f;
+        }
+
+        .recommendations h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .questionnaire-container {
+                flex-direction: column;
+            }
+            
+            .sections-sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #e0e9ff;
+            }
+            
+            .student-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PLAN D'ACCOMPAGNEMENT INDIVIDUALISÉ (PAI)</h1>
+            <p class="subtitle">Questionnaire d'évaluation de la vulnérabilité scolaire</p>
+        </header>
+
+        <div class="student-info">
+            <div class="info-field">
+                <label for="matricule">Matricule :</label>
+                <input type="text" id="matricule">
+            </div>
+            <div class="info-field">
+                <label for="age">Âge :</label>
+                <input type="number" id="age" min="10" max="25">
+            </div>
+            <div class="info-field">
+                <label for="genre">Genre :</label>
+                <select id="genre">
+                    <option value="">Sélectionner</option>
+                    <option value="masculin">Masculin</option>
+                    <option value="feminin">Féminin</option>
+                </select>
+            </div>
+            <div class="info-field">
+                <label for="etablissement">Établissement :</label>
+                <input type="text" id="etablissement">
+            </div>
+            <div class="info-field">
+                <label for="classe">Classe :</label>
+                <input type="text" id="classe">
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress" id="progress-bar"></div>
+            </div>
+            <div class="progress-text">
+                <span id="current-section">Section 1 sur 9</span>
+                <span id="progress-percent">0%</span>
+            </div>
+        </div>
+
+        <div class="questionnaire-container">
+            <div class="sections-sidebar" id="sections-sidebar">
+                <!-- Les sections seront générées dynamiquement -->
+            </div>
+            
+            <div class="questions-area" id="questions-area">
+                <!-- Les questions seront chargées dynamiquement -->
+                <div id="welcome-message">
+                    <h2 class="section-title">Bienvenue</h2>
+                    <div class="question">
+                        <p>Ce questionnaire a pour but d'identifier les éventuelles difficultés que vous pourriez rencontrer dans votre parcours scolaire.</p>
+                        <p>Vos réponses nous aideront à mieux comprendre votre situation et à vous proposer un accompagnement adapté.</p>
+                        <p><strong>Instructions :</strong></p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Répondez à toutes les questions honnêtement</li>
+                            <li>Pour certaines questions, vous pouvez choisir plusieurs réponses</li>
+                            <li>Les réponses marquées en <span style="color: #ff6b6b; font-weight: bold;">rouge</span> indiquent des situations à risque</li>
+                            <li>Vos réponses sont confidentielles</li>
+                        </ul>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button class="btn btn-primary" id="start-btn">Commencer le questionnaire</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation-buttons" id="navigation-buttons" style="display: none;">
+            <button class="btn btn-secondary" id="prev-btn">Section précédente</button>
+            <button class="btn btn-primary" id="next-btn">Section suivante</button>
+            <button class="btn btn-complete" id="complete-btn" style="display: none;">Terminer et calculer le score</button>
+        </div>
+
+        <div class="results-container" id="results-container">
+            <h2 class="results-title">RÉSULTATS DU QUESTIONNAIRE PAI</h2>
+            
+            <div class="score-card">
+                <h3>Score total de vulnérabilité</h3>
+                <div class="score-value" id="total-score">0</div>
+                <div id="vulnerability-level" class="vulnerability-level">NON CALCULÉ</div>
+                <p style="margin-top: 15px;">Score total inférieur ou égal à 30 points = FAIBLE VULNÉRABILITÉ</p>
+                <p>Score total compris entre 31 et 59 points = VULNÉRABILITÉ MODÉRÉE</p>
+                <p>Score supérieur à 59 points = VULNÉRABILITÉ ÉLEVÉE</p>
+            </div>
+
+            <div class="results-details" id="results-details">
+                <!-- Les résultats par catégorie seront ajoutés dynamiquement -->
+            </div>
+
+            <div class="recommendations">
+                <h3>Recommandations</h3>
+                <p id="recommendations-text">En fonction de votre score, des recommandations spécifiques vous seront proposées.</p>
+                <div id="specific-recommendations"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" id="restart-btn">Recommencer le questionnaire</button>
+                <button class="btn btn-secondary" id="print-btn">Imprimer les résultats</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Questionnaire PAI - Plan d'Accompagnement Individualisé</p>
+            <p>Les données collectées sont confidentielles et utilisées uniquement à des fins d'accompagnement scolaire.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Données du questionnaire
+        const questionnaireData = {
+            sections: [
+                {
+                    id: "csef",
+                    title: "CSEF - Conditions Socio-économiques et Familiales",
+                    questions: [
+                        {
+                            id: "q1",
+                            text: "Chez qui vis-tu pour aller à l'école?",
+                            type: "radio",
+                            options: [
+                                { text: "Père et mère", value: "1", risk: false },
+                                { text: "Père", value: "2", risk: true },
+                                { text: "Mère", value: "3", risk: true },
+                                { text: "Tuteur/Tutrice", value: "4", risk: true },
+                                { text: "Seul(e)", value: "5", risk: true },
+                                { text: "Ami(e)s", value: "6", risk: true },
+                                { text: "Autres", value: "7", risk: false, hasTextInput: true }
+                            ]
+                        },
+                        {
+                            id: "q2",
+                            text: "Combien de repas prends-tu par jour en général?",
+                            type: "radio",
+                            options: [
+                                { text: "01 repas par jour", value: "1", risk: true },
+                                { text: "02 repas par jour", value: "2", risk: true },
+                                { text: "03 repas par jour", value: "3", risk: false },
+                                { text: "Plus de 03 repas par jour", value: "4", risk: false }
+                            ]
+                        },
+                        {
+                            id: "q3",
+                            text: "As-tu un bon espace pour étudier à la maison?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: false },
+                                { text: "Non", value: "2", risk: true }
+                            ]
+                        },
+                        {
+                            id: "q4",
+                            text: "Le manque d'espace pour étudier est-il une cause de tes faibles résultats?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: true },
+                                { text: "Non", value: "2", risk: false }
+                            ]
+                        },
+                        {
+                            id: "q5",
+                            text: "Tes deux parents vivent-ils ensemble?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: false },
+                                { text: "Non", value: "2", risk: true }
+                            ],
+                            followUp: {
+                                condition: "2",
+                                question: "Sinon, pourquoi?",
+                                type: "checkbox",
+                                options: [
+                                    { text: "Divorces", value: "divorce" },
+                                    { text: "Mère décédée", value: "mere_decedee" },
+                                    { text: "Parent inconnu", value: "parent_inconnu" },
+                                    { text: "Autres", value: "autres", hasTextInput: true }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "repec",
+                    title: "REPEC - Relations Enfants/Parents/École/Communauté",
+                    questions: [
+                        {
+                            id: "q6",
+                            text: "Causes-tu avec tes parents / Tuteurs/trices?",
+                            type: "radio",
+                            options: [
+                                { text: "Régulièrement", value: "1", risk: false },
+                                { text: "Rarement", value: "2", risk: true },
+                                { text: "Jamais", value: "3", risk: true }
+                            ]
+                        },
+                        {
+                            id: "q7",
+                            text: "Quand tu parles de l'école avec tes parents / tuteur/tutrice, de quoi parlez-vous?",
+                            type: "checkbox",
+                            instruction: "Peut cocher plusieurs réponses",
+                            options: [
+                                { text: "De tes notes en Français", value: "A", risk: true },
+                                { text: "De tes notes en Anglais", value: "B", risk: true },
+                                { text: "De tes notes en Mathématiques", value: "C", risk: true },
+                                { text: "De tes notes en SVT", value: "D", risk: true },
+                                { text: "De tes notes en Physique-chimie", value: "E", risk: true },
+                                { text: "De tes rapports avec les professeurs", value: "F", risk: false },
+                                { text: "De tes rapports avec le personnel d'encadrement", value: "G", risk: false },
+                                { text: "De tes rapports avec les autres élèves", value: "H", risk: false },
+                                { text: "Pas d'échanges sur des sujets en rapport avec l'école", value: "I", risk: true }
+                            ]
+                        },
+                        {
+                            id: "q8",
+                            text: "Comment sont tes relations avec tes enseignants?",
+                            type: "radio",
+                            options: [
+                                { text: "Bonnes", value: "1", risk: false },
+                                { text: "Mauvaises", value: "2", risk: true }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "ies",
+                    title: "IES - Infrastructures et Équipements Scolaires",
+                    questions: [
+                        {
+                            id: "q29",
+                            text: "À quel régime d'enseignement es-tu soumis(e)?",
+                            type: "radio",
+                            options: [
+                                { text: "Double vacation (le matin ou l'après-midi)", value: "1", risk: true },
+                                { text: "Horaire unique (du matin au soir)", value: "2", risk: false }
+                            ]
+                        },
+                        {
+                            id: "q30",
+                            text: "Depuis ta classe précédente, à combien êtes-vous assis par table banc (banc de 2 places) en général?",
+                            type: "radio",
+                            options: [
+                                { text: "Seul(e) par table-banc", value: "1", risk: false },
+                                { text: "À deux", value: "2", risk: false },
+                                { text: "À plus de deux", value: "3", risk: true }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "ssp",
+                    title: "SSP - Santé/Sécurité/Protection",
+                    questions: [
+                        {
+                            id: "q33",
+                            text: "Souffres-tu d'un handicap, d'une maladie particulière?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: true, hasTextInput: true },
+                                { text: "Non", value: "2", risk: false }
+                            ]
+                        },
+                        {
+                            id: "q34",
+                            text: "T'absentes-tu pendant ta période de menstrues?",
+                            instruction: "Réservée aux filles",
+                            type: "radio",
+                            genderSpecific: "feminin",
+                            options: [
+                                { text: "Oui", value: "1", risk: true },
+                                { text: "Non", value: "2", risk: false }
+                            ],
+                            followUp: {
+                                condition: "1",
+                                question: "Si oui, est-ce pour les raisons qui suivent:",
+                                type: "checkbox",
+                                options: [
+                                    { text: "Douleur au bas ventre", value: "douleur" },
+                                    { text: "Manque de serviettes périodiques", value: "manque_serviettes" },
+                                    { text: "Manque de toilettes séparées ou de vestiaires propres pour me changer", value: "manque_toilettes" },
+                                    { text: "Autres", value: "autres", hasTextInput: true }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "viip",
+                    title: "VIIP - Vie individuelle et interaction avec les Pairs",
+                    questions: [
+                        {
+                            id: "q37",
+                            text: "Aimes-tu participer aux activités des clubs et associations de ton établissement ou te sens-tu obligé(e) d'y participer?",
+                            type: "radio",
+                            options: [
+                                { text: "J'aime participer", value: "1", risk: false },
+                                { text: "Je n'aime pas participer", value: "2", risk: true, hasTextInput: true }
+                            ]
+                        },
+                        {
+                            id: "q40",
+                            text: "As-tu déjà consommé de l'alcool?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: true, hasTextInput: true },
+                                { text: "Non", value: "2", risk: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "ns",
+                    title: "NS - Normes Sociales/Pratiques traditionnelles néfastes",
+                    questions: [
+                        {
+                            id: "q44",
+                            text: "Est-ce que tu entends dire les phrases suivantes?",
+                            type: "checkbox",
+                            instruction: "Peut cocher plusieurs réponses",
+                            options: [
+                                { text: "La place de la fille est au foyer et non à l'école", value: "A", risk: true },
+                                { text: "L'éducation de la fille c'est de la préparer au mariage, on ne fait pas cela à l'école", value: "B", risk: true },
+                                { text: "La fille réussit moins dans les matières scientifiques et techniques que les garçons", value: "C", risk: true },
+                                { text: "Le garçon réussit moins dans les matières littéraires que les filles", value: "D", risk: true },
+                                { text: "Il y a des métiers que la fille ne peut pas faire", value: "E", risk: true, hasTextInput: true },
+                                { text: "Il y a des métiers que le garçon ne doit pas faire", value: "F", risk: true, hasTextInput: true },
+                                { text: "Un garçon doit avoir le dernier mot de décision dans une relation avec une fille", value: "G", risk: true },
+                                { text: "Un garçon doit s'isoler, se replier sur lui-même quand il a des problèmes", value: "H", risk: true }
+                            ]
+                        },
+                        {
+                            id: "q48",
+                            text: "Est-ce que les différences de traitements entre les filles et les garçons te dérangent dans tes études?",
+                            type: "radio",
+                            options: [
+                                { text: "Oui", value: "1", risk: true },
+                                { text: "Non", value: "2", risk: false }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "psap",
+                    title: "PSAP - Propositions de Solutions pour l'Amélioration de tes Performances",
+                    questions: [
+                        {
+                            id: "q52",
+                            text: "Que proposes-tu pour que tes résultats s'améliorent?",
+                            type: "textarea",
+                            instruction: "Propose tes solutions personnelles"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Variables d'état
+        let currentSectionIndex = 0;
+        let answers = {};
+        let completedSections = new Set();
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeQuestionnaire();
+            setupEventListeners();
+        });
+
+        function initializeQuestionnaire() {
+            generateSectionsSidebar();
+            updateProgressBar();
+        }
+
+        function generateSectionsSidebar() {
+            const sidebar = document.getElementById('sections-sidebar');
+            sidebar.innerHTML = '';
+            
+            questionnaireData.sections.forEach((section, index) => {
+                const sectionItem = document.createElement('div');
+                sectionItem.className = 'section-item';
+                sectionItem.dataset.sectionIndex = index;
+                sectionItem.textContent = `${index + 1}. ${section.title}`;
+                
+                sectionItem.addEventListener('click', () => {
+                    if (index === 0 || completedSections.has(index - 1) || index === currentSectionIndex) {
+                        loadSection(index);
+                    } else {
+                        alert('Veuillez compléter les sections précédentes avant d\'accéder à cette section.');
+                    }
+                });
+                
+                sidebar.appendChild(sectionItem);
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('start-btn').addEventListener('click', () => {
+                loadSection(0);
+                document.getElementById('welcome-message').style.display = 'none';
+                document.getElementById('navigation-buttons').style.display = 'flex';
+            });
+            
+            document.getElementById('prev-btn').addEventListener('click', goToPreviousSection);
+            document.getElementById('next-btn').addEventListener('click', goToNextSection);
+            document.getElementById('complete-btn').addEventListener('click', showResults);
+            document.getElementById('restart-btn').addEventListener('click', restartQuestionnaire);
+            document.getElementById('print-btn').addEventListener('click', printResults);
+            
+            // Écouter les changements dans le genre pour afficher/masquer les questions spécifiques
+            document.getElementById('genre').addEventListener('change', function() {
+                if (document.getElementById('questions-area').style.display !== 'none') {
+                    loadSection(currentSectionIndex);
+                }
+            });
+        }
+
+        function loadSection(sectionIndex) {
+            currentSectionIndex = sectionIndex;
+            const section = questionnaireData.sections[sectionIndex];
+            
+            // Mettre à jour la barre latérale
+            document.querySelectorAll('.section-item').forEach((item, index) => {
+                item.classList.remove('active');
+                if (completedSections.has(index)) {
+                    item.classList.add('completed');
+                }
+                if (index === sectionIndex) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Afficher les questions
+            const questionsArea = document.getElementById('questions-area');
+            questionsArea.innerHTML = `<h2 class="section-title">${section.title}</h2>`;
+            
+            section.questions.forEach(question => {
+                // Vérifier si la question est spécifique à un genre
+                const genre = document.getElementById('genre').value;
+                if (question.genderSpecific && question.genderSpecific !== genre) {
+                    return; // Ne pas afficher cette question
+                }
+                
+                const questionElement = document.createElement('div');
+                questionElement.className = 'question';
+                questionElement.id = `question-${question.id}`;
+                
+                let questionHTML = `
+                    <div class="question-title">${question.text}</div>
+                `;
+                
+                if (question.instruction) {
+                    questionHTML += `<div class="question-instruction">${question.instruction}</div>`;
+                }
+                
+                if (question.type === 'textarea') {
+                    questionHTML += `
+                        <textarea class="text-input" id="answer-${question.id}" rows="4" 
+                                  placeholder="Écrivez vos propositions ici...">${answers[question.id]?.text || ''}</textarea>
+                    `;
+                } else {
+                    questionHTML += `<div class="options-container">`;
+                    
+                    question.options.forEach(option => {
+                        const optionId = `option-${question.id}-${option.value}`;
+                        const isChecked = answers[question.id]?.values?.includes(option.value) || 
+                                        answers[question.id]?.value === option.value;
+                        
+                        let optionClass = 'option';
+                        if (option.risk) optionClass += ' risk';
+                        
+                        questionHTML += `
+                            <div class="${optionClass}" data-value="${option.value}">
+                                <input type="${question.type}" 
+                                       id="${optionId}" 
+                                       name="question-${question.id}" 
+                                       value="${option.value}"
+                                       ${isChecked ? 'checked' : ''}>
+                                <div class="option-text">${option.text}</div>
+                                ${option.risk ? '<div class="risk-badge">Risque</div>' : ''}
+                            </div>
+                        `;
+                        
+                        if (option.hasTextInput && isChecked) {
+                            questionHTML += `
+                                <input type="text" class="text-input" 
+                                       id="text-input-${question.id}-${option.value}"
+                                       placeholder="Précisez..."
+                                       value="${answers[question.id]?.textInputs?.[option.value] || ''}">
+                            `;
+                        }
+                    });
+                    
+                    questionHTML += `</div>`;
+                    
+                    // Ajouter le suivi si nécessaire
+                    if (question.followUp && answers[question.id]?.value === question.followUp.condition) {
+                        questionHTML += `<div class="follow-up" style="margin-top: 20px; padding-left: 20px; border-left: 3px solid #4a90e2;">`;
+                        questionHTML += `<div class="question-instruction">${question.followUp.question}</div>`;
+                        questionHTML += `<div class="options-container">`;
+                        
+                        question.followUp.options.forEach(followOption => {
+                            const followOptionId = `follow-${question.id}-${followOption.value}`;
+                            const isFollowChecked = answers[question.id]?.followUpValues?.includes(followOption.value) || false;
+                            
+                            questionHTML += `
+                                <div class="option">
+                                    <input type="${question.followUp.type}" 
+                                           id="${followOptionId}" 
+                                           name="follow-question-${question.id}" 
+                                           value="${followOption.value}"
+                                           ${isFollowChecked ? 'checked' : ''}>
+                                    <div class="option-text">${followOption.text}</div>
+                                </div>
+                            `;
+                            
+                            if (followOption.hasTextInput && isFollowChecked) {
+                                questionHTML += `
+                                    <input type="text" class="text-input" 
+                                           id="follow-text-input-${question.id}-${followOption.value}"
+                                           placeholder="Précisez..."
+                                           value="${answers[question.id]?.followUpTextInputs?.[followOption.value] || ''}">
+                                `;
+                            }
+                        });
+                        
+                        questionHTML += `</div></div>`;
+                    }
+                }
+                
+                questionElement.innerHTML = questionHTML;
+                questionsArea.appendChild(questionElement);
+            });
+            
+            // Ajouter des écouteurs d'événements pour les options
+            document.querySelectorAll('.option').forEach(option => {
+                option.addEventListener('click', function(e) {
+                    if (e.target.type !== 'radio' && e.target.type !== 'checkbox' && e.target.type !== 'text') {
+                        const input = this.querySelector('input');
+                        if (input) {
+                            input.checked = !input.checked;
+                            input.dispatchEvent(new Event('change'));
+                        }
+                    }
+                });
+            });
+            
+            // Ajouter des écouteurs pour les changements d'options
+            document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
+                input.addEventListener('change', saveAnswer);
+            });
+            
+            // Ajouter des écouteurs pour les zones de texte
+            document.querySelectorAll('textarea, .text-input').forEach(input => {
+                input.addEventListener('input', saveAnswer);
+            });
+            
+            // Mettre à jour les boutons de navigation
+            updateNavigationButtons();
+            updateProgressBar();
+        }
+
+        function saveAnswer() {
+            const questionId = this.name.replace('question-', '').replace('follow-question-', '');
+            const question = findQuestionById(questionId);
+            
+            if (!question) return;
+            
+            if (question.type === 'textarea') {
+                answers[questionId] = {
+                    value: 'textarea',
+                    text: this.value
+                };
+            } else if (this.name.startsWith('follow-')) {
+                // Gérer les réponses de suivi
+                if (!answers[questionId]) answers[questionId] = {};
+                
+                if (question.followUp.type === 'checkbox') {
+                    const checkboxes = document.querySelectorAll(`input[name="follow-question-${questionId}"]:checked`);
+                    answers[questionId].followUpValues = Array.from(checkboxes).map(cb => cb.value);
+                    
+                    // Sauvegarder les entrées texte de suivi
+                    answers[questionId].followUpTextInputs = {};
+                    question.followUp.options.forEach(option => {
+                        if (option.hasTextInput) {
+                            const textInput = document.getElementById(`follow-text-input-${questionId}-${option.value}`);
+                            if (textInput) {
+                                answers[questionId].followUpTextInputs[option.value] = textInput.value;
+                            }
+                        }
+                    });
+                }
+            } else {
+                if (question.type === 'radio') {
+                    const selectedOption = document.querySelector(`input[name="question-${questionId}"]:checked`);
+                    if (selectedOption) {
+                        answers[questionId] = {
+                            value: selectedOption.value,
+                            textInputs: {}
+                        };
+                        
+                        // Sauvegarder les entrées texte
+                        question.options.forEach(option => {
+                            if (option.hasTextInput && option.value === selectedOption.value) {
+                                const textInput = document.getElementById(`text-input-${questionId}-${option.value}`);
+                                if (textInput) {
+                                    answers[questionId].textInputs[option.value] = textInput.value;
+                                }
+                            }
+                        });
+                        
+                        // Recharger la question si un suivi est nécessaire
+                        if (question.followUp && selectedOption.value === question.followUp.condition) {
+                            setTimeout(() => loadSection(currentSectionIndex), 100);
+                        }
+                    }
+                } else if (question.type === 'checkbox') {
+                    const checkboxes = document.querySelectorAll(`input[name="question-${questionId}"]:checked`);
+                    answers[questionId] = {
+                        values: Array.from(checkboxes).map(cb => cb.value),
+                        textInputs: {}
+                    };
+                    
+                    // Sauvegarder les entrées texte
+                    question.options.forEach(option => {
+                        if (option.hasTextInput && answers[questionId].values.includes(option.value)) {
+                            const textInput = document.getElementById(`text-input-${questionId}-${option.value}`);
+                            if (textInput) {
+                                answers[questionId].textInputs[option.value] = textInput.value;
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Marquer la section comme complétée si toutes les questions ont des réponses
+            checkSectionCompletion();
+        }
+
+        function findQuestionById(questionId) {
+            for (const section of questionnaireData.sections) {
+                for (const question of section.questions) {
+                    if (question.id === questionId) {
+                        return question;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function checkSectionCompletion() {
+            const section = questionnaireData.sections[currentSectionIndex];
+            let allAnswered = true;
+            
+            for (const question of section.questions) {
+                const genre = document.getElementById('genre').value;
+                if (question.genderSpecific && question.genderSpecific !== genre) {
+                    continue;
+                }
+                
+                if (!answers[question.id]) {
+                    allAnswered = false;
+                    break;
+                }
+                
+                if (question.type === 'radio' && !answers[question.id].value) {
+                    allAnswered = false;
+                    break;
+                }
+                
+                if (question.type === 'checkbox' && (!answers[question.id].values || answers[question.id].values.length === 0)) {
+                    allAnswered = false;
+                    break;
+                }
+                
+                if (question.type === 'textarea' && (!answers[question.id].text || answers[question.id].text.trim() === '')) {
+                    allAnswered = false;
+                    break;
+                }
+            }
+            
+            if (allAnswered) {
+                completedSections.add(currentSectionIndex);
+                document.querySelector(`.section-item[data-section-index="${currentSectionIndex}"]`).classList.add('completed');
+            }
+            
+            updateNavigationButtons();
+        }
+
+        function goToPreviousSection() {
+            if (currentSectionIndex > 0) {
+                loadSection(currentSectionIndex - 1);
+            }
+        }
+
+        function goToNextSection() {
+            if (currentSectionIndex < questionnaireData.sections.length - 1) {
+                // Vérifier que la section actuelle est complète
+                if (completedSections.has(currentSectionIndex)) {
+                    loadSection(currentSectionIndex + 1);
+                } else {
+                    alert('Veuillez répondre à toutes les questions de cette section avant de continuer.');
+                }
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const completeBtn = document.getElementById('complete-btn');
+            
+            prevBtn.disabled = currentSectionIndex === 0;
+            
+            if (currentSectionIndex < questionnaireData.sections.length - 1) {
+                nextBtn.style.display = 'inline-block';
+                completeBtn.style.display = 'none';
+                nextBtn.disabled = !completedSections.has(currentSectionIndex);
+            } else {
+                nextBtn.style.display = 'none';
+                completeBtn.style.display = 'inline-block';
+                completeBtn.disabled = !completedSections.has(currentSectionIndex);
+            }
+        }
+
+        function updateProgressBar() {
+            const totalSections = questionnaireData.sections.length;
+            const progress = ((currentSectionIndex + 1) / totalSections) * 100;
+            
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-percent').textContent = `${Math.round(progress)}%`;
+            document.getElementById('current-section').textContent = `Section ${currentSectionIndex + 1} sur ${totalSections}`;
+        }
+
+        function showResults() {
+            // Calculer le score
+            const scores = calculateScores();
+            
+            // Afficher les résultats
+            document.querySelector('.questionnaire-container').style.display = 'none';
+            document.getElementById('navigation-buttons').style.display = 'none';
+            document.getElementById('results-container').style.display = 'block';
+            
+            // Mettre à jour le score total
+            document.getElementById('total-score').textContent = scores.total;
+            
+            // Déterminer le niveau de vulnérabilité
+            let vulnerabilityLevel = '';
+            let vulnerabilityClass = '';
+            
+            if (scores.total <= 30) {
+                vulnerabilityLevel = 'FAIBLE VULNÉRABILITÉ';
+                vulnerabilityClass = 'low';
+            } else if (scores.total <= 59) {
+                vulnerabilityLevel = 'VULNÉRABILITÉ MODÉRÉE';
+                vulnerabilityClass = 'medium';
+            } else {
+                vulnerabilityLevel = 'VULNÉRABILITÉ ÉLEVÉE';
+                vulnerabilityClass = 'high';
+            }
+            
+            const levelElement = document.getElementById('vulnerability-level');
+            levelElement.textContent = vulnerabilityLevel;
+            levelElement.className = `vulnerability-level ${vulnerabilityClass}`;
+            
+            // Afficher les scores par catégorie
+            const resultsDetails = document.getElementById('results-details');
+            resultsDetails.innerHTML = '';
+            
+            Object.keys(scores.categories).forEach(category => {
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'result-category';
+                categoryElement.innerHTML = `
+                    <div class="category-title">${category}</div>
+                    <div class="category-score">${scores.categories[category]}</div>
+                `;
+                resultsDetails.appendChild(categoryElement);
+            });
+            
+            // Générer des recommandations
+            generateRecommendations(scores.total);
+        }
+
+        function calculateScores() {
+            let totalScore = 0;
+            const categoryScores = {};
+            
+            questionnaireData.sections.forEach(section => {
+                let sectionScore = 0;
+                
+                section.questions.forEach(question => {
+                    const answer = answers[question.id];
+                    if (!answer) return;
+                    
+                    if (question.type === 'radio' && answer.value) {
+                        const option = question.options.find(opt => opt.value === answer.value);
+                        if (option && option.risk) {
+                            sectionScore += 1;
+                            totalScore += 1;
+                        }
+                    } else if (question.type === 'checkbox' && answer.values) {
+                        question.options.forEach(option => {
+                            if (answer.values.includes(option.value) && option.risk) {
+                                sectionScore += 1;
+                                totalScore += 1;
+                            }
+                        });
+                    }
+                });
+                
+                categoryScores[section.title.split(' - ')[0]] = sectionScore;
+            });
+            
+            return {
+                total: totalScore,
+                categories: categoryScores
+            };
+        }
+
+        function generateRecommendations(totalScore) {
+            const recommendationsText = document.getElementById('recommendations-text');
+            const specificRecommendations = document.getElementById('specific-recommendations');
+            
+            let generalRecommendation = '';
+            let specificRecommendationsHTML = '<ul>';
+            
+            if (totalScore <= 30) {
+                generalRecommendation = 'Votre score indique une faible vulnérabilité. Continuez sur cette voie!';
+                specificRecommendationsHTML += `
+                    <li>Maintenez vos bonnes habitudes de travail</li>
+                    <li>Participez activement aux activités scolaires et parascolaires</li>
+                    <li>Servez de modèle à vos camarades</li>
+                `;
+            } else if (totalScore <= 59) {
+                generalRecommendation = 'Votre score indique une vulnérabilité modérée. Quelques ajustements pourraient améliorer votre situation.';
+                specificRecommendationsHTML += `
+                    <li>Renforcez le dialogue avec vos enseignants et le personnel d'encadrement</li>
+                    <li>Établissez un planning de travail régulier</li>
+                    <li>Participez aux cours de renforcement si disponibles</li>
+                    <li>Cherchez un espace calme pour étudier à la maison</li>
+                `;
+            } else {
+                generalRecommendation = 'Votre score indique une vulnérabilité élevée. Un accompagnement spécifique est recommandé.';
+                specificRecommendationsHTML += `
+                    <li>Rencontrez rapidement le personnel d'encadrement de votre établissement</li>
+                    <li>Demandez un entretien avec un conseiller d'orientation</li>
+                    <li>Participez à un programme de soutien scolaire intensif</li>
+                    <li>Établissez un contact régulier avec vos enseignants</li>
+                    <li>Cherchez de l'aide pour résoudre les problèmes familiaux ou sociaux identifiés</li>
+                `;
+            }
+            
+            // Ajouter des recommandations basées sur les réponses spécifiques
+            if (answers['q3'] && answers['q3'].value === '2') {
+                specificRecommendationsHTML += `<li>Aménagez un espace d'étude fixe et calme à votre domicile</li>`;
+            }
+            
+            if (answers['q6'] && (answers['q6'].value === '2' || answers['q6'].value === '3')) {
+                specificRecommendationsHTML += `<li>Initiez des conversations régulières avec vos parents/tuteurs sur votre scolarité</li>`;
+            }
+            
+            if (answers['q8'] && answers['q8'].value === '2') {
+                specificRecommendationsHTML += `<li>Demandez un entretien individuel avec vos enseignants pour améliorer la communication</li>`;
+            }
+            
+            specificRecommendationsHTML += '</ul>';
+            
+            recommendationsText.textContent = generalRecommendation;
+            specificRecommendations.innerHTML = specificRecommendationsHTML;
+        }
+
+        function restartQuestionnaire() {
+            if (confirm('Voulez-vous vraiment recommencer le questionnaire? Toutes vos réponses seront effacées.')) {
+                currentSectionIndex = 0;
+                answers = {};
+                completedSections.clear();
+                
+                document.getElementById('results-container').style.display = 'none';
+                document.getElementById('welcome-message').style.display = 'block';
+                document.querySelector('.questionnaire-container').style.display = 'flex';
+                document.getElementById('navigation-buttons').style.display = 'none';
+                
+                initializeQuestionnaire();
+                
+                // Réinitialiser les champs d'information élève
+                document.getElementById('matricule').value = '';
+                document.getElementById('age').value = '';
+                document.getElementById('genre').value = '';
+                document.getElementById('etablissement').value = '';
+                document.getElementById('classe').value = '';
+            }
+        }
+
+        function printResults() {
+            const printContent = document.getElementById('results-container').innerHTML;
+            const originalContent = document.body.innerHTML;
+            
+            document.body.innerHTML = `
+                <div style="padding: 20px; font-family: Arial, sans-serif;">
+                    <h1 style="text-align: center; color: #2c3e50;">RÉSULTATS DU QUESTIONNAIRE PAI</h1>
+                    <div style="margin: 20px 0; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
+                        <strong>Informations de l'élève:</strong><br>
+                        Matricule: ${document.getElementById('matricule').value}<br>
+                        Âge: ${document.getElementById('age').value}<br>
+                        Genre: ${document.getElementById('genre').value}<br>
+                        Établissement: ${document.getElementById('etablissement').value}<br>
+                        Classe: ${document.getElementById('classe').value}
+                    </div>
+                    ${printContent}
+                </div>
+            `;
+            
+            window.print();
+            document.body.innerHTML = originalContent;
+            // Recharger l'application après l'impression
+            location.reload();
+        }
+    </script>
+</body>
+</html>
