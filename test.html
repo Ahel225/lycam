@@ -628,7 +628,7 @@
     border-radius: 4px;
 }
     
-/* v5.9 — grille de résultats et gestion annuelle */
+/* v6.0 — grille de résultats et gestion annuelle */
 #class-results-table input[readonly] { cursor:not-allowed; color:var(--text-muted); }
 #class-results-table th { position:sticky; top:0; z-index:2; background:var(--surface-2); white-space:nowrap; }
 #class-results-table td, #class-results-table th { padding:7px 8px; border-bottom:1px solid var(--border); }
@@ -646,7 +646,7 @@
       <div class="logo">GE</div>
       <div>
         <div style="font-weight:800;font-size:18px">Gestionnaire d'Élèves</div>
-        <div class="subtitle">v5.9 Koubi Seri Fils</div>
+        <div class="subtitle">v6.0 Koubi Seri Fils</div>
       </div>
     </div>
     <div class="chip" id="status"><i class="fa fa-check-circle" style="color:var(--accent)"></i> Prêt</div>
@@ -714,6 +714,7 @@
     <button id="btn-open-class-results" class="btn" style="background:#4f46e5;color:white" title="Saisie des moyennes"><i class="fa fa-edit"></i> Résultats</button>
     <button id="btn-open-stats" class="btn ghost" title="Statistiques Globales"><i class="fa fa-chart-bar"></i> Stats</button>
     <button id="btn-open-lycam-main" class="btn lycam-btn" title="Gestion LYCAM"><i class="fa fa-clipboard-check"></i> LYCAM</button>
+    <button id="btn-open-pai-main" class="btn" style="background:#0f766e;color:white" title="Questionnaire PAI"><i class="fa fa-clipboard-list"></i> PAI</button>
     <button id="btn-open-registry" class="btn registry-btn" title="Registre de visites"><i class="fa fa-address-book"></i> Registre</button>
     <button id="btn-open-tracking" class="btn tracking-btn" title="Suivi & Coaching Global"><i class="fa fa-hands-helping"></i> Suivi/Coach</button>
     <button id="btn-open-cio" class="btn" style="background:#7c3aed; color:white" title="Rapport CIO"><i class="fa fa-table"></i> CIO</button>
@@ -999,6 +1000,28 @@
         </div>
     </div>
 
+    <div id="paiMainPanel" class="card section" style="display:none;border-top:4px solid #0f766e">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div><h3 style="margin:0;color:#0f766e"><i class="fa fa-clipboard-list"></i> Plan d’Accompagnement Individualisé (PAI)</h3><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Questionnaire officiel fourni — 52 questions, réponses individuelles et observations du conseiller.</div></div>
+        <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+      </div>
+      <div class="tabs" id="pai-tabs">
+        <div class="tab active" onclick="switchPAIView('candidates')">Faire passer le questionnaire</div>
+        <div class="tab" onclick="switchPAIView('results')">Consulter les passations</div>
+      </div>
+      <div id="pai-view-candidates" style="display:flex;flex-direction:column;gap:12px;min-height:0">
+        <div class="toolbar" style="margin-top:0">
+          <div class="field"><label class="label">Filtrer par classe</label><select id="pai-class-filter" class="select" style="min-width:150px"><option value="__ALL__">Toutes les classes</option></select></div>
+          <div class="field" style="flex:1"><label class="label">Rechercher un élève</label><input id="pai-search-candidate" class="input" placeholder="Nom ou matricule..."></div>
+        </div>
+        <div class="table-wrap"><table id="pai-candidates-table"><thead><tr><th>Matricule</th><th>Nom et prénoms</th><th>Classe</th><th>Dernière passation</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div id="pai-view-results" style="display:none;flex-direction:column;gap:12px;min-height:0">
+        <div class="toolbar" style="margin-top:0"><div class="field" style="flex:1"><label class="label">Rechercher dans les passations</label><input id="pai-search-results" class="input" placeholder="Nom ou matricule..."></div><button type="button" class="btn ghost" id="btn-export-pai-all"><i class="fa fa-file-excel"></i> Exporter les passations</button></div>
+        <div class="table-wrap"><table id="pai-global-table"><thead><tr><th>Élève</th><th>Classe</th><th>Date</th><th>Réponses</th><th>Observations</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
     <div id="registryPanel" class="card section" style="display:none; border-top:4px solid var(--registry-color)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <h3><i class="fa fa-address-book" style="color:var(--registry-color)"></i> Registre de Visites</h3>
@@ -1226,6 +1249,36 @@
     </div>
   </div>
 </div>
+<div id="modal-pai-test" class="modal">
+  <div class="modal-content" style="max-width:1050px;max-height:94vh;display:flex;flex-direction:column">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div><h3 style="margin:0;color:#0f766e"><i class="fa fa-clipboard-list"></i> Questionnaire PAI — Secondaire</h3><div id="pai-student-heading" style="font-weight:700;margin-top:5px"></div><div id="pai-progress" style="font-size:12px;color:var(--text-muted);margin-top:4px">0/52 questions renseignées</div></div>
+      <button type="button" id="btn-close-pai-modal" class="btn ghost"><i class="fa fa-times"></i> Fermer</button>
+    </div>
+    <div style="padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border)">
+      <div id="pai-identity-summary" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+        <div><label class="label">Désignation de l’étude</label><input id="pai-study-label" class="input" placeholder="Ex. entretien / étude…"></div>
+        <div><label class="label">Établissement</label><input id="pai-school-name" class="input" placeholder="Nom de l’établissement"></div>
+        <div><label class="label">Redoublant(e)</label><select id="pai-repeat" class="select"><option value="">Non renseigné</option><option value="Oui">Oui</option><option value="Non">Non</option></select></div>
+        <div><label class="label">Moyenne de l’élève</label><input id="pai-student-average" class="input" type="number" min="0" max="20" step="0.01" placeholder="Facultatif"></div>
+      </div>
+    </div>
+    <div id="pai-questions-container" class="modal-body" style="overflow-y:auto;padding:16px 20px"></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text-muted);align-self:center">Le questionnaire ne comporte pas de grille de score automatique dans le document fourni. Les réponses sont conservées sans diagnostic automatique.</span>
+      <div style="display:flex;gap:8px"><button type="button" id="btn-cancel-pai" class="btn ghost">Annuler</button><button type="button" id="btn-save-pai" class="btn" style="background:#0f766e;color:white"><i class="fa fa-save"></i> Enregistrer la passation</button></div>
+    </div>
+  </div>
+</div>
+<div id="modal-pai-review" class="modal">
+  <div class="modal-content" style="max-width:1000px;max-height:92vh;display:flex;flex-direction:column">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0;color:#0f766e">Réponses individuelles PAI</h3><div id="pai-review-heading" style="margin-top:5px;font-weight:700"></div><div id="pai-review-summary" style="margin-top:4px;font-size:12px;color:var(--text-muted)"></div></div><button type="button" id="btn-close-pai-review" class="btn ghost">Fermer</button></div>
+    <div style="padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="btn-export-pai-one" class="btn" style="background:#0f766e;color:white"><i class="fa fa-file-excel"></i> Exporter cette passation</button></div>
+    <div id="pai-review-content" class="modal-body" style="overflow:auto;padding:12px 20px"></div>
+  </div>
+</div>
+
 <div id="modal-edit-student" class="modal">
   <div class="modal-content">
     <div class="modal-body">
@@ -1825,6 +1878,182 @@ async function exportCioToPDF() {
     }
 }
 
+// ====== PAI : QUESTIONNAIRE FOURNI PAR L'UTILISATEUR ======
+// Transcription structurée du document « PLAN D'ACCOMPAGNEMENT INDIVIDUALISE AU SECONDAIRE ».
+// Les questions ouvertes et les réponses multiples sont conservées telles quelles; aucune cotation non fournie n'est inventée.
+const PAI_SECTIONS = [
+ {id:'socio',label:'I. Conditions socio-économiques et familiales',start:1,end:5},
+ {id:'relations',label:'II. Relations enfants / parents / école / communauté',start:6,end:13},
+ {id:'intermediaire',label:'Questions 14 à 16 — Santé sexuelle et loisirs numériques',start:14,end:16},
+ {id:'projet',label:'III. PSP — Projet scolaire et professionnel',start:17,end:19},
+ {id:'rendement',label:'IV. RSFC — Rendement scolaire / facteurs cognitifs / psychosociaux',start:20,end:28},
+ {id:'infrastructures',label:'V. IES — Infrastructures et équipements scolaires',start:29,end:32},
+ {id:'sante',label:'VI. SSP — Santé / sécurité / protection',start:33,end:36},
+ {id:'pairs',label:'VII. VIP — Vie individuelle et interaction avec les pairs',start:37,end:43},
+ {id:'normes',label:'VIII. NS — Normes sociales / pratiques traditionnelles néfastes',start:44,end:49},
+ {id:'droits',label:'Questions ouvertes : droits, devoirs et propositions',start:50,end:52}
+];
+const PAI_QUESTIONS = [
+ {id:1,section:'socio',text:'Chez qui vis-tu pour aller à l’école ?',type:'single',options:['Père et mère','Père','Mère','Tuteur/Tutrice','Seul(e)','Ami(e)s','Autres (précise)'],detail:true,extra:'Si tu vis seul(e) ou avec des ami(e)s, loues-tu ce local ?'},
+ {id:2,section:'socio',text:'Combien de repas prends-tu par jour en général ?',type:'single',options:['01 repas par jour','02 repas par jour','03 repas par jour','Plus de 03 repas par jour']},
+ {id:3,section:'socio',text:'As-tu un bon espace pour étudier à la maison ?',type:'single',options:['Oui','Non']},
+ {id:4,section:'socio',text:'Le manque d’espace pour étudier est-il une cause de tes faibles résultats ?',type:'single',options:['Oui','Non']},
+ {id:5,section:'socio',text:'Tes deux parents vivent-ils ensemble ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si non, pourquoi ? (plusieurs réponses possibles)',extraOptions:['Divorcés','Séparés','Père décédé','Mère décédée','Parent inconnu','Un parent vit dans une autre ville (travail, coutume, etc.)','Autre']},
+ {id:6,section:'relations',text:'Causes-tu avec tes parents / tuteurs / tutrices ?',type:'single',options:['Régulièrement','Rarement','Jamais']},
+ {id:7,section:'relations',text:'Quand tu parles de l’école avec tes parents / tuteur / tutrice, de quoi parlez-vous ?',type:'multiple',options:['De tes notes en français','De tes notes en anglais','De tes notes en mathématiques','De tes notes en SVT','De tes notes en physique-chimie','De tes rapports avec les professeurs','De tes rapports avec le personnel d’encadrement','De tes rapports avec les autres élèves','Pas d’échanges sur des sujets en rapport avec l’école']},
+ {id:8,section:'relations',text:'Comment sont tes relations avec tes enseignants ?',type:'single',options:['Bonnes','Mauvaises']},
+ {id:9,section:'relations',text:'Comment sont tes relations avec le personnel d’encadrement (éducateur/trice, inspecteur d’orientation, inspecteur d’éducation) ?',type:'single',options:['Bonnes','Mauvaises']},
+ {id:10,section:'relations',text:'Tes parents / tuteur / tutrice rencontrent-ils le personnel de l’établissement ?',type:'single',options:['Régulièrement','Rarement','Jamais']},
+ {id:11,section:'relations',text:'Es-tu insulté(e) à l’école ?',type:'single',options:['Régulièrement','Rarement','Jamais'],detail:true,extra:'Par qui ?'},
+ {id:12,section:'relations',text:'Les professeurs se plaignent-ils de toi ?',type:'single',options:['Régulièrement','Rarement','Jamais']},
+ {id:13,section:'relations',text:'Comment le personnel d’encadrement (éducatif et administratif) réagit-il quand tu te comportes mal ?',type:'multiple',options:['Retrait de points (faire des moins)','Renvoi temporaire de l’école','Recouvrement / autre sanction (selon le document)','Autres (précise)'],detail:true},
+ {id:14,section:'intermediaire',text:'As-tu l’occasion de parler de sujets liés à la santé sexuelle (préservatif, santé, IST/MST, rapport sexuel, abstinence, désir sexuel) ?',type:'single',options:['Régulièrement','Rarement','Jamais'],detail:true,extra:'Avec qui ?'},
+ {id:15,section:'intermediaire',text:'Combien de fois joues-tu seul(e) aux jeux vidéo ?',type:'single',options:['Une ou deux fois par mois','Une ou deux fois par semaine','Presque tous les jours','Tous les jours','Jamais']},
+ {id:16,section:'intermediaire',text:'À quelle fréquence joues-tu aux jeux vidéo à plusieurs ?',type:'single',options:['Une ou deux fois par mois','Une ou deux fois par semaine','Presque tous les jours','Tous les jours','Jamais']},
+ {id:17,section:'projet',text:'À quel niveau d’étude comptes-tu arriver ?',type:'single',options:['Jusqu’à l’obtention d’un diplôme','Je pense que je n’irai pas plus loin que cette année','Je veux apprendre un métier','Je ne sais pas']},
+ {id:18,section:'projet',text:'Qu’est-ce qui te donne envie d’aller à l’école ?',type:'multiple',options:['L’argent de poche','La cantine','Les camarades de classe','Le bon encadrement des professeurs / du personnel d’encadrement','Un bon emploi plus tard','Autres (précise)'],detail:true},
+ {id:19,section:'projet',text:'Qu’est-ce qui ne te donne pas parfois envie d’aller à l’école ?',type:'multiple',options:['La violence','Le harcèlement','Les mauvais résultats','L’éloignement de l’école','La manière d’enseigner de certains professeurs','Autres (précise)'],detail:true},
+ {id:20,section:'rendement',text:'Qu’est-ce qui explique l’insuffisance de tes résultats scolaires ?',type:'multiple',options:['J’étudie seul(e)','Je suis souvent malade','Les cours sont difficiles','Je ne comprends pas bien le français quand les professeurs parlent','Les enseignants n’arrivent pas à comprendre mes difficultés pour m’aider','J’ai été mal orienté(e)','Les travaux domestiques m’empêchent d’étudier','Je n’ai personne à qui me confier quand j’ai un problème','Je n’ai pas toutes mes fournitures scolaires','Je passe assez de temps sur les écrans','J’ai besoin de me distraire un peu','Autres (précise)'],detail:true},
+ {id:21,section:'rendement',text:'Est-ce que tu ne travailles pas bien à cause des raisons suivantes ?',type:'multiple',options:['Vous êtes trop nombreux dans la classe','Violence à l’école','Environnement non sécurisé (débit de boisson, fumoir, maquis, nuisances sonores)','Influence des camarades / mauvaises fréquentations','L’école n’est pas la seule voie de réussite','Attrait pour les opportunités économiques (immigration clandestine, orpaillage, loterie, traite agricole, taxi-moto)','Orphelin(e)','Famille recomposée / famille monoparentale','Violence domestique (à la maison)']},
+ {id:22,section:'rendement',text:'Dans quelles disciplines as-tu le plus de difficultés ?',type:'multiple',options:['Mathématiques','Physique-chimie','Français','Anglais']},
+ {id:23,section:'rendement',text:'De quoi as-tu besoin pour avoir de bons résultats ?',type:'multiple',options:['Que mes parents m’aiment plus','D’argent de poche','De toutes mes fournitures scolaires','De soutien scolaire (cours de renforcement, répétiteur)','De participation aux activités festives de mon établissement','De tranquillité domestique (à la maison)','Autres (précise)'],detail:true},
+ {id:24,section:'rendement',text:'Est-ce que tu comprends facilement les explications des professeurs ?',type:'single',options:['Oui','Non']},
+ {id:25,section:'rendement',text:'Retiens-tu facilement tes leçons ?',type:'single',options:['Oui','Non']},
+ {id:26,section:'rendement',text:'Pendant les cours, écoutes-tu attentivement les professeurs ?',type:'single',options:['Oui, attentivement','Non, je suis distrait(e)']},
+ {id:27,section:'rendement',text:'Pendant les cours, est-ce que tu as envie de dormir ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui : à quel moment et pourquoi ?'},
+ {id:28,section:'rendement',text:'Quelle attitude as-tu devant un mauvais résultat ?',type:'single',options:['Ça ne me dit rien','J’ai envie d’abandonner l’école','Je travaille plus pour me rattraper','Autres (précise)'],detail:true},
+ {id:29,section:'infrastructures',text:'À quel régime d’enseignement es-tu soumis(e) ?',type:'single',options:['Double vacation (le matin ou l’après-midi)','Horaire unique (du matin au soir)']},
+ {id:30,section:'infrastructures',text:'Depuis ta classe précédente, à combien êtes-vous assis par table-banc de deux places en général ?',type:'single',options:['Seul(e) par table-banc','À deux','À plus de deux']},
+ {id:31,section:'infrastructures',text:'As-tu tous tes professeurs ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si non, précise.'},
+ {id:32,section:'infrastructures',text:'Le nombre d’élèves de ta classe a-t-il une conséquence sur tes résultats ?',type:'single',options:['Oui','Non']},
+ {id:33,section:'sante',text:'Souffres-tu d’un handicap ou d’une maladie particulière ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, précise.'},
+ {id:34,section:'sante',text:'T’absentes-tu pendant ta période de menstrues ? (question réservée aux filles)',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, raisons possibles : douleur au bas-ventre ; manque de serviettes périodiques ; manque de toilettes séparées ou de vestiaires propres ; autres.'},
+ {id:35,section:'sante',text:'Existe-t-il des kits hygiéniques dans ton établissement pour gérer tes périodes de menstrues ? (question réservée aux filles)',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, sont-ils gratuits ou payants ?'},
+ {id:36,section:'sante',text:'Existe-t-il des pratiques qui perturbent ta scolarité ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, lesquelles ?',extraOptions:['Relation avec un(e) petit(e) ami(e)','Viol','Excision','Attouchements','Harcèlement sexuel','Mariage forcé','Consommation de cigarette','Consommation de drogue','Consommation d’alcool','Bande / groupe spécifique d’adolescent(e)s','Autres (précise)']},
+ {id:37,section:'pairs',text:'Aimes-tu participer aux activités des clubs et associations de ton établissement ou te sens-tu obligé(e) d’y participer ?',type:'single',options:['J’aime participer','Je n’aime pas participer'],detail:true,extra:'Pourquoi ?'},
+ {id:38,section:'pairs',text:'Appartiens-tu à des groupes ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, lesquels ?'},
+ {id:39,section:'pairs',text:'T’arrive-t-il de dire non quand le groupe a dit oui ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, pour quelle raison ?'},
+ {id:40,section:'pairs',text:'As-tu déjà consommé de l’alcool ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, pour quelle raison ?'},
+ {id:41,section:'pairs',text:'As-tu déjà consommé de la drogue ?',type:'single',options:['Oui','Non']},
+ {id:42,section:'pairs',text:'Crois-tu que la consommation d’excitants tels que le café, l’alcool ou la drogue peut aider un élève à mieux réviser ses leçons ?',type:'single',options:['Oui','Non']},
+ {id:43,section:'pairs',text:'T’absentes-tu parfois des cours ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, raisons possibles : mes parents ne me contrôlent pas ; je fais comme mes ami(e)s ; j’ai la paresse ; je suis malade ; pour aller gagner de l’argent ; autres.',extraOptions:['Mes parents ne me contrôlent pas','Je fais comme mes ami(e)s','J’ai la paresse','Je suis malade','Pour aller gagner de l’argent','Autres (précise)']},
+ {id:44,section:'normes',text:'Est-ce que tu entends dire les phrases suivantes ?',type:'multiple',options:['La place de la fille est au foyer et non à l’école','L’éducation de la fille, c’est de la préparer au mariage, pas à l’école','La fille réussit moins dans les matières scientifiques et techniques que les garçons','Le garçon réussit moins dans les matières littéraires que les filles','Il y a des métiers que la fille ne peut pas faire (donne un exemple)','Il y a des métiers que le garçon ne doit pas faire (donne un exemple)','Un garçon doit avoir le dernier mot de décision dans une relation avec une fille','Un garçon doit s’isoler / se replier sur lui-même quand il a des problèmes']},
+ {id:45,section:'normes',text:'Parmi les idées que tu entends, quelles sont celles que tu acceptes ?',type:'multiple',options:['La place de la fille est au foyer et non à l’école','L’éducation de la fille, c’est de la préparer au mariage, pas à l’école','La fille réussit moins dans les matières scientifiques et techniques que les garçons','Le garçon réussit moins dans les matières littéraires que les filles','Il y a des métiers que la fille ne peut pas faire (donne un exemple)','Il y a des métiers que le garçon ne doit pas faire (donne un exemple)','Un garçon doit avoir le dernier mot de décision dans une relation avec une fille','Un garçon doit s’isoler / se replier sur lui-même quand il a des problèmes'],detail:true},
+ {id:46,section:'normes',text:'Es-tu confronté(e) à ces problèmes ?',type:'multiple',options:['Mariage forcé','Travail des enfants','Manque de droit parce que tu es une fille','Excision','Grossesse en cours de scolarité','Auteur de grossesse (réservé aux garçons)','Aucun','Autres (précise)'],detail:true},
+ {id:47,section:'normes',text:'Entends-tu les idées suivantes ?',type:'multiple',options:['Un vrai garçon ne reste pas à la maison mais va chercher l’argent','Un garçon qui s’absente souvent pour travailler afin de gagner de l’argent pour ses parents reçoit leurs bénédictions','Les tâches ménagères concernent les filles, pas les garçons','Les durs n’ont pas peur des sanctions']},
+ {id:48,section:'normes',text:'Est-ce que les différences de traitement entre les filles et les garçons te dérangent dans tes études ?',type:'single',options:['Oui','Non']},
+ {id:49,section:'normes',text:'Est-ce que tu travailles pour gagner de l’argent ?',type:'single',options:['Oui','Non'],detail:true,extra:'Si oui, à quel moment ? Dis ce que tu fais.'},
+ {id:50,section:'droits',text:'Cite quelques droits des enfants que tu connais.',type:'text'},
+ {id:51,section:'droits',text:'Cite quelques devoirs des élèves envers le personnel enseignant, d’encadrement et administratif.',type:'text'},
+ {id:52,section:'droits',text:'Que proposes-tu pour que tes résultats s’améliorent ?',type:'text'}
+];
+let allPAIResults = [];
+let currentPAICandidate = null;
+let currentPAIResultId = null;
+let currentPAIEditId = null;
+
+function loadPAIData(){ allPAIResults = storage.load('PAIQuestionnaireResults', []); }
+function paiStudent(matricule){ return allStudents.find(s => String(s.matricule) === String(matricule)); }
+function paiCountAnswered(answers){ return PAI_QUESTIONS.filter(q => { const a=answers?.[q.id]; return Array.isArray(a) ? a.length>0 : String(a??'').trim()!==''; }).length; }
+function switchPAIView(view){
+  document.getElementById('pai-view-candidates').style.display = view==='candidates'?'flex':'none';
+  document.getElementById('pai-view-results').style.display = view==='results'?'flex':'none';
+  document.querySelectorAll('#pai-tabs .tab').forEach((t,i)=>t.classList.toggle('active',(view==='candidates'?i===0:i===1)));
+  if(view==='candidates') renderPAICandidates(); else renderPAIResults();
+}
+function renderPAICandidates(){
+ const filter=document.getElementById('pai-class-filter')?.value||'__ALL__'; const query=(document.getElementById('pai-search-candidate')?.value||'').toLowerCase();
+ let list=[...allStudents]; if(filter!=='__ALL__') list=list.filter(s=>normalizeClasseKey(s.classe)===filter);
+ if(query) list=list.filter(s=>`${s.nom||''} ${s.prenoms||''} ${s.matricule||''}`.toLowerCase().includes(query));
+ const tbody=document.querySelector('#pai-candidates-table tbody'); if(!tbody)return; tbody.innerHTML='';
+ list.forEach(s=>{ const prior=allPAIResults.filter(r=>String(r.matricule)===String(s.matricule)).sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0]; const tr=document.createElement('tr');
+ tr.innerHTML=`<td>${escapeHtml(s.matricule)}</td><td>${escapeHtml((s.nom||'')+' '+(s.prenoms||''))}</td><td>${escapeHtml(s.classe||'')}</td><td>${prior?fmtDateTime(prior.at):'Aucune'}</td><td><button type="button" class="btn" style="background:#0f766e;color:white;padding:6px 9px" data-pai-start="${escapeHtml(s.matricule)}"><i class="fa fa-play"></i> ${prior?'Nouvelle passation':'Commencer'}</button></td>`; tbody.appendChild(tr);
+ });
+ tbody.querySelectorAll('[data-pai-start]').forEach(b=>b.addEventListener('click',()=>startPAIQuestionnaire(paiStudent(b.dataset.paiStart))));
+}
+function renderPAIQuestionnaire(existing=null){
+ const container=document.getElementById('pai-questions-container'); container.innerHTML='';
+ const answers=existing?.answers||{}; const details=existing?.details||{};
+ PAI_SECTIONS.forEach(section=>{
+   const heading=document.createElement('div'); heading.style.cssText='margin:18px 0 10px;padding:10px 12px;border-radius:8px;background:#ecfdf5;color:#065f46;font-weight:800;border-left:4px solid #0f766e'; heading.textContent=section.label; container.appendChild(heading);
+   PAI_QUESTIONS.filter(q=>q.section===section.id).forEach(q=>{
+     const block=document.createElement('div'); block.className='question-block'; block.style.cssText='padding:13px;margin:10px 0;border:1px solid var(--border);border-radius:10px;background:var(--surface)';
+     let inner=`<div style="font-weight:700;margin-bottom:9px">${q.id}. ${escapeHtml(q.text)}</div>`;
+     if(q.type==='text') inner+=`<textarea class="input pai-answer-text" data-qid="${q.id}" rows="3" style="width:100%;resize:vertical" placeholder="Saisir la réponse de l’élève…">${escapeHtml(answers[q.id]||'')}</textarea>`;
+     else { const selected=answers[q.id]; q.options.forEach((opt,i)=>{const isChecked=Array.isArray(selected)?selected.includes(opt):selected===opt; const typ=q.type==='multiple'?'checkbox':'radio'; inner+=`<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 3px;cursor:pointer"><input type="${typ}" name="pai_q_${q.id}" value="${escapeHtml(opt)}" data-qid="${q.id}" style="margin-top:3px;flex-shrink:0" ${isChecked?'checked':''}><span>${escapeHtml(String.fromCharCode(65+i)+') '+opt)}</span></label>`; }); }
+     if(q.detail || q.extra || q.extraOptions){
+       if(q.extra) inner+=`<div style="font-size:12px;color:var(--text-muted);margin:8px 0 5px">${escapeHtml(q.extra)}</div>`;
+       if(q.extraOptions){ const chosen=details[q.id+'_options']||[]; inner+=`<div style="display:flex;flex-wrap:wrap;gap:7px;margin:6px 0">${q.extraOptions.map((opt,i)=>`<label style="display:flex;gap:5px;align-items:flex-start;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px"><input type="checkbox" data-detail-options="${q.id}" value="${escapeHtml(opt)}" ${(chosen.includes(opt))?'checked':''}>${escapeHtml(opt)}</label>`).join('')}</div>`; }
+       inner+=`<textarea class="input pai-detail-text" data-detail="${q.id}" rows="2" style="width:100%;margin-top:6px" placeholder="Précisions complémentaires (facultatif)…">${escapeHtml(details[q.id]||'')}</textarea>`;
+     }
+     inner+=`<div style="margin-top:8px"><label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px">Résultat / observation professionnelle (facultatif)</label><input class="input" data-question-result="${q.id}" value="${escapeHtml(existing?.questionResults?.[q.id]||'')}" placeholder="À compléter par le conseiller, si nécessaire" style="width:100%"></div>`;
+     block.innerHTML=inner; container.appendChild(block);
+   });
+ });
+ const notes=document.createElement('div'); notes.style.cssText='margin-top:20px;padding:14px;border:1px solid #99f6e4;background:#f0fdfa;border-radius:10px';
+ notes.innerHTML=`<h4 style="margin:0 0 8px;color:#0f766e">Synthèse / observations du conseiller</h4><textarea id="pai-counselor-notes" class="input" rows="4" style="width:100%" placeholder="Observations, besoins identifiés, suites à donner…">${escapeHtml(existing?.counselorNotes||'')}</textarea><p style="font-size:11px;color:var(--text-muted);margin:8px 0 0">Aucun score automatique n’est calculé : le document fourni ne contient pas de grille de cotation.</p>`;
+ container.appendChild(notes);
+ container.onchange=updatePAIProgress; container.oninput=updatePAIProgress; updatePAIProgress();
+}
+function startPAIQuestionnaire(student, existingId=null){
+ if(!student)return; currentPAICandidate=student; currentPAIEditId=existingId;
+ const existing=existingId?allPAIResults.find(r=>r.id===existingId):null;
+ document.getElementById('pai-student-heading').textContent=`${student.nom||''} ${student.prenoms||''} — ${student.classe||''} (${student.matricule})`;
+ const age=student.dateNaissance?(()=>{const d=new Date(student.dateNaissance);return isNaN(d)?'':Math.max(0,Math.floor((Date.now()-d.getTime())/31557600000));})():'';
+ document.getElementById('pai-identity-summary').textContent=`Année scolaire : ${getSelectedYear()} · Sexe : ${student.sexe||'—'} · Âge : ${age||'—'} · Matricule : ${student.matricule} · Classe : ${student.classe||'—'}`;
+ document.getElementById('pai-study-label').value=existing?.identification?.studyLabel||'';
+ document.getElementById('pai-school-name').value=existing?.identification?.schoolName||'';
+ document.getElementById('pai-repeat').value=existing?.identification?.repeat||((student.redoublant===true)?'Oui':(student.redoublant===false?'Non':''));
+ const avg=existing?.identification?.average ?? student.moyennes?.Annuelle?.Moy_generale ?? '';
+ document.getElementById('pai-student-average').value=avg===-1?'':avg;
+ renderPAIQuestionnaire(existing); document.getElementById('modal-pai-test').style.display='flex';
+}
+function updatePAIProgress(){
+ const answers={}; PAI_QUESTIONS.forEach(q=>{ if(q.type==='text'){answers[q.id]=document.querySelector(`[data-qid="${q.id}"].pai-answer-text`)?.value||'';} else if(q.type==='multiple'){answers[q.id]=Array.from(document.querySelectorAll(`input[name="pai_q_${q.id}"]:checked`)).map(x=>x.value);} else {answers[q.id]=document.querySelector(`input[name="pai_q_${q.id}"]:checked`)?.value||'';} });
+ const n=paiCountAnswered(answers); const el=document.getElementById('pai-progress'); if(el)el.textContent=`${n}/52 questions renseignées · Vous pouvez enregistrer une passation partielle.`; return answers;
+}
+function savePAIQuestionnaire(){
+ if(!currentPAICandidate)return; const answers=updatePAIProgress(); const details={};
+ document.querySelectorAll('[data-detail]').forEach(el=>{details[el.dataset.detail]=el.value;});
+ PAI_QUESTIONS.forEach(q=>{if(q.extraOptions){details[q.id+'_options']=Array.from(document.querySelectorAll(`[data-detail-options="${q.id}"]:checked`)).map(x=>x.value);}});
+ const counselorNotes=document.getElementById('pai-counselor-notes')?.value||'';
+ const questionResults={}; document.querySelectorAll('[data-question-result]').forEach(el=>{questionResults[el.dataset.questionResult]=el.value.trim();});
+ const identification={studyLabel:document.getElementById('pai-study-label').value.trim(),schoolName:document.getElementById('pai-school-name').value.trim(),repeat:document.getElementById('pai-repeat').value,average:document.getElementById('pai-student-average').value===''?'':Number(document.getElementById('pai-student-average').value)};
+ if(identification.average!==''&&(!Number.isFinite(identification.average)||identification.average<0||identification.average>20)){alert('La moyenne doit être comprise entre 0 et 20.');return;}
+ const prior=currentPAIEditId?allPAIResults.find(r=>r.id===currentPAIEditId):null;
+ const record={...(prior||{}),id:prior?.id||uuid(),matricule:currentPAICandidate.matricule,schoolYear:getSelectedYear(),at:prior?.at||new Date().toISOString(),updatedAt:new Date().toISOString(),identification,answers,details,questionResults,counselorNotes,answeredCount:paiCountAnswered(answers),status:paiCountAnswered(answers)===52?'Complet':'Partiel'};
+ if(prior)allPAIResults=allPAIResults.map(r=>r.id===prior.id?record:r); else allPAIResults.push(record);
+ storage.save('PAIQuestionnaireResults',allPAIResults); document.getElementById('modal-pai-test').style.display='none'; currentPAIEditId=null;
+ renderPAICandidates(); renderPAIResults(); setStatus(`Passation PAI enregistrée pour ${currentPAICandidate.nom} ${currentPAICandidate.prenoms} (${record.answeredCount}/52 réponses)`, 'success');
+}
+function renderPAIResults(){
+ const tbody=document.querySelector('#pai-global-table tbody'); if(!tbody)return; tbody.innerHTML=''; const query=(document.getElementById('pai-search-results')?.value||'').toLowerCase();
+ [...allPAIResults].sort((a,b)=>String(b.at).localeCompare(String(a.at))).filter(r=>{const st=paiStudent(r.matricule);return !query||`${st?.nom||''} ${st?.prenoms||''} ${r.matricule}`.toLowerCase().includes(query);}).forEach(r=>{
+ const st=paiStudent(r.matricule); const tr=document.createElement('tr'); tr.innerHTML=`<td>${escapeHtml((st?.nom||'')+' '+(st?.prenoms||''))}<div style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.matricule)}</div></td><td>${escapeHtml(st?.classe||'—')}</td><td>${fmtDateTime(r.at)}</td><td>${r.answeredCount||paiCountAnswered(r.answers)}/52 <span class="badge" style="background:${r.status==='Complet'?'#dcfce7':'#fef3c7'};color:${r.status==='Complet'?'#166534':'#92400e'}">${escapeHtml(r.status||'Partiel')}</span></td><td>${r.counselorNotes?'<i class="fa fa-check-circle" style="color:#0f766e"></i> Oui':'—'}</td><td style="white-space:nowrap"><button class="btn ghost" data-pai-view="${r.id}" title="Consulter"><i class="fa fa-eye"></i></button> <button class="btn ghost" data-pai-edit="${r.id}" title="Modifier"><i class="fa fa-edit"></i></button> <button class="btn ghost" data-pai-delete="${r.id}" title="Supprimer"><i class="fa fa-trash"></i></button></td>`; tbody.appendChild(tr);
+ });
+ tbody.querySelectorAll('[data-pai-view]').forEach(b=>b.addEventListener('click',()=>viewPAIResult(b.dataset.paiView)));
+ tbody.querySelectorAll('[data-pai-edit]').forEach(b=>b.addEventListener('click',()=>{const r=allPAIResults.find(x=>x.id===b.dataset.paiEdit);if(r)startPAIQuestionnaire(paiStudent(r.matricule),r.id);}));
+ tbody.querySelectorAll('[data-pai-delete]').forEach(b=>b.addEventListener('click',()=>{if(confirm('Supprimer cette passation PAI ?')){allPAIResults=allPAIResults.filter(x=>x.id!==b.dataset.paiDelete);storage.save('PAIQuestionnaireResults',allPAIResults);renderPAIResults();renderPAICandidates();}}));
+}
+function viewPAIResult(id){
+ const r=allPAIResults.find(x=>x.id===id); if(!r)return; currentPAIResultId=id; const st=paiStudent(r.matricule);
+ document.getElementById('pai-review-heading').textContent=`${st?.nom||''} ${st?.prenoms||''} — ${st?.classe||'Classe inconnue'} (${r.matricule})`;
+ document.getElementById('pai-review-summary').textContent=`Année ${r.schoolYear||'—'} · Passation du ${fmtDateTime(r.at)} · ${r.answeredCount||paiCountAnswered(r.answers)}/52 réponses · Établissement : ${r.identification?.schoolName||'—'} · Redoublant(e) : ${r.identification?.repeat||'—'} · Moyenne : ${r.identification?.average||'—'} · Aucune cotation automatique.`;
+ const root=document.getElementById('pai-review-content'); root.innerHTML='';
+ PAI_SECTIONS.forEach(sec=>{const h=document.createElement('h4');h.textContent=sec.label;h.style.cssText='margin:18px 0 8px;padding:8px;background:#ecfdf5;color:#065f46;border-radius:6px';root.appendChild(h);
+ PAI_QUESTIONS.filter(q=>q.section===sec.id).forEach(q=>{let a=r.answers?.[q.id]; if(Array.isArray(a))a=a.join('; '); const d=r.details?.[q.id]; const extras=r.details?.[q.id+'_options']; const row=document.createElement('div'); row.style.cssText='padding:9px 10px;border-bottom:1px solid var(--border)'; row.innerHTML=`<div style="font-weight:700">${q.id}. ${escapeHtml(q.text)}</div><div style="margin-top:4px;white-space:pre-wrap">${escapeHtml(a||'— Non renseignée')}</div>${extras?.length?`<div style="font-size:12px;margin-top:4px"><strong>Précisions cochées :</strong> ${escapeHtml(extras.join('; '))}</div>`:''}${d?`<div style="font-size:12px;margin-top:4px;white-space:pre-wrap"><strong>Précisions :</strong> ${escapeHtml(d)}</div>`:''}${r.questionResults?.[q.id]?`<div style="font-size:12px;margin-top:4px;white-space:pre-wrap;color:#0f766e"><strong>Résultat / observation professionnelle :</strong> ${escapeHtml(r.questionResults[q.id])}</div>`:''}`;root.appendChild(row);});});
+ const notes=document.createElement('div');notes.style.cssText='margin-top:16px;padding:12px;border:1px solid #99f6e4;background:#f0fdfa;border-radius:8px';notes.innerHTML=`<strong>Synthèse / observations du conseiller</strong><div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(r.counselorNotes||'—')}</div>`;root.appendChild(notes);
+ document.getElementById('modal-pai-review').style.display='flex';
+}
+function exportPAIResult(id){
+ if(typeof XLSX==='undefined'){alert('La bibliothèque Excel est indisponible.');return;} const r=allPAIResults.find(x=>x.id===id);if(!r)return; const st=paiStudent(r.matricule);
+ const rows=PAI_QUESTIONS.map(q=>({"Année scolaire":r.schoolYear||'',"Matricule":r.matricule,"Nom":st?.nom||'',"Prénoms":st?.prenoms||'',"Classe":st?.classe||'',"Date de passation":fmtDateTime(r.at),"Désignation de l’étude":r.identification?.studyLabel||'',"Établissement":r.identification?.schoolName||'',"Redoublant(e)":r.identification?.repeat||'',"Moyenne":r.identification?.average??'',"Section":PAI_SECTIONS.find(s=>s.id===q.section)?.label||q.section,"N° question":q.id,"Question":q.text,"Type":q.type,"Réponse":Array.isArray(r.answers?.[q.id])?r.answers[q.id].join('; '):(r.answers?.[q.id]||''),"Précisions cochées":(r.details?.[q.id+'_options']||[]).join('; '),"Précisions libres":r.details?.[q.id]||'',"Résultat / observation professionnelle":r.questionResults?.[q.id]||'',"Observations du conseiller":r.counselorNotes||''}));
+ const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:15},{wch:16},{wch:22},{wch:24},{wch:16},{wch:22},{wch:58},{wch:12},{wch:75},{wch:14},{wch:65},{wch:50},{wch:55},{wch:65}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Passation PAI');XLSX.writeFile(wb,`PAI_${String(r.matricule).replace(/[^a-z0-9_-]/gi,'_')}_${String(r.schoolYear||'').replace(/[^a-z0-9_-]/gi,'_')}.xlsx`);
+}
+function exportAllPAIResults(){
+ if(typeof XLSX==='undefined'){alert('La bibliothèque Excel est indisponible.');return;} const rows=[]; allPAIResults.forEach(r=>{const st=paiStudent(r.matricule);rows.push({"Année scolaire":r.schoolYear||'',"Matricule":r.matricule,"Nom":st?.nom||'',"Prénoms":st?.prenoms||'',"Classe":st?.classe||'',"Date":fmtDateTime(r.at),"Réponses":r.answeredCount||paiCountAnswered(r.answers),"Statut":r.status||'Partiel',"Observations":r.counselorNotes||''});}); const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Passations PAI');XLSX.writeFile(wb,'Synthese_passations_PAI.xlsx');
+}
+
 // ====== LYCAM CONSTANTS & HELPERS ======
 const LYCAM_QUESTIONS = [
   { "id": 1, "text": "D'une façon générale, est-ce que tu aimes ou non aller au lycée ?", "options": [ "A - Oui, j'aime ça", "B - J'aime ça plus ou moins", "C - Ça m'est égal", "D - Je n'aime pas ça", "E - J'en ai marre du lycée" ], "dimension": "IE" },
@@ -2378,6 +2607,7 @@ const storage = {
 
 /* LOGIQUE */
 async function loadGlobalData() {
+  loadPAIData();
   allTestResults = storage.load('LYCAMTestResults', []);
   allVisits = storage.load('studentVisits', []);
   coachingData = storage.load('LYCAMCoachingData', []);
@@ -2754,6 +2984,39 @@ function parseClasse(classe) {
     }
     
     return result;
+}
+
+async function importFullBackup(file) {
+  try {
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    if (!backup || typeof backup !== 'object' || !backup.indexedDB) throw new Error('Le fichier ne semble pas être une sauvegarde Gestionnaire d’Élèves Pro.');
+    if (!confirm('Restaurer cette sauvegarde ? Les données locales correspondantes seront remplacées.')) return;
+    const local = backup.localStorage || {};
+    ['LYCAMTestResults','studentVisits','LYCAMCoachingData','GlobalRegistryData','PAIQuestionnaireResults'].forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(local,key)) storage.save(key,local[key]);
+    });
+    for (const [year, students] of Object.entries(backup.indexedDB)) {
+      await studentsStore.save(year, Array.isArray(students) ? students : []);
+    }
+    loadPAIData();
+    await loadGlobalData();
+    const years = await studentsStore.listYears();
+    const selector = document.getElementById('school-year');
+    if (selector && years.length) {
+      selector.innerHTML = '';
+      years.sort().forEach(y => selector.add(new Option(y,y)));
+      if (years.includes(backup.meta?.currentYear)) selector.value = backup.meta.currentYear;
+    }
+    await loadStudentsForYear();
+    renderRoster();
+    alert('Sauvegarde restaurée. Vérifie l’année scolaire sélectionnée et les données affichées.');
+  } catch (error) {
+    console.error('Erreur de restauration :', error);
+    alert('Impossible de restaurer cette sauvegarde : ' + (error.message || error));
+  } finally {
+    const input=document.getElementById('input-import-backup'); if(input) input.value='';
+  }
 }
 
 /* ====== STATISTIQUES GLOBALES CORRIGÉES ====== */
@@ -4857,12 +5120,13 @@ function renderCoachings(s){
 /* ====== COMPREHENSIVE BACKUP LOGIC ====== */
 async function exportFullBackup() {
     const backup = {
-        meta: { date: new Date().toISOString(), version: '5.5', description: 'Sauvegarde complete GE' },
+        meta: { date: new Date().toISOString(), version: '6.0', description: 'Sauvegarde complète Gestionnaire d’Élèves Pro avec PAI' },
         localStorage: {
             LYCAMTestResults: storage.load('LYCAMTestResults', []),
             studentVisits: storage.load('studentVisits', []),
             LYCAMCoachingData: storage.load('LYCAMCoachingData', []),
-            GlobalRegistryData: storage.load('GlobalRegistryData', [])
+            GlobalRegistryData: storage.load('GlobalRegistryData', []),
+            PAIQuestionnaireResults: storage.load('PAIQuestionnaireResults', [])
         },
         indexedDB: {}
     };
@@ -7114,6 +7378,25 @@ document.getElementById('class-filter').addEventListener('change', () => {
     populateClassFilter(); 
     switchLycamView('candidates');
   });
+
+  document.getElementById('btn-open-pai-main').addEventListener('click', () => {
+    document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
+    document.getElementById('paiMainPanel').style.display = 'flex';
+    document.getElementById('paiMainPanel').style.flexDirection = 'column';
+    populateClassFilter();
+    const sel=document.getElementById('pai-class-filter'); sel.innerHTML='<option value="__ALL__">Toutes les classes</option>';
+    Array.from(document.getElementById('class-filter').options).forEach(opt=>{if(opt.value!=='__ALL__')sel.add(new Option(opt.text,opt.value));});
+    switchPAIView('candidates');
+  });
+  document.getElementById('pai-class-filter').addEventListener('change',renderPAICandidates);
+  document.getElementById('pai-search-candidate').addEventListener('input',renderPAICandidates);
+  document.getElementById('pai-search-results').addEventListener('input',renderPAIResults);
+  document.getElementById('btn-save-pai').addEventListener('click',savePAIQuestionnaire);
+  document.getElementById('btn-cancel-pai').addEventListener('click',()=>{document.getElementById('modal-pai-test').style.display='none';currentPAIEditId=null;});
+  document.getElementById('btn-close-pai-modal').addEventListener('click',()=>{document.getElementById('modal-pai-test').style.display='none';currentPAIEditId=null;});
+  document.getElementById('btn-close-pai-review').addEventListener('click',()=>document.getElementById('modal-pai-review').style.display='none');
+  document.getElementById('btn-export-pai-one').addEventListener('click',()=>exportPAIResult(currentPAIResultId));
+  document.getElementById('btn-export-pai-all').addEventListener('click',exportAllPAIResults);
 
   document.getElementById('btn-open-registry').addEventListener('click', () => {
      document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
