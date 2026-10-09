@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Gestionnaire d'Élèves Pro — v5.7</title>
+  <title>Gestionnaire d'Élèves Pro — v5.6</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -627,47 +627,6 @@
     border: 1px solid var(--border);
     border-radius: 4px;
 }
-
-/* v5.7 — finition responsive, palette d’origine conservée */
-:root {
-  --radius-card: 14px;
-  --shadow-soft: 0 6px 24px rgba(15, 23, 42, .06);
-}
-.card { border-radius: var(--radius-card); }
-.btn, .tab, summary, input, select, textarea { -webkit-tap-highlight-color: transparent; }
-.btn:focus-visible, .tab:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
-  outline: 3px solid rgba(14,165,233,.28); outline-offset: 2px;
-}
-.btn:disabled { opacity: .65; cursor: wait; transform: none; }
-.table-wrap { overscroll-behavior: contain; }
-.tabs { scroll-snap-type: x proximity; }
-.tab { scroll-snap-align: start; }
-@media (max-width: 768px) {
-  html, body { min-height: 100%; height: auto; }
-  .container { height: auto; min-height: 100%; padding: 10px; gap: 10px; }
-  .header { gap: 8px; align-items: flex-start; }
-  .header .chip { font-size: 11px; }
-  .card { padding: 12px; }
-  .toolbar-roster { flex-direction: column; align-items: stretch; }
-  .toolbar-roster > div:first-child { width: 100%; }
-  #class-stats { align-self: flex-start; }
-  .toolbar-roster > div:last-child { max-width: 100%; padding-bottom: 4px; }
-  .grid-container { overflow: visible; height: auto; min-height: 65vh; }
-  .section { min-height: 65vh; }
-  #rosterPanel .table-wrap { max-height: 62vh; }
-  #rankings-container { grid-template-columns: minmax(0, 1fr) !important; }
-  #studentPanel > div[id^="tab-"] { overflow-y: auto; }
-  #tab-grades .table-wrap { height: auto; max-height: 60vh; }
-  .modal { padding: 8px; align-items: flex-end; }
-  .modal-content { max-height: 92dvh; border-radius: 16px 16px 10px 10px; }
-  .modal-body { padding: 16px; }
-  .modal-footer { padding: 12px 16px; flex-wrap: wrap; }
-  .modal-footer .btn { flex: 1; min-height: 42px; }
-  #cio-table { min-width: 2200px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-}
     </style>
 </head>
 <body>
@@ -679,7 +638,7 @@
       <div class="logo">GE</div>
       <div>
         <div style="font-weight:800;font-size:18px">Gestionnaire d'Élèves</div>
-        <div class="subtitle">v5.7 · Koubi Seri Fils</div>
+        <div class="subtitle">v5.6 Koubi Seri Fils</div>
       </div>
     </div>
     <div class="chip" id="status"><i class="fa fa-check-circle" style="color:var(--accent)"></i> Prêt</div>
@@ -697,6 +656,9 @@
         <div class="field" style="flex:1;min-width:200px;">
           <label class="label">Importer Excel</label>
           <input id="excel-file" class="input" type="file" accept=".xlsx,.xls">
+          <button type="button" id="btn-download-excel-template" class="btn ghost" style="margin-top:8px;width:100%">
+            <i class="fa fa-file-excel"></i> Télécharger le modèle Excel
+          </button>
         </div>
         <div class="field" style="width:140px">
           <label class="label">Année scolaire</label>
@@ -1086,10 +1048,10 @@
                     <option value="2TR">2e Trimestre</option>
                     <option value="3TR">3e Trimestre</option>
                 </select>
-                <button id="btn-export-cio-excel" class="btn" style="background:#10b981; color:white; margin-left:auto">
+                <button id="btn-export-cio" class="btn" style="background:#10b981; color:white; margin-left:auto">
                     <i class="fa fa-file-excel"></i> Exporter Excel
                 </button>
-                <button id="btn-export-cio-pdf" class="btn" style="background:#059669; color:white">
+                <button id="btn-export-cio" class="btn" style="background:#059669; color:white">
     <i class="fa fa-file-pdf"></i> Exporter PDF
 </button>
             </div>
@@ -1195,6 +1157,30 @@
         </div>
     </div>
 </div>
+
+<div id="modal-lycam-responses" class="modal">
+  <div class="modal-content" style="max-width:900px;max-height:92vh;">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div>
+        <h3 style="margin:0;color:var(--lycam-color)"><i class="fa fa-clipboard-list"></i> Réponses individuelles LYCAM</h3>
+        <div id="lycam-response-student" style="margin-top:6px;font-weight:700"></div>
+        <div id="lycam-response-summary" style="margin-top:4px;font-size:12px;color:var(--text-muted)"></div>
+      </div>
+      <button type="button" id="btn-close-lycam-responses" class="btn ghost"><i class="fa fa-times"></i> Fermer</button>
+    </div>
+    <div class="modal-body" style="overflow:auto;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button type="button" id="btn-export-lycam-responses" class="btn lycam-btn"><i class="fa fa-file-excel"></i> Exporter les réponses Excel</button>
+      </div>
+      <div class="table-wrap" style="max-height:60vh;overflow:auto">
+        <table id="lycam-responses-table" style="min-width:650px;width:100%">
+          <thead><tr><th>N°</th><th>Question</th><th>Réponse de l'élève</th><th>Dimension</th><th>Point de risque</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="modal-edit-student" class="modal">
   <div class="modal-content">
     <div class="modal-body">
@@ -1251,6 +1237,105 @@
         <div class="modal-footer">
             <button type="button" onclick="document.getElementById('modal-edit-grades').style.display='none'" class="btn ghost">Annuler</button>
             <button type="button" onclick="saveStudentGrades()" class="btn">Enregistrer les notes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour modifier les moyennes (déjà existante) -->
+<div id="modal-edit-grades" class="modal">
+    <div class="modal-content" style="max-width:800px">
+        <div class="modal-body">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                <h3>Modifier les Moyennes</h3>
+                <select id="edit-grade-period" class="select" style="width:150px" onchange="populateGradeEditForm()">
+                    <option value="1TR">1er Trimestre</option>
+                    <option value="2TR">2e Trimestre</option>
+                    <option value="3TR">3e Trimestre</option>
+                </select>
+            </div>
+            <div id="grades-edit-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
+                <!-- Les champs seront ajoutés dynamiquement -->
+            </div>
+            <div style="margin-top:20px; padding:10px; background:var(--surface-2); border-radius:8px">
+                <label class="label">Ajouter une matière</label>
+                <div style="display:flex; gap:8px">
+                    <input id="new-subject-name" class="input" placeholder="Code matière (ex: philo, art)">
+                    <button type="button" class="btn ghost" onclick="addNewSubjectField()"><i class="fa fa-plus"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="document.getElementById('modal-edit-grades').style.display='none'" class="btn ghost">Annuler</button>
+            <button type="button" onclick="saveStudentGrades()" class="btn">Enregistrer les notes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour modifier un élève (déjà existante) -->
+<div id="modal-edit-student" class="modal">
+    <div class="modal-content">
+        <div class="modal-body">
+            <h3>Modifier l'élève</h3>
+            <form id="form-edit-student" style="display:flex;flex-direction:column;gap:12px">
+                <input type="hidden" id="edit-id">
+                <div style="display:flex;gap:10px">
+                    <div class="field" style="flex:1"><label class="label">Matricule</label><input id="edit-matricule" class="input"></div>
+                    <div class="field" style="flex:1"><label class="label">Classe</label><input id="edit-classe" class="input"></div>
+                </div>
+                <div class="field"><label class="label">Nom</label><input id="edit-nom" class="input"></div>
+                <div class="field"><label class="label">Prénoms</label><input id="edit-prenoms" class="input"></div>
+                <div style="display:flex;gap:10px">
+                    <div class="field" style="flex:1">
+                        <label class="label">Sexe</label>
+                        <select id="edit-sexe" class="select">
+                            <option value="M">Masculin</option>
+                            <option value="F">Féminin</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:1"><label class="label">Date Naiss.</label><input id="edit-dob" type="date" class="input"></div>
+                </div>
+                <div class="field">
+                    <label class="label">Statut</label>
+                    <div style="display:flex; gap:10px; align-items:center">
+                        <label><input type="checkbox" id="edit-redoublant"> Redoublant</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="document.getElementById('modal-edit-student').style.display='none'" class="btn ghost">Annuler</button>
+            <button type="button" onclick="saveStudentIdentity()" class="btn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un élève (déjà existante) -->
+<div id="modal-add-student" class="modal">
+    <div class="modal-content">
+        <div class="modal-body">
+            <h3>Ajouter un élève</h3>
+            <form id="form-add-student" style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:10px">
+                    <div class="field" style="flex:1"><label class="label">Matricule</label><input name="matricule" class="input" required></div>
+                    <div class="field" style="flex:1"><label class="label">Classe</label><input name="classe" class="input" placeholder="ex: 6e1"></div>
+                </div>
+                <div class="field"><label class="label">Nom</label><input name="nom" class="input" required></div>
+                <div class="field"><label class="label">Prénoms</label><input name="prenoms" class="input"></div>
+                <div style="display:flex;gap:10px">
+                    <div class="field" style="flex:1">
+                        <label class="label">Sexe</label>
+                        <select name="sexe" class="select">
+                            <option value="M">Masculin</option>
+                            <option value="F">Féminin</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:1"><label class="label">Date Naiss.</label><input name="dateNaissance" type="date" class="input"></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="btn-cancel-add" class="btn ghost">Annuler</button>
+            <button type="button" id="btn-submit-add" class="btn">Enregistrer</button>
         </div>
     </div>
 </div>
@@ -1794,7 +1879,13 @@ async function exportCioToPDF() {
     }
 }
 
-// Le bouton PDF CIO est relié une seule fois à la fin de l'initialisation.
+// 2. L'activation du bouton (ÉCOUTEUR D'ÉVÉNEMENT)
+document.addEventListener('DOMContentLoaded', () => {
+    const btnExpCio = document.getElementById('btn-export-cio');
+    if (btnExpCio) {
+        btnExpCio.addEventListener('click', exportCioToPDF);
+    }
+});
 
 // ====== LYCAM CONSTANTS & HELPERS ======
 const LYCAM_QUESTIONS = [
@@ -1870,13 +1961,8 @@ function getRiskScore(questionId, value) {
 
 /* ====== FONCTION DE GÉNÉRATION DE DONNÉES FICTIVES ====== */
 
-async function generateDummyData() {
+function generateDummyData() {
     console.log("Génération des données fictives de démo...");
-    // Une génération de démo repart d’un jeu cohérent et évite d’empiler les visites/coaching précédents.
-    allTestResults = [];
-    allVisits = [];
-    coachingData = [];
-    allRegistry = [];
 
     // Noms et prénoms ivoiriens
     const dummyNames = [
@@ -1955,11 +2041,10 @@ async function generateDummyData() {
         const mg_1tr = parseFloat(randFloat(mg_annuelle - 3, mg_annuelle + 2));
         
         // Sujets selon le cycle
-        let subjects = { lv2: parseFloat(randFloat(Math.max(5, baseAvg - 2), Math.min(18, baseAvg + 2))) };
+        let subjects = {};
         if (classe.includes("6e") || classe.includes("5e") || classe.includes("4e") || classe.includes("3e")) {
             // Collège
             subjects = {
-                'lv2': subjects.lv2,
                 'maths': parseFloat(randFloat(baseAvg - 4, baseAvg + 4)),
                 'francais': parseFloat(randFloat(baseAvg - 3, baseAvg + 3)),
                 'anglais': parseFloat(randFloat(baseAvg - 2, baseAvg + 2)),
@@ -1973,7 +2058,6 @@ async function generateDummyData() {
         } else {
             // Lycée
             subjects = {
-                'lv2': subjects.lv2,
                 'maths': parseFloat(randFloat(baseAvg - 5, baseAvg + 3)),
                 'francais': parseFloat(randFloat(baseAvg - 3, baseAvg + 2)),
                 'anglais': parseFloat(randFloat(baseAvg - 2, baseAvg + 2)),
@@ -2119,7 +2203,7 @@ if (classe.includes('Esp') || classe.includes('esp')) {
 
     // Sauvegarde en local storage
     const currentYear = getSelectedYear();
-    await studentsStore.save(currentYear, allStudents);
+    studentsStore.save(currentYear, allStudents);
     storage.save('LYCAMTestResults', allTestResults);
     storage.save('studentVisits', allVisits);
     storage.save('LYCAMCoachingData', coachingData);
@@ -2130,7 +2214,7 @@ if (classe.includes('Esp') || classe.includes('esp')) {
       // Vider le cache de langue
 clearClassLanguageCache();
     // Recharger l'affichage
-    await loadStudentsForYear();
+    loadStudentsForYear();
     renderRegistry();
     setStatus(`Données de démo générées (${allStudents.length} élèves)`, 'success');
   
@@ -3254,6 +3338,111 @@ async function handleExcel(file){
     setStatus('Importation en cours...', 'loading');
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data, {type:'array'});
+
+    // Import du modèle officiel : identité et notes trimestrielles sur une seule feuille.
+    const templateSheetName = wb.SheetNames.find(n => normalizeStr(n) === normalizeStr("Import élèves"));
+    if (templateSheetName) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[templateSheetName], {defval:'', raw:false});
+      if (!rows.length) throw new Error("La feuille « Import élèves » ne contient aucune ligne d'élève.");
+      const requiredHeaders = ["matricule","nom","prenoms","sexe","date de naissance","classe","notes t1","notes t2","notes t3"];
+      const actualHeaders = Object.keys(rows[0]).map(normalizeStr);
+      const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(normalizeStr(h)));
+      if (missingHeaders.length) throw new Error("En-têtes manquants ou modifiés : " + missingHeaders.join(", ") + ". Téléchargez un nouveau modèle.");
+
+      const seen = new Set(), errors = [], validRows = [];
+      rows.forEach((row, idx) => {
+        const line = idx + 2;
+        const val = key => {
+          const target = normalizeStr(key);
+          const col = Object.keys(row).find(k => normalizeStr(k) === target);
+          return col === undefined ? '' : row[col];
+        };
+        const matricule = String(val("Matricule") ?? '').trim();
+        const nom = String(val("Nom") ?? '').trim();
+        const prenoms = String(val("Prénoms") ?? '').trim();
+        const sexe = String(val("Sexe") ?? '').trim().toUpperCase();
+        const classe = String(val("Classe") ?? '').trim();
+        let dateNaissance = String(val("Date de naissance") ?? '').trim();
+        const notes = [val("Notes T1"), val("Notes T2"), val("Notes T3")];
+        if (![matricule, nom, prenoms, sexe, classe, dateNaissance, ...notes].some(x => String(x ?? '').trim() !== '')) return;
+        if (!matricule) errors.push(`Ligne ${line} : matricule manquant.`);
+        else if (seen.has(matricule)) errors.push(`Ligne ${line} : matricule en double (${matricule}).`);
+        else seen.add(matricule);
+        if (!nom) errors.push(`Ligne ${line} : nom manquant.`);
+        if (!prenoms) errors.push(`Ligne ${line} : prénoms manquants.`);
+        if (!["M","F"].includes(sexe)) errors.push(`Ligne ${line} : sexe invalide (« ${sexe} »), utilisez M ou F.`);
+        if (!classe) errors.push(`Ligne ${line} : classe manquante.`);
+        if (dateNaissance) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+            const d = new Date(dateNaissance + "T00:00:00");
+            if (isNaN(d.getTime()) || d.toISOString().slice(0,10) !== dateNaissance) errors.push(`Ligne ${line} : date de naissance invalide.`);
+          } else {
+            const excelDate = Number(dateNaissance);
+            if (Number.isFinite(excelDate) && excelDate > 20000 && excelDate < 80000) {
+              const d = new Date(Date.UTC(1899,11,30) + excelDate * 86400000);
+              dateNaissance = d.toISOString().slice(0,10);
+            } else {
+              const parsed = new Date(dateNaissance);
+              if (isNaN(parsed.getTime())) errors.push(`Ligne ${line} : date de naissance invalide.`);
+              else dateNaissance = parsed.toISOString().slice(0,10);
+            }
+          }
+        }
+        const parsedNotes = notes.map((v, i) => {
+          if (String(v ?? '').trim() === '') return null;
+          const n = Number(String(v).replace(',', '.'));
+          if (!Number.isFinite(n) || n < 0 || n > 20) {
+            errors.push(`Ligne ${line} : Note T${i+1} invalide (« ${v} »), utilisez une valeur de 0 à 20.`);
+            return null;
+          }
+          return n;
+        });
+        validRows.push({matricule, nom, prenoms, sexe, classe, dateNaissance, parsedNotes});
+      });
+      if (errors.length) {
+        const shown = errors.slice(0, 15).join("\n");
+        throw new Error(`Import annulé : ${errors.length} erreur(s) détectée(s).\n${shown}${errors.length > 15 ? "\n… et " + (errors.length-15) + " autre(s)." : ""}\nAucune donnée n'a été modifiée.`);
+      }
+      if (!validRows.length) throw new Error("Aucune ligne d'élève exploitable trouvée.");
+
+      const existing = await studentsStore.load(getSelectedYear()) || [];
+      const merged = new Map(existing.map(s => [String(s.matricule).trim(), s]));
+      let added = 0, updated = 0;
+      validRows.forEach(r => {
+        let s = merged.get(r.matricule);
+        if (s) {
+          updated++;
+          s.nom = r.nom; s.prenoms = r.prenoms; s.sexe = r.sexe;
+          s.dateNaissance = r.dateNaissance; s.classe = r.classe;
+          s.moyennes = s.moyennes || {};
+          s.rangs = s.rangs || {};
+        } else {
+          added++;
+          s = {id:uuid(), matricule:r.matricule, nom:r.nom, prenoms:r.prenoms, sexe:r.sexe,
+            dateNaissance:r.dateNaissance, classe:r.classe, redoublant:false,
+            moyennes:{'1TR':{},'2TR':{},'3TR':{},'Annuelle':{}},
+            rangs:{'1TR':'','2TR':'','3TR':'','Annuelle':''}};
+        }
+        ["1TR","2TR","3TR"].forEach((period, i) => {
+          if (r.parsedNotes[i] !== null) {
+            s.moyennes[period] = s.moyennes[period] || {};
+            s.moyennes[period].Moy_generale = r.parsedNotes[i];
+          }
+        });
+        const known = ["1TR","2TR","3TR"].map(p => s.moyennes[p]?.Moy_generale).filter(v => v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v)));
+        if (known.length) {
+          s.moyennes.Annuelle = s.moyennes.Annuelle || {};
+          if (r.parsedNotes.some(v => v !== null)) s.moyennes.Annuelle.Moy_generale = known.reduce((a,b)=>a+Number(b),0)/known.length;
+        }
+        merged.set(r.matricule, s);
+      });
+      await studentsStore.save(getSelectedYear(), Array.from(merged.values()));
+      await loadStudentsForYear();
+      clearClassLanguageCache();
+      setStatus(`Importation réussie : ${added} ajouté(s), ${updated} mis à jour`, 'success');
+      alert(`IMPORTATION RÉUSSIE\n\n${added} nouvel(aux) élève(s) ajouté(s).\n${updated} élève(s) mis à jour.\nLes autres élèves et leurs données existantes ont été conservés.`);
+      return;
+    }
     
     // 1. CHERCHER LA FEUILLE DES NOTES (Moy 1TR, 1er TR, etc.)
     const gradeSheetPatterns = [
@@ -4257,6 +4446,96 @@ function renderLycamCandidates() {
     });
 }
 
+let currentLycamResponseResultId = null;
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
+}
+
+function viewLycamResponses(resultId) {
+    const result = allTestResults.find(t => t.id === resultId);
+    if (!result) { alert("Ce résultat LYCAM est introuvable."); return; }
+    currentLycamResponseResultId = resultId;
+    const student = allStudents.find(s => s.matricule === result.matricule);
+    document.getElementById('lycam-response-student').textContent =
+        `${student ? student.nom + ' ' + student.prenoms : result.matricule} — ${student ? student.classe : 'Classe inconnue'} (${result.matricule})`;
+    document.getElementById('lycam-response-summary').textContent =
+        `Passation du ${fmtDateTime(result.at)} · Score total : ${result.totalScore ?? result.total ?? '—'} · ${result.answers ? Object.keys(result.answers).length : 0}/${LYCAM_QUESTIONS.length} réponses enregistrées`;
+
+    const tbody = document.querySelector('#lycam-responses-table tbody');
+    tbody.innerHTML = '';
+    LYCAM_QUESTIONS.forEach(q => {
+        const raw = result.answers ? result.answers[q.id] : '';
+        const answer = raw || 'Réponse non conservée dans cet ancien résultat';
+        const points = raw ? getRiskScore(q.id, raw) : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${q.id}</td>
+          <td style="min-width:260px;white-space:normal">${escapeHtml(q.text)}</td>
+          <td style="min-width:220px;white-space:normal">${escapeHtml(answer)}</td>
+          <td>${escapeHtml((LYCAM_DIMENSIONS[q.dimension] || {}).label || q.dimension)}</td>
+          <td style="text-align:center;font-weight:700">${points}</td>`;
+        tbody.appendChild(tr);
+    });
+    document.getElementById('modal-lycam-responses').style.display = 'flex';
+}
+
+function exportCurrentLycamResponses() {
+    const result = allTestResults.find(t => t.id === currentLycamResponseResultId);
+    if (!result) return;
+    if (typeof XLSX === 'undefined') {
+        alert("La bibliothèque Excel n'est pas disponible. Connectez-vous à Internet puis réessayez.");
+        return;
+    }
+    const student = allStudents.find(s => s.matricule === result.matricule);
+    const rows = LYCAM_QUESTIONS.map(q => ({
+        "Matricule": result.matricule,
+        "Nom": student?.nom || "",
+        "Prénoms": student?.prenoms || "",
+        "Classe": student?.classe || "",
+        "Date de passation": fmtDateTime(result.at),
+        "N° question": q.id,
+        "Question": q.text,
+        "Réponse": result.answers?.[q.id] || "",
+        "Dimension": (LYCAM_DIMENSIONS[q.dimension] || {}).label || q.dimension,
+        "Point de risque": result.answers?.[q.id] ? getRiskScore(q.id, result.answers[q.id]) : ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:16},{wch:22},{wch:24},{wch:16},{wch:22},{wch:12},{wch:70},{wch:55},{wch:28},{wch:15}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Réponses LYCAM");
+    XLSX.writeFile(wb, `LYCAM_${String(result.matricule).replace(/[^a-z0-9_-]/gi,'_')}_reponses.xlsx`);
+}
+
+function downloadExcelTemplate() {
+    if (typeof XLSX === 'undefined') {
+        alert("La bibliothèque Excel n'est pas disponible. Connectez-vous à Internet puis réessayez.");
+        return;
+    }
+    const headers = ["Matricule", "Nom", "Prénoms", "Sexe", "Date de naissance", "Classe", "Notes T1", "Notes T2", "Notes T3"];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    ws['!cols'] = [{wch:18},{wch:24},{wch:28},{wch:12},{wch:20},{wch:18},{wch:14},{wch:14},{wch:14}];
+    ws['!autofilter'] = {ref:"A1:I501"};
+    ws['!freeze'] = {xSplit:0, ySplit:1};
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Import élèves");
+    const instructions = [
+      ["MODÈLE D'IMPORTATION — GESTIONNAIRE D'ÉLÈVES"],
+      ["1. Conservez exactement les en-têtes de la feuille « Import élèves »."],
+      ["2. Une ligne par élève ; le matricule est obligatoire et doit être unique."],
+      ["3. Sexe : M ou F. Date de naissance : date Excel ou format AAAA-MM-JJ."],
+      ["4. Notes T1, T2 et T3 : nombres de 0 à 20 ; laissez vide si inconnue."],
+      ["5. Ne fusionnez pas les cellules et ne supprimez pas la ligne des en-têtes."],
+      ["6. Les élèves ayant le même matricule seront mis à jour ; les autres données existantes seront conservées."],
+      ["7. Vérifiez les erreurs signalées avant de corriger et de réimporter."]
+    ];
+    const wi = XLSX.utils.aoa_to_sheet(instructions);
+    wi['!cols'] = [{wch:110}];
+    XLSX.utils.book_append_sheet(wb, wi, "Instructions");
+    XLSX.writeFile(wb, "Modele_import_eleves.xlsx");
+}
+
 function renderLycamGlobal() {
     const tableBody = document.querySelector('#lycam-global-table tbody');
     tableBody.innerHTML = '';
@@ -4306,8 +4585,12 @@ function renderLycamGlobal() {
             </td>
             <td>${dimHtml}</td>
             <td>${fmtDate(t.at)}</td>
-            <td><button class="btn ghost btn-del-lycam"><i class="fa fa-trash"></i></button></td>
+            <td style="white-space:nowrap">
+              <button class="btn lycam-btn btn-view-lycam" style="padding:5px 8px;font-size:11px" title="Consulter les réponses"><i class="fa fa-eye"></i> Réponses</button>
+              <button class="btn ghost btn-del-lycam" style="padding:5px 8px" title="Supprimer ce résultat"><i class="fa fa-trash"></i></button>
+            </td>
         `;
+        tr.querySelector('.btn-view-lycam').onclick = () => viewLycamResponses(t.id);
         tr.querySelector('.btn-del-lycam').onclick = () => deleteLycam(t.id);
         tableBody.appendChild(tr);
     });
@@ -4428,7 +4711,7 @@ function renderCoachings(s){
 /* ====== COMPREHENSIVE BACKUP LOGIC ====== */
 async function exportFullBackup() {
     const backup = {
-        meta: { date: new Date().toISOString(), version: '5.7', description: 'Sauvegarde complete GE' },
+        meta: { date: new Date().toISOString(), version: '5.5', description: 'Sauvegarde complete GE' },
         localStorage: {
             LYCAMTestResults: storage.load('LYCAMTestResults', []),
             studentVisits: storage.load('studentVisits', []),
@@ -6532,7 +6815,11 @@ async function exportCioToPDF() {
     }
 }
 
-// Liaison des boutons CIO effectuée dans l'initialisation principale.
+// Liaison au bouton d'exportation CIO (si l'ID est btn-export-cio)
+const btnExpCio = document.getElementById('btn-export-cio');
+if (btnExpCio) {
+    btnExpCio.addEventListener('click', exportCioToPDF);
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('#studentPanel .tab').forEach(t => {
@@ -6637,6 +6924,9 @@ document.getElementById('class-filter').addEventListener('change', () => {
     await loadStudentsForYear();
   });
   document.getElementById('excel-file').addEventListener('change', e => { if(e.target.files[0]) handleExcel(e.target.files[0]); });
+  document.getElementById('btn-download-excel-template').addEventListener('click', downloadExcelTemplate);
+  document.getElementById('btn-close-lycam-responses').addEventListener('click', () => { document.getElementById('modal-lycam-responses').style.display = 'none'; });
+  document.getElementById('btn-export-lycam-responses').addEventListener('click', exportCurrentLycamResponses);
   
   // Navigation
   document.getElementById('backToListBtn').addEventListener('click', leaveDetailMode);
@@ -6730,27 +7020,24 @@ document.getElementById('btn-cancel-lycam').addEventListener('click', () => {
     coachingData.push({ id: uuid(), matricule: currentStudent.matricule, at: new Date().toISOString(), status: document.getElementById('coach-status').value, actions: document.getElementById('coach-actions').value });
     storage.save('LYCAMCoachingData', coachingData); renderCoachings(currentStudent); document.getElementById('coach-actions').value='';
   });
-  document.getElementById('btn-generate-demo').addEventListener('click', async () => {
-    if(confirm("Générer des données fictives pour l’année scolaire sélectionnée ? Les données de cette année et les historiques globaux de démonstration seront remplacés. Les autres années scolaires ne seront pas modifiées.")) {
-      try {
-        const btn = document.getElementById('btn-generate-demo');
-        btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Génération…';
-        await generateDummyData();
-      } catch (error) {
-        console.error('Erreur de génération des données démo :', error);
-        setStatus('Erreur lors de la génération de démo', 'error');
-        alert('La génération des données de démonstration a échoué. Vérifie le stockage disponible puis réessaie.');
-      } finally {
-        const btn = document.getElementById('btn-generate-demo');
-        btn.disabled = false; btn.innerHTML = '<i class="fa fa-magic"></i> Générer Données Démo';
-      }
+  document.getElementById('btn-generate-demo').addEventListener('click', () => {
+    if(confirm("Générer des données fictives ? Cela remplacera les données existantes.")) {
+        generateDummyData();
     }
-  });
+});
 
 // Changer de trimestre
 document.getElementById('report-trimester-selector').addEventListener('change', () => renderAcademicReport());
 
-// Export PDF du rapport académique : gestion centralisée ci-dessous.
+// Exporter en PDF
+document.getElementById('btn-export-report-pdf').addEventListener('click', () => {
+    if (typeof html2pdf === 'undefined') {
+        loadPDFLibrary();
+        setTimeout(() => exportReportToPDF(), 1000);
+    } else {
+        exportReportToPDF();
+    }
+});
 
 // Changer de trimestre
 document.getElementById('report-trimester-selector').addEventListener('change', () => renderAcademicReport());
@@ -6780,11 +7067,9 @@ document.getElementById('btn-export-report-pdf').addEventListener('click', async
   const selCio = document.getElementById('cio-period-selector');
   if(selCio) selCio.addEventListener('change', renderCioReport);
 
-  // Exportations CIO : identifiants distincts pour Excel et PDF.
-  const btnExpCioExcel = document.getElementById('btn-export-cio-excel');
-  if(btnExpCioExcel) btnExpCioExcel.addEventListener('click', exportCIOToExcel);
-  const btnExpCioPdf = document.getElementById('btn-export-cio-pdf');
-  if(btnExpCioPdf) btnExpCioPdf.addEventListener('click', exportCioToPDF);
+  // Bouton Export CIO
+  const btnExpCio = document.getElementById('btn-export-cio');
+  if(btnExpCio) btnExpCio.addEventListener('click', exportCIOToExcel);
 
 });
 
