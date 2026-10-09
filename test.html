@@ -1250,12 +1250,12 @@
   </div>
 </div>
 <div id="modal-pai-test" class="modal">
-  <div class="modal-content" style="max-width:1050px;max-height:94vh;display:flex;flex-direction:column">
+  <div class="modal-content" style="max-width:1050px;height:96vh;max-height:96vh;display:flex;flex-direction:column">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div><h3 style="margin:0;color:#0f766e"><i class="fa fa-clipboard-list"></i> Questionnaire PAI — Secondaire</h3><div id="pai-student-heading" style="font-weight:700;margin-top:5px"></div><div id="pai-progress" style="font-size:12px;color:var(--text-muted);margin-top:4px">0/52 questions renseignées</div></div>
       <button type="button" id="btn-close-pai-modal" class="btn ghost"><i class="fa fa-times"></i> Fermer</button>
     </div>
-    <div style="padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border)">
+    <div id="pai-identification-panel" style="padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
       <div id="pai-identity-summary" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
         <div><label class="label">Désignation de l’étude</label><input id="pai-study-label" class="input" placeholder="Ex. entretien / étude…"></div>
@@ -1264,7 +1264,11 @@
         <div><label class="label">Moyenne de l’élève</label><input id="pai-student-average" class="input" type="number" min="0" max="20" step="0.01" placeholder="Facultatif"></div>
       </div>
     </div>
-    <div id="pai-questions-container" class="modal-body" style="overflow-y:auto;padding:16px 20px"></div>
+    <div id="pai-identification-collapsed" style="display:none;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:8px;flex-shrink:0">
+      <span id="pai-identification-compact-summary" style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <button type="button" id="btn-show-pai-identification" class="btn ghost" style="padding:5px 9px;white-space:nowrap"><i class="fa fa-chevron-down"></i> Modifier les informations</button>
+    </div>
+    <div id="pai-questions-container" class="modal-body" style="overflow-y:auto;padding:16px 20px;flex:1;min-height:0"></div>
     <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
       <span style="font-size:11px;color:var(--text-muted);align-self:center">Le questionnaire ne comporte pas de grille de score automatique dans le document fourni. Les réponses sont conservées sans diagnostic automatique.</span>
       <div style="display:flex;gap:8px"><button type="button" id="btn-cancel-pai" class="btn ghost">Annuler</button><button type="button" id="btn-save-pai" class="btn" style="background:#0f766e;color:white"><i class="fa fa-save"></i> Enregistrer la passation</button></div>
@@ -1995,6 +1999,24 @@ function renderPAIQuestionnaire(existing=null){
  container.appendChild(notes);
  container.onchange=updatePAIProgress; container.oninput=updatePAIProgress; updatePAIProgress();
 }
+function setPAIIdentificationCollapsed(collapsed){
+ const panel=document.getElementById('pai-identification-panel');
+ const compact=document.getElementById('pai-identification-collapsed');
+ if(!panel||!compact)return;
+ if(collapsed){
+   const average=document.getElementById('pai-student-average')?.value||'Non renseignée';
+   const study=document.getElementById('pai-study-label')?.value||'';
+   const school=document.getElementById('pai-school-name')?.value||'';
+   const repeat=document.getElementById('pai-repeat')?.value||'';
+   document.getElementById('pai-identification-compact-summary').textContent=
+     `Moyenne : ${average}${study?' · Étude : '+study:''}${school?' · Établissement : '+school:''}${repeat?' · Redoublant(e) : '+repeat:''}`;
+   panel.style.display='none';
+   compact.style.display='flex';
+ }else{
+   panel.style.display='block';
+   compact.style.display='none';
+ }
+}
 function startPAIQuestionnaire(student, existingId=null){
  if(!student)return; currentPAICandidate=student; currentPAIEditId=existingId;
  const existing=existingId?allPAIResults.find(r=>r.id===existingId):null;
@@ -2006,7 +2028,7 @@ function startPAIQuestionnaire(student, existingId=null){
  document.getElementById('pai-repeat').value=existing?.identification?.repeat||((student.redoublant===true)?'Oui':(student.redoublant===false?'Non':''));
  const avg=existing?.identification?.average ?? student.moyennes?.Annuelle?.Moy_generale ?? '';
  document.getElementById('pai-student-average').value=avg===-1?'':avg;
- renderPAIQuestionnaire(existing); document.getElementById('modal-pai-test').style.display='flex';
+ renderPAIQuestionnaire(existing); setPAIIdentificationCollapsed(false); document.getElementById('modal-pai-test').style.display='flex';
 }
 function updatePAIProgress(){
  const answers={}; PAI_QUESTIONS.forEach(q=>{ if(q.type==='text'){answers[q.id]=document.querySelector(`[data-qid="${q.id}"].pai-answer-text`)?.value||'';} else if(q.type==='multiple'){answers[q.id]=Array.from(document.querySelectorAll(`input[name="pai_q_${q.id}"]:checked`)).map(x=>x.value);} else {answers[q.id]=document.querySelector(`input[name="pai_q_${q.id}"]:checked`)?.value||'';} });
@@ -7379,7 +7401,14 @@ document.getElementById('class-filter').addEventListener('change', () => {
     switchLycamView('candidates');
   });
 
-  document.getElementById('btn-open-pai-main').addEventListener('click', () => {
+  document.getElementById('btn-show-pai-identification')?.addEventListener('click', () => setPAIIdentificationCollapsed(false));
+document.getElementById('pai-student-average')?.addEventListener('blur', e => {
+  if (String(e.target.value).trim() !== '') setPAIIdentificationCollapsed(true);
+});
+document.getElementById('pai-student-average')?.addEventListener('change', e => {
+  if (String(e.target.value).trim() !== '') setPAIIdentificationCollapsed(true);
+});
+document.getElementById('btn-open-pai-main').addEventListener('click', () => {
     document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
     document.getElementById('paiMainPanel').style.display = 'flex';
     document.getElementById('paiMainPanel').style.flexDirection = 'column';
