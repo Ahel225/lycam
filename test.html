@@ -627,7 +627,15 @@
     border: 1px solid var(--border);
     border-radius: 4px;
 }
-    </style>
+    
+/* v5.9 — grille de résultats et gestion annuelle */
+#class-results-table input[readonly] { cursor:not-allowed; color:var(--text-muted); }
+#class-results-table th { position:sticky; top:0; z-index:2; background:var(--surface-2); white-space:nowrap; }
+#class-results-table td, #class-results-table th { padding:7px 8px; border-bottom:1px solid var(--border); }
+#class-results-table tr:nth-child(even) { background:rgba(99,102,241,.035); }
+#classResultsPanel .toolbar .field { min-width:145px; flex:1; }
+@media(max-width:700px){ #classResultsPanel .toolbar { align-items:stretch; } #classResultsPanel .toolbar .field { min-width:100%; } #btn-open-class-results { flex-shrink:0; } }
+</style>
 </head>
 <body>
 
@@ -638,7 +646,7 @@
       <div class="logo">GE</div>
       <div>
         <div style="font-weight:800;font-size:18px">Gestionnaire d'Élèves</div>
-        <div class="subtitle">v5.6 Koubi Seri Fils</div>
+        <div class="subtitle">v5.9 Koubi Seri Fils</div>
       </div>
     </div>
     <div class="chip" id="status"><i class="fa fa-check-circle" style="color:var(--accent)"></i> Prêt</div>
@@ -663,9 +671,14 @@
         <div class="field" style="width:140px">
           <label class="label">Année scolaire</label>
           <select id="school-year" class="select">
-            <option selected>2025-2026</option>
+            <option>2026-2027</option>
+            <option>2025-2026</option>
             <option>2024-2025</option>
           </select>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <input id="new-school-year" class="input" placeholder="Ex. 2027-2028" style="min-width:0;width:100%;font-size:12px">
+            <button type="button" id="btn-create-school-year" class="btn ghost" style="white-space:nowrap;padding:7px 9px" title="Créer une année scolaire"><i class="fa fa-plus"></i> Créer</button>
+          </div>
         </div>
         
         <div style="display:flex;gap:8px;margin-top:auto">
@@ -698,6 +711,7 @@
 <div style="display:flex; overflow-x:auto; gap:4px; white-space:nowrap">
     <button id="refresh-roster" class="btn ghost" title="Actualiser"><i class="fa fa-sync"></i></button>
     <button id="btn-open-rankings" class="btn ghost" title="Classements"><i class="fa fa-list-ol"></i></button>
+    <button id="btn-open-class-results" class="btn" style="background:#4f46e5;color:white" title="Saisie des moyennes"><i class="fa fa-edit"></i> Résultats</button>
     <button id="btn-open-stats" class="btn ghost" title="Statistiques Globales"><i class="fa fa-chart-bar"></i> Stats</button>
     <button id="btn-open-lycam-main" class="btn lycam-btn" title="Gestion LYCAM"><i class="fa fa-clipboard-check"></i> LYCAM</button>
     <button id="btn-open-registry" class="btn registry-btn" title="Registre de visites"><i class="fa fa-address-book"></i> Registre</button>
@@ -826,6 +840,37 @@
         </div>
         <div id="rankings-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:12px;overflow-y:auto;padding-bottom:20px"></div>
     </div>
+
+<div id="classResultsPanel" class="card section" style="display:none;border-top:4px solid #4f46e5">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <div><h3 style="margin:0;color:#4f46e5"><i class="fa fa-edit"></i> Saisie des résultats scolaires</h3><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Saisie en liste de classe ou par matière, séparément pour chaque trimestre.</div></div>
+    <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
+  </div>
+  <div class="toolbar" style="margin:0 0 12px;background:var(--brand-light);border-color:var(--brand);align-items:end">
+    <div class="field"><label class="label">Année scolaire</label><div id="results-year-label" class="input" style="background:white"></div></div>
+    <div class="field"><label class="label">Trimestre</label><select id="results-period" class="select"><option value="1TR">1er trimestre</option><option value="2TR">2e trimestre</option><option value="3TR">3e trimestre</option></select></div>
+    <div class="field"><label class="label">Classe</label><select id="results-class" class="select"></select></div>
+    <div class="field"><label class="label">Mode de saisie</label><select id="results-mode" class="select"><option value="list">Liste complète de classe</option><option value="subject">Une matière à la fois</option></select></div>
+    <div class="field"><label class="label">Moyenne générale</label><select id="results-average-mode" class="select"><option value="auto">Calcul automatique</option><option value="manual">Saisie manuelle</option></select></div>
+    <button id="btn-save-class-results" class="btn"><i class="fa fa-save"></i> Enregistrer</button>
+    <button id="btn-export-class-results" class="btn ghost"><i class="fa fa-file-excel"></i> Export Excel</button>
+  </div>
+  <div id="results-subject-control" class="toolbar" style="margin:0 0 12px;border:1px solid var(--border);background:var(--surface-2)">
+    <div class="field" style="min-width:220px"><label class="label">Matière à saisir</label><select id="results-subject" class="select"></select></div>
+    <button id="btn-toggle-coefficients" class="btn ghost"><i class="fa fa-sliders"></i> Matières et coefficients de cette classe</button>
+    <span style="font-size:12px;color:var(--text-muted)">Les moyennes absentes restent vides, elles ne sont pas transformées en zéro.</span>
+  </div>
+  <div id="results-coefficients-panel" style="display:none;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;background:var(--surface-2)">
+    <div style="font-weight:700;margin-bottom:8px">Coefficients appliqués à la classe sélectionnée</div>
+    <div id="results-coefficients-fields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px"></div>
+    <div style="font-size:12px;color:var(--text-muted);margin:8px 0">Un coefficient égal à 0 exclut la matière du calcul automatique. Par défaut, les matières ont un coefficient de 1.</div>
+    <button id="btn-save-coefficients" class="btn"><i class="fa fa-save"></i> Enregistrer les coefficients</button>
+  </div>
+  <div id="results-grid-summary" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+  <div class="table-wrap" style="max-height:65vh;overflow:auto"><table id="class-results-table" style="min-width:900px;width:100%"><thead></thead><tbody></tbody></table></div>
+  <div style="font-size:12px;color:var(--text-muted);margin-top:10px"><i class="fa fa-info-circle"></i> Les résultats sont enregistrés dans l’année scolaire sélectionnée. Les coefficients sont paramétrés séparément pour chaque classe.</div>
+</div>
+
 <div id="statsPanel" class="card section" style="display:none; border-top:4px solid var(--accent)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <h3><i class="fa fa-chart-bar" style="color:var(--accent)"></i> Statistiques Globales</h3>
@@ -1048,10 +1093,10 @@
                     <option value="2TR">2e Trimestre</option>
                     <option value="3TR">3e Trimestre</option>
                 </select>
-                <button id="btn-export-cio" class="btn" style="background:#10b981; color:white; margin-left:auto">
+                <button id="btn-export-cio-excel" class="btn" style="background:#10b981; color:white; margin-left:auto">
                     <i class="fa fa-file-excel"></i> Exporter Excel
                 </button>
-                <button id="btn-export-cio" class="btn" style="background:#059669; color:white">
+                <button id="btn-export-cio-pdf" class="btn" style="background:#059669; color:white">
     <i class="fa fa-file-pdf"></i> Exporter PDF
 </button>
             </div>
@@ -1237,105 +1282,6 @@
         <div class="modal-footer">
             <button type="button" onclick="document.getElementById('modal-edit-grades').style.display='none'" class="btn ghost">Annuler</button>
             <button type="button" onclick="saveStudentGrades()" class="btn">Enregistrer les notes</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal pour modifier les moyennes (déjà existante) -->
-<div id="modal-edit-grades" class="modal">
-    <div class="modal-content" style="max-width:800px">
-        <div class="modal-body">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                <h3>Modifier les Moyennes</h3>
-                <select id="edit-grade-period" class="select" style="width:150px" onchange="populateGradeEditForm()">
-                    <option value="1TR">1er Trimestre</option>
-                    <option value="2TR">2e Trimestre</option>
-                    <option value="3TR">3e Trimestre</option>
-                </select>
-            </div>
-            <div id="grades-edit-container" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">
-                <!-- Les champs seront ajoutés dynamiquement -->
-            </div>
-            <div style="margin-top:20px; padding:10px; background:var(--surface-2); border-radius:8px">
-                <label class="label">Ajouter une matière</label>
-                <div style="display:flex; gap:8px">
-                    <input id="new-subject-name" class="input" placeholder="Code matière (ex: philo, art)">
-                    <button type="button" class="btn ghost" onclick="addNewSubjectField()"><i class="fa fa-plus"></i></button>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" onclick="document.getElementById('modal-edit-grades').style.display='none'" class="btn ghost">Annuler</button>
-            <button type="button" onclick="saveStudentGrades()" class="btn">Enregistrer les notes</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal pour modifier un élève (déjà existante) -->
-<div id="modal-edit-student" class="modal">
-    <div class="modal-content">
-        <div class="modal-body">
-            <h3>Modifier l'élève</h3>
-            <form id="form-edit-student" style="display:flex;flex-direction:column;gap:12px">
-                <input type="hidden" id="edit-id">
-                <div style="display:flex;gap:10px">
-                    <div class="field" style="flex:1"><label class="label">Matricule</label><input id="edit-matricule" class="input"></div>
-                    <div class="field" style="flex:1"><label class="label">Classe</label><input id="edit-classe" class="input"></div>
-                </div>
-                <div class="field"><label class="label">Nom</label><input id="edit-nom" class="input"></div>
-                <div class="field"><label class="label">Prénoms</label><input id="edit-prenoms" class="input"></div>
-                <div style="display:flex;gap:10px">
-                    <div class="field" style="flex:1">
-                        <label class="label">Sexe</label>
-                        <select id="edit-sexe" class="select">
-                            <option value="M">Masculin</option>
-                            <option value="F">Féminin</option>
-                        </select>
-                    </div>
-                    <div class="field" style="flex:1"><label class="label">Date Naiss.</label><input id="edit-dob" type="date" class="input"></div>
-                </div>
-                <div class="field">
-                    <label class="label">Statut</label>
-                    <div style="display:flex; gap:10px; align-items:center">
-                        <label><input type="checkbox" id="edit-redoublant"> Redoublant</label>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" onclick="document.getElementById('modal-edit-student').style.display='none'" class="btn ghost">Annuler</button>
-            <button type="button" onclick="saveStudentIdentity()" class="btn">Enregistrer</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal pour ajouter un élève (déjà existante) -->
-<div id="modal-add-student" class="modal">
-    <div class="modal-content">
-        <div class="modal-body">
-            <h3>Ajouter un élève</h3>
-            <form id="form-add-student" style="display:flex;flex-direction:column;gap:12px">
-                <div style="display:flex;gap:10px">
-                    <div class="field" style="flex:1"><label class="label">Matricule</label><input name="matricule" class="input" required></div>
-                    <div class="field" style="flex:1"><label class="label">Classe</label><input name="classe" class="input" placeholder="ex: 6e1"></div>
-                </div>
-                <div class="field"><label class="label">Nom</label><input name="nom" class="input" required></div>
-                <div class="field"><label class="label">Prénoms</label><input name="prenoms" class="input"></div>
-                <div style="display:flex;gap:10px">
-                    <div class="field" style="flex:1">
-                        <label class="label">Sexe</label>
-                        <select name="sexe" class="select">
-                            <option value="M">Masculin</option>
-                            <option value="F">Féminin</option>
-                        </select>
-                    </div>
-                    <div class="field" style="flex:1"><label class="label">Date Naiss.</label><input name="dateNaissance" type="date" class="input"></div>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" id="btn-cancel-add" class="btn ghost">Annuler</button>
-            <button type="button" id="btn-submit-add" class="btn">Enregistrer</button>
         </div>
     </div>
 </div>
@@ -1878,14 +1824,6 @@ async function exportCioToPDF() {
         alert("Erreur lors de la génération du PDF.");
     }
 }
-
-// 2. L'activation du bouton (ÉCOUTEUR D'ÉVÉNEMENT)
-document.addEventListener('DOMContentLoaded', () => {
-    const btnExpCio = document.getElementById('btn-export-cio');
-    if (btnExpCio) {
-        btnExpCio.addEventListener('click', exportCioToPDF);
-    }
-});
 
 // ====== LYCAM CONSTANTS & HELPERS ======
 const LYCAM_QUESTIONS = [
@@ -2455,6 +2393,7 @@ async function loadStudentsForYear(){
   allStudents.forEach(s => { if(!s.id) s.id = s.matricule || uuid(); });
   populateClassFilter();
   renderRoster();
+  if (document.getElementById('results-class')) updateResultsSelectors();
   setStatus(`${allStudents.length} élèves`, 'success');
 }
 
@@ -3344,7 +3283,7 @@ async function handleExcel(file){
     if (templateSheetName) {
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[templateSheetName], {defval:'', raw:false});
       if (!rows.length) throw new Error("La feuille « Import élèves » ne contient aucune ligne d'élève.");
-      const requiredHeaders = ["matricule","nom","prenoms","sexe","date de naissance","classe","notes t1","notes t2","notes t3"];
+      const requiredHeaders = ["matricule","nom","prenoms","sexe","date de naissance","classe"];
       const actualHeaders = Object.keys(rows[0]).map(normalizeStr);
       const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(normalizeStr(h)));
       if (missingHeaders.length) throw new Error("En-têtes manquants ou modifiés : " + missingHeaders.join(", ") + ". Téléchargez un nouveau modèle.");
@@ -4513,10 +4452,10 @@ function downloadExcelTemplate() {
         alert("La bibliothèque Excel n'est pas disponible. Connectez-vous à Internet puis réessayez.");
         return;
     }
-    const headers = ["Matricule", "Nom", "Prénoms", "Sexe", "Date de naissance", "Classe", "Notes T1", "Notes T2", "Notes T3"];
+    const headers = ["Matricule", "Nom", "Prénoms", "Sexe", "Date de naissance", "Classe"];
     const ws = XLSX.utils.aoa_to_sheet([headers]);
-    ws['!cols'] = [{wch:18},{wch:24},{wch:28},{wch:12},{wch:20},{wch:18},{wch:14},{wch:14},{wch:14}];
-    ws['!autofilter'] = {ref:"A1:I501"};
+    ws['!cols'] = [{wch:18},{wch:24},{wch:28},{wch:12},{wch:20},{wch:18}];
+    ws['!autofilter'] = {ref:"A1:F501"};
     ws['!freeze'] = {xSplit:0, ySplit:1};
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Import élèves");
@@ -4534,6 +4473,213 @@ function downloadExcelTemplate() {
     wi['!cols'] = [{wch:110}];
     XLSX.utils.book_append_sheet(wb, wi, "Instructions");
     XLSX.writeFile(wb, "Modele_import_eleves.xlsx");
+}
+
+// ===== Gestion annuelle des effectifs et saisie collective des résultats =====
+async function refreshSchoolYearOptions(preferredYear = null) {
+  const select = document.getElementById('school-year');
+  if (!select) return;
+  const current = preferredYear || select.value;
+  let storedYears = [];
+  try { storedYears = await studentsStore.listYears(); } catch(e) { storedYears = []; }
+  const values = [...new Set([...Array.from(select.options).map(o => o.value), ...storedYears.map(String)])]
+    .filter(v => /^\d{4}-\d{4}$/.test(v)).sort((a,b) => b.localeCompare(a));
+  select.innerHTML = '';
+  values.forEach(y => select.add(new Option(y, y)));
+  if (values.includes(current)) select.value = current;
+  else if (values.length) select.value = values[0];
+}
+
+async function createSchoolYear() {
+  const input = document.getElementById('new-school-year');
+  const year = input.value.trim();
+  if (!/^\d{4}-\d{4}$/.test(year) || Number(year.slice(5)) !== Number(year.slice(0,4)) + 1) {
+    alert('Saisis une année scolaire valide au format AAAA-AAAA, par exemple 2027-2028.'); return;
+  }
+  const existing = await studentsStore.listYears();
+  if (existing.includes(year) || Array.from(document.getElementById('school-year').options).some(o => o.value === year)) {
+    alert('Cette année scolaire existe déjà.'); return;
+  }
+  await studentsStore.save(year, []);
+  await refreshSchoolYearOptions(year);
+  input.value = '';
+  await loadStudentsForYear();
+  alert(`L’année scolaire ${year} a été créée avec une liste vide. Tu peux maintenant importer la liste complète de l’établissement, sans saisir de moyennes.`);
+}
+
+function getClassCoefficientConfig(cls) {
+  const all = storage.load('SubjectCoefficientsByClass', {});
+  const key = normalizeClasseKey(cls);
+  return all[key] || {};
+}
+function saveClassCoefficientConfig(cls, config) {
+  const all = storage.load('SubjectCoefficientsByClass', {});
+  all[normalizeClasseKey(cls)] = config;
+  storage.save('SubjectCoefficientsByClass', all);
+}
+function getCoefficient(cls, subject) {
+  const config = getClassCoefficientConfig(cls);
+  const value = Number(config[subject]);
+  return config[subject] === undefined || !Number.isFinite(value) ? 1 : Math.max(0, value);
+}
+function getResultsSubjects(cls) {
+  return [...new Set(getSubjectsOrder(cls).filter(Boolean))];
+}
+function resultsClassStudents() {
+  const cls = document.getElementById('results-class').value;
+  return allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(cls))
+    .sort((a,b) => (a.nom || '').localeCompare(b.nom || '', 'fr') || (a.prenoms || '').localeCompare(b.prenoms || '', 'fr'));
+}
+function calculateStudentGeneralAverage(student, period, cls) {
+  const subjects = getResultsSubjects(cls);
+  let total = 0, totalCoeff = 0;
+  for (const subject of subjects) {
+    const coeff = getCoefficient(cls, subject);
+    if (coeff <= 0) continue;
+    const value = getStudentNote(student, period, subject);
+    if (!Number.isFinite(value) || value < 0 || value > 20) return null;
+    total += value * coeff; totalCoeff += coeff;
+  }
+  return totalCoeff > 0 ? total / totalCoeff : null;
+}
+function updateResultsSelectors() {
+  const classSelect = document.getElementById('results-class');
+  if (!classSelect) return;
+  const old = classSelect.value;
+  const classes = [...new Set(allStudents.map(s => s.classe).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  classSelect.innerHTML = '';
+  classes.forEach(c => classSelect.add(new Option(c,c)));
+  if (classes.includes(old)) classSelect.value = old;
+  document.getElementById('results-year-label').textContent = getSelectedYear();
+  renderClassResultsGrid();
+}
+function renderCoefficientFields() {
+  const cls = document.getElementById('results-class').value;
+  const box = document.getElementById('results-coefficients-fields');
+  box.innerHTML = '';
+  if (!cls) { box.textContent = 'Choisis une classe.'; return; }
+  getResultsSubjects(cls).forEach(subject => {
+    const field = document.createElement('label');
+    field.className = 'field';
+    field.innerHTML = `<span class="label">${h(getSubjectDisplayName(subject, cls))}</span><input class="input results-coeff-input" type="number" min="0" max="20" step="0.5" data-subject="${h(subject)}" value="${getCoefficient(cls,subject)}">`;
+    box.appendChild(field);
+  });
+}
+function renderClassResultsGrid() {
+  const table = document.getElementById('class-results-table');
+  if (!table) return;
+  const thead = table.querySelector('thead'), tbody = table.querySelector('tbody');
+  const cls = document.getElementById('results-class').value;
+  const period = document.getElementById('results-period').value;
+  const mode = document.getElementById('results-mode').value;
+  const averageMode = document.getElementById('results-average-mode').value;
+  const subjects = getResultsSubjects(cls);
+  const students = resultsClassStudents();
+  const subjectControl = document.getElementById('results-subject-control');
+  subjectControl.style.display = mode === 'subject' ? 'flex' : 'flex';
+  const subjectSelect = document.getElementById('results-subject');
+  const oldSubject = subjectSelect.value;
+  subjectSelect.innerHTML = '';
+  subjects.forEach(sub => subjectSelect.add(new Option(getSubjectDisplayName(sub,cls),sub)));
+  subjectSelect.add(new Option('Moyenne générale', 'Moy_generale'));
+  if ([...subjectSelect.options].some(o=>o.value===oldSubject)) subjectSelect.value = oldSubject;
+  if (!cls) {
+    thead.innerHTML = '<tr><th>Liste de classe</th></tr>'; tbody.innerHTML = '<tr><td>Importe d’abord la liste des élèves et sélectionne une classe.</td></tr>';
+    document.getElementById('results-grid-summary').textContent = 'Aucune classe disponible pour cette année scolaire.'; return;
+  }
+  if (!students.length) {
+    thead.innerHTML = '<tr><th>Liste de classe</th></tr>'; tbody.innerHTML = '<tr><td>Aucun élève dans cette classe.</td></tr>'; return;
+  }
+  const inputCell = (student, subject, value, readonly=false) => `<input class="input class-result-input" type="number" min="0" max="20" step="0.01" inputmode="decimal" data-matricule="${h(student.matricule)}" data-subject="${h(subject)}" value="${value == null || value < 0 ? '' : Number(value).toFixed(2)}" ${readonly?'readonly title="Calcul automatique : renseigne toutes les matières prises en compte"':''} style="min-width:82px;padding:6px 7px;${readonly?'background:#f1f5f9;':''}">`;
+  if (mode === 'subject') {
+    const sub = subjectSelect.value || subjects[0];
+    thead.innerHTML = `<tr><th>N°</th><th>Matricule</th><th>Nom et prénoms</th><th>${h(sub === 'Moy_generale' ? 'Moyenne générale' : getSubjectDisplayName(sub,cls))}</th>${sub === 'Moy_generale' && averageMode === 'auto' ? '<th>État du calcul</th>' : ''}</tr>`;
+    tbody.innerHTML = students.map((student,i) => {
+      const current = sub === 'Moy_generale' ? (averageMode === 'auto' ? calculateStudentGeneralAverage(student,period,cls) : getStudentNote(student,period,sub)) : getStudentNote(student,period,sub);
+      const status = sub === 'Moy_generale' && averageMode === 'auto' ? `<td>${current == null ? '<span class="badge" style="background:#fef3c7;color:#92400e">Résultats incomplets</span>' : '<span class="badge" style="background:#dcfce7;color:#166534">Calculée</span>'}</td>` : '';
+      return `<tr><td>${i+1}</td><td>${h(student.matricule)}</td><td>${h(student.nom)} ${h(student.prenoms)}</td><td>${inputCell(student,sub,current,sub==='Moy_generale'&&averageMode==='auto')}</td>${status}</tr>`;
+    }).join('');
+  } else {
+    const headerSubjects = subjects.map(sub=>`<th>${h(getSubjectDisplayName(sub,cls))}<br><small>Coef. ${getCoefficient(cls,sub)}</small></th>`).join('');
+    thead.innerHTML = `<tr><th>N°</th><th>Matricule</th><th>Nom et prénoms</th>${headerSubjects}<th>Moyenne générale</th></tr>`;
+    tbody.innerHTML = students.map((student,i) => {
+      const subjectInputs = subjects.map(sub=>`<td>${inputCell(student,sub,getStudentNote(student,period,sub))}</td>`).join('');
+      const general = averageMode === 'auto' ? calculateStudentGeneralAverage(student,period,cls) : getStudentNote(student,period,'Moy_generale');
+      return `<tr><td>${i+1}</td><td>${h(student.matricule)}</td><td style="min-width:190px">${h(student.nom)} ${h(student.prenoms)}</td>${subjectInputs}<td>${inputCell(student,'Moy_generale',general,averageMode==='auto')}</td></tr>`;
+    }).join('');
+  }
+  document.getElementById('results-grid-summary').textContent = `${students.length} élève(s) · ${cls} · ${getSelectedYear()} · ${document.getElementById('results-period').selectedOptions[0]?.text || period}. ${averageMode === 'auto' ? 'Calcul automatique : toutes les matières ayant un coefficient positif doivent être renseignées.' : 'Moyenne générale saisie manuellement.'}`;
+}
+async function saveClassResults() {
+  const cls = document.getElementById('results-class').value;
+  const period = document.getElementById('results-period').value;
+  const averageMode = document.getElementById('results-average-mode').value;
+  if (!cls) { alert('Sélectionne une classe.'); return; }
+  const inputs = [...document.querySelectorAll('#class-results-table .class-result-input')];
+  const errors = [];
+  inputs.forEach(input => {
+    if (input.readOnly) return;
+    const raw = input.value.trim();
+    if (!raw) return;
+    const value = Number(raw.replace(',','.'));
+    if (!Number.isFinite(value) || value < 0 || value > 20) errors.push(`${input.dataset.matricule} — ${input.dataset.subject} : valeur entre 0 et 20 attendue.`);
+  });
+  if (errors.length) { alert('Aucune donnée enregistrée. Corrige les valeurs suivantes :\n' + errors.slice(0,12).join('\n')); return; }
+  const byMatricule = new Map(allStudents.map(s=>[String(s.matricule),s]));
+  inputs.forEach(input => {
+    if (input.readOnly) return;
+    const student = byMatricule.get(String(input.dataset.matricule));
+    if (!student) return;
+    student.moyennes = student.moyennes || {};
+    student.moyennes[period] = student.moyennes[period] || {};
+    const raw = input.value.trim();
+    if (!raw) { delete student.moyennes[period][input.dataset.subject]; return; }
+    student.moyennes[period][input.dataset.subject] = Number(raw.replace(',','.'));
+  });
+  if (averageMode === 'auto') {
+    allStudents.filter(s=>normalizeClasseKey(s.classe)===normalizeClasseKey(cls)).forEach(student=>{
+      student.moyennes = student.moyennes || {}; student.moyennes[period] = student.moyennes[period] || {};
+      const avg = calculateStudentGeneralAverage(student,period,cls);
+      if (avg == null) delete student.moyennes[period].Moy_generale;
+      else student.moyennes[period].Moy_generale = Math.round(avg*100)/100;
+    });
+  }
+  await studentsStore.save(getSelectedYear(),allStudents);
+  await loadStudentsForYear();
+  updateResultsSelectors();
+  setStatus(`Résultats enregistrés — ${cls}, ${period}`,'success');
+  alert('Les résultats de la classe ont été enregistrés pour le trimestre sélectionné.');
+}
+function saveResultsCoefficients() {
+  const cls = document.getElementById('results-class').value;
+  if (!cls) return;
+  const config = {};
+  let invalid = false;
+  document.querySelectorAll('.results-coeff-input').forEach(input=>{
+    const n=Number(input.value);
+    if (!Number.isFinite(n)||n<0||n>20) invalid=true;
+    config[input.dataset.subject]=n;
+  });
+  if (invalid) { alert('Les coefficients doivent être compris entre 0 et 20.'); return; }
+  saveClassCoefficientConfig(cls,config);
+  renderClassResultsGrid();
+  renderCoefficientFields();
+  setStatus(`Coefficients enregistrés pour ${cls}`,'success');
+}
+function exportClassResultsExcel() {
+  if (typeof XLSX === 'undefined') { alert('La bibliothèque Excel est indisponible.'); return; }
+  const cls = document.getElementById('results-class').value, period = document.getElementById('results-period').value;
+  if (!cls) { alert('Sélectionne une classe.'); return; }
+  const subjects = getResultsSubjects(cls);
+  const rows = resultsClassStudents().map((student,i)=>{
+    const row={'N°':i+1,'Matricule':student.matricule,'Nom':student.nom,'Prénoms':student.prenoms,'Classe':student.classe};
+    subjects.forEach(sub=>row[getSubjectDisplayName(sub,cls)]=getStudentNote(student,period,sub)>=0?getStudentNote(student,period,sub):'');
+    const avg=getStudentNote(student,period,'Moy_generale'); row['Moyenne générale']=avg>=0?avg:'';
+    return row;
+  });
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:6},{wch:18},{wch:22},{wch:26},{wch:14},...subjects.map(()=>({wch:16})),{wch:18}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Résultats');
+  XLSX.writeFile(wb,`Resultats_${getSelectedYear()}_${cls.replace(/[^a-z0-9_-]/gi,'_')}_${period}.xlsx`);
 }
 
 function renderLycamGlobal() {
@@ -5959,7 +6105,7 @@ document.getElementById('cio-period-selector').addEventListener('change', () => 
 });
 
 // Ajouter l'écouteur pour l'export Excel
-document.getElementById('btn-export-cio-excel')?.addEventListener('click', exportCIOToExcel);
+
 
 /* ====== FONCTION D'EXPORT EXCEL POUR LE RAPPORT CIO ====== */
 function exportCIOToExcel() {
@@ -6815,12 +6961,6 @@ async function exportCioToPDF() {
     }
 }
 
-// Liaison au bouton d'exportation CIO (si l'ID est btn-export-cio)
-const btnExpCio = document.getElementById('btn-export-cio');
-if (btnExpCio) {
-    btnExpCio.addEventListener('click', exportCioToPDF);
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('#studentPanel .tab').forEach(t => {
     t.addEventListener('click', () => {
@@ -6862,7 +7002,9 @@ document.getElementById('class-filter').addEventListener('change', () => {
     }
 });
   await loadGlobalData();
+  await refreshSchoolYearOptions();
   await loadStudentsForYear();
+  updateResultsSelectors();
   
   // Setup mobile tabs functionality
   function setupMobileTabs() {
@@ -6922,9 +7064,30 @@ document.getElementById('class-filter').addEventListener('change', () => {
 
   document.getElementById('school-year').addEventListener('change', async () => {
     await loadStudentsForYear();
+    updateResultsSelectors();
   });
   document.getElementById('excel-file').addEventListener('change', e => { if(e.target.files[0]) handleExcel(e.target.files[0]); });
   document.getElementById('btn-download-excel-template').addEventListener('click', downloadExcelTemplate);
+  document.getElementById('btn-create-school-year').addEventListener('click', createSchoolYear);
+  document.getElementById('new-school-year').addEventListener('keydown', e => { if(e.key === 'Enter') createSchoolYear(); });
+  document.getElementById('btn-open-class-results').addEventListener('click', () => {
+    document.querySelectorAll('.section').forEach(p => p.style.display = 'none');
+    document.getElementById('classResultsPanel').style.display = 'flex';
+    document.getElementById('classResultsPanel').style.flexDirection = 'column';
+    updateResultsSelectors();
+  });
+  ['results-period','results-class','results-mode','results-average-mode','results-subject'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+    if (id === 'results-class') renderCoefficientFields();
+    renderClassResultsGrid();
+  }));
+  document.getElementById('btn-save-class-results').addEventListener('click', saveClassResults);
+  document.getElementById('btn-export-class-results').addEventListener('click', exportClassResultsExcel);
+  document.getElementById('btn-toggle-coefficients').addEventListener('click', () => {
+    const panel = document.getElementById('results-coefficients-panel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') renderCoefficientFields();
+  });
+  document.getElementById('btn-save-coefficients').addEventListener('click', saveResultsCoefficients);
   document.getElementById('btn-close-lycam-responses').addEventListener('click', () => { document.getElementById('modal-lycam-responses').style.display = 'none'; });
   document.getElementById('btn-export-lycam-responses').addEventListener('click', exportCurrentLycamResponses);
   
@@ -7068,8 +7231,10 @@ document.getElementById('btn-export-report-pdf').addEventListener('click', async
   if(selCio) selCio.addEventListener('change', renderCioReport);
 
   // Bouton Export CIO
-  const btnExpCio = document.getElementById('btn-export-cio');
-  if(btnExpCio) btnExpCio.addEventListener('click', exportCIOToExcel);
+  const btnExpCioExcel = document.getElementById('btn-export-cio-excel');
+  if(btnExpCioExcel) btnExpCioExcel.addEventListener('click', exportCIOToExcel);
+  const btnExpCioPdf = document.getElementById('btn-export-cio-pdf');
+  if(btnExpCioPdf) btnExpCioPdf.addEventListener('click', exportCioToPDF);
 
 });
 
