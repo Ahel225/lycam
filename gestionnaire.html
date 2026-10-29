@@ -5997,7 +5997,7 @@ function renderCioReport() {
         tbody.innerHTML = firstTableHTML + secondTableHTML;
         
         console.log("Rapport CIO généré avec succès");
-        setStatus(`Rapport CIO ${period} généré (${allStudentsForReport.length} élèves)`, 'success');
+        setStatus(`Rapport CIO ${period} : ${allStudentsForReport.length} élèves, ${studentsWithGrades.length} avec moyennes enregistrées`, 'success');
         
     } catch (error) {
         console.error("Erreur dans renderCioReport:", error);
@@ -6020,8 +6020,8 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
         
         const moyennes = student.moyennes[period];
         const subjectMap = {
-            'compo_francais': ['compo_francais', 'composition', 'compo'],
-            'orthographe': ['orthographe', 'orth', 'dictée'],
+            'compo_francais': ['compo_francais', 'composition francaise', 'compo francais', 'compo fr', 'composition', 'compo'],
+            'orthographe': ['orthographe', 'orthographe grammaire', 'orthographe-grammaire', 'orth', 'dictée'],
             'francais': ['francais', 'fr', 'français'],
             'anglais': ['anglais', 'eng', 'english'],
             'allemand': ['allemand', 'all', 'deutsch'],
@@ -6036,9 +6036,10 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
         const aliases = subjectMap[subject] || [subject];
         
         for (const alias of aliases) {
-            if (moyennes[alias] !== undefined && moyennes[alias] !== null) {
-                const value = parseFloat(moyennes[alias]);
-                if (!isNaN(value)) return value;
+            const key = Object.keys(moyennes).find(k => k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'') === alias.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''));
+            if (key !== undefined && moyennes[key] !== null && moyennes[key] !== '') {
+                const value = Number(String(moyennes[key]).replace(',','.'));
+                if (Number.isFinite(value) && value >= 0 && value <= 20) return value;
             }
         }
         
@@ -6155,19 +6156,19 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
     const premierCycleLevels = [
         { name: '6ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('6');
         }},
         { name: '5ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('5');
         }},
         { name: '4ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('4');
         }},
         { name: '3ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t') && !c.includes('1er');
+            return c.startsWith('3');
         }}
     ];
 
@@ -6412,7 +6413,7 @@ function renderSecondTableForHTML(period, allStudentsForReport, studentsWithGrad
             cycle: 'premier', 
             filter: (s) => {
                 const c = normalizeClasseKey(s.classe);
-                return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                return c.startsWith('6');
             }
         },
         { 
@@ -6420,7 +6421,7 @@ function renderSecondTableForHTML(period, allStudentsForReport, studentsWithGrad
             cycle: 'premier', 
             filter: (s) => {
                 const c = normalizeClasseKey(s.classe);
-                return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                return c.startsWith('5');
             }
         },
         { 
@@ -6428,7 +6429,7 @@ function renderSecondTableForHTML(period, allStudentsForReport, studentsWithGrad
             cycle: 'premier', 
             filter: (s) => {
                 const c = normalizeClasseKey(s.classe);
-                return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                return c.startsWith('4');
             }
         },
         { 
@@ -6436,7 +6437,7 @@ function renderSecondTableForHTML(period, allStudentsForReport, studentsWithGrad
             cycle: 'premier', 
             filter: (s) => {
                 const c = normalizeClasseKey(s.classe);
-                return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                return c.startsWith('3');
             }
         },
         
@@ -6846,8 +6847,8 @@ function generateFirstTableForExcel(period) {
         
         const moyennes = student.moyennes[period];
         const subjectMap = {
-            'compo_francais': ['compo_francais', 'composition', 'compo'],
-            'orthographe': ['orthographe', 'orth', 'dictée'],
+            'compo_francais': ['compo_francais', 'composition francaise', 'compo francais', 'compo fr', 'composition', 'compo'],
+            'orthographe': ['orthographe', 'orthographe grammaire', 'orthographe-grammaire', 'orth', 'dictée'],
             'francais': ['francais', 'fr', 'français'],
             'anglais': ['anglais', 'eng', 'english'],
             'allemand': ['allemand', 'all', 'deutsch'],
@@ -6861,9 +6862,10 @@ function generateFirstTableForExcel(period) {
 
         const aliases = subjectMap[subject] || [subject];
         for (const alias of aliases) {
-            if (moyennes[alias] !== undefined && moyennes[alias] !== null) {
-                const value = parseFloat(moyennes[alias]);
-                if (!isNaN(value)) return value;
+            const key = Object.keys(moyennes).find(k => k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'') === alias.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''));
+            if (key !== undefined && moyennes[key] !== null && moyennes[key] !== '') {
+                const value = Number(String(moyennes[key]).replace(',','.'));
+                if (Number.isFinite(value) && value >= 0 && value <= 20) return value;
             }
         }
         return -1;
@@ -6892,19 +6894,19 @@ function generateFirstTableForExcel(period) {
     const premierCycleLevels = [
         { name: '6ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('6');
         }},
         { name: '5ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('5');
         }},
         { name: '4ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('4');
         }},
         { name: '3ème', filter: (s) => {
             const c = normalizeClasseKey(s.classe);
-            return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+            return c.startsWith('3');
         }}
     ];
     
@@ -7173,25 +7175,25 @@ function generateSecondTableForExcel(period) {
             case '6ème':
                 levelStudents = allStudents.filter(s => {
                     const c = normalizeClasseKey(s.classe);
-                    return c.includes('6') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                    return c.startsWith('6');
                 });
                 break;
             case '5ème':
                 levelStudents = allStudents.filter(s => {
                     const c = normalizeClasseKey(s.classe);
-                    return c.includes('5') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                    return c.startsWith('5');
                 });
                 break;
             case '4ème':
                 levelStudents = allStudents.filter(s => {
                     const c = normalizeClasseKey(s.classe);
-                    return c.includes('4') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                    return c.startsWith('4');
                 });
                 break;
             case '3ème':
                 levelStudents = allStudents.filter(s => {
                     const c = normalizeClasseKey(s.classe);
-                    return c.includes('3') && !c.includes('2nd') && !c.includes('1') && !c.includes('t');
+                    return c.startsWith('3');
                 });
                 break;
             case '2nde A':
@@ -8004,7 +8006,7 @@ window.addEventListener('focus',()=>{try{dashboard();alerts()}catch(e){}});
 (()=>{
 const $=id=>document.getElementById(id), esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const aliases={matricule:['matricule','mat','numero matricule','n matricule'],nom:['nom','noms'],prenoms:['prenoms','prenom'],fullname:['nom et prenoms','nom prenoms','nom complet'],classe:['classe','class','niveau'],sexe:['sexe','genre','sex'],dateNaissance:['date de naissance','date naissance','date_naissance','datenaissance','ne le','né le','né(e) le','naissance','ddn','dob'],age:['age','âge'],francais:['francais','fr','compo francais'],maths:['maths','math','mathematiques'],anglais:['anglais','ang'],physique:['physique','pc'],svt:['svt'],hg:['hg','histoire geographie'],eps:['eps'],philosophie:['philosophie'],lv2:['lv2'],conduite:['conduite'],edhc:['edhc'],art_plastique:['art plastique','arts plastiques'],tic:['tic'],orthographe:['orthographe'],expression_orale:['expression orale'],Moy_generale:['moyenne generale','moy generale','moy gen','mg','moy g','moy trim1','moy trim2','moy trim3','moyenne trimestre 1','moyenne trimestre 2','moyenne trimestre 3']};
+const aliases={matricule:['matricule','mat','numero matricule','n matricule'],nom:['nom','noms'],prenoms:['prenoms','prenom'],fullname:['nom et prenoms','nom prenoms','nom complet'],classe:['classe','class','niveau'],sexe:['sexe','genre','sex'],dateNaissance:['date de naissance','date naissance','date_naissance','datenaissance','ne le','né le','né(e) le','naissance','ddn','dob'],age:['age','âge'],compo_francais:['compo_francais','compo francais','composition francaise','composition français','compo fr','compo française'],francais:['francais','fr','moyenne francais','moyenne de francais'],maths:['maths','math','mathematiques'],anglais:['anglais','ang'],physique:['physique','pc'],svt:['svt'],hg:['hg','histoire geographie'],eps:['eps'],philosophie:['philosophie'],lv2:['lv2'],conduite:['conduite'],edhc:['edhc'],art_plastique:['art plastique','arts plastiques'],tic:['tic'],orthographe:['orthographe','orthographe grammaire','orthographe-grammaire','ortho grammaire','grammaire'],expression_orale:['expression orale','expression orale francaise','oral francais'],Moy_generale:['moyenne generale','moy generale','moy gen','mg','moy g','moy trim1','moy trim2','moy trim3','moyenne trimestre 1','moyenne trimestre 2','moyenne trimestre 3']};
 const grades=Object.keys(aliases).filter(k=>!['matricule','nom','prenoms','fullname','classe','sexe','dateNaissance','age'].includes(k));let pending=null;
 const mapHeaders=headers=>{const m={};headers.forEach((h,i)=>{const n=norm(h);for(const [k,vals] of Object.entries(aliases)){if(m[k]===undefined&&vals.some(v=>norm(v)===n)){m[k]=i;break;}}});return m;};
 const parseSex=x=>{const n=norm(x);if(['m','masculin','garcon','homme'].includes(n))return 'M';if(['f','feminin','fille','femme'].includes(n))return 'F';return '';};
