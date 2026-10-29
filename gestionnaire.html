@@ -2622,7 +2622,7 @@ const DICTIONARY = {
   sexe: ['sexe','genre','sex'],
   dateNaissance: ['date de naissance','date_naissance','datenaissance','ddn','né le','ne le','ne(e) le','né(e) le','naissance','dob','date n','date.n'],
   classe: ['classe','class','groupe','niv'],
-  compo_francais: ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
+  compo_francais: ['compo_francais','composition française','compofr','compo français','composition', 'compo', 'COMPO. FR'],
   orthographe: ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
   expression_orale: ['expression orale','oral','expr orale','expression','expr', 'oral'],
   maths: ['math','maths','mathematique','ml'],
@@ -4131,7 +4131,7 @@ async function handleExcel(file, importMode = 'merge'){
                 
                 // Traiter les matières
                 const subjectColumns = {
-                    'compo_francais': ['compo_francais','composition française','compofr','compo français','composition', 'compo'],
+                    'compo_francais': ['compo_francais','composition française','compo.fr','compo français','composition', 'compo'],
                     'orthographe': ['orthographe','orth','dictée','dictee','dictée grammaire', 'dictée'],
                     'expression_orale': ['expression orale','oral','expr orale','expression','expr', 'oral'],
                     'francais': ['fr','fra','francais','français','frs'],
