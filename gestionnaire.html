@@ -831,6 +831,7 @@ body{overflow-x:hidden}
 <button type="button" class="side-link" data-target="cioPanel"><i class="fa fa-table"></i> Rapport CIO</button>
 <div class="sidebar-heading">Orientation et suivi</div>
 <button type="button" class="side-link" data-target="lycamMainPanel"><i class="fa fa-clipboard-check"></i> LYCAM</button>
+<button type="button" class="side-link" data-target="coeffeMainPanel"><i class="fa fa-book-open"></i> Test COÉFFÉ</button>
 <button type="button" class="side-link" data-target="paiMainPanel"><i class="fa fa-clipboard-list"></i> PAI</button>
 <button type="button" class="side-link" data-target="registryPanel"><i class="fa fa-address-book"></i> Registre</button>
 <button type="button" class="side-link" data-target="trackingGlobalPanel"><i class="fa fa-hands-helping"></i> Suivi et coaching</button>
@@ -1166,7 +1167,14 @@ body{overflow-x:hidden}
         </div>
     </div>
 
-    <div id="paiMainPanel" class="card section" style="display:none;border-top:4px solid #0f766e">
+    <div id="coeffeMainPanel" class="card section" style="display:none;border-top:4px solid #386d89">
+<div class="row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><h3>Test COÉFFÉ — Méthodes d’étude</h3><p style="color:var(--text-muted)">Questionnaire adapté du test de Michel Coéffé · 20 affirmations · Autoévaluation pédagogique</p></div><button class="btn ghost close-panel" type="button">Retour</button></div>
+<div class="tabs" id="coeffe-tabs"><button type="button" class="tab active" data-coeffe-tab="candidates">Faire passer le test</button><button type="button" class="tab" data-coeffe-tab="results">Consulter les résultats</button></div>
+<div id="coeffe-candidates"><div class="toolbar" style="display:flex;gap:12px;flex-wrap:wrap"><div class="field"><label class="label">Classe</label><select class="select" id="coeffe-class"><option value="">Toutes les classes</option></select></div><div class="field" style="flex:1"><label class="label">Rechercher</label><input class="input" id="coeffe-search" placeholder="Nom, prénoms ou matricule"></div></div><div class="table-wrap"><table><thead><tr><th>Matricule</th><th>Nom et prénoms</th><th>Classe</th><th>Passations</th><th>Action</th></tr></thead><tbody id="coeffe-candidates-body"></tbody></table></div></div>
+<div id="coeffe-results" hidden><div class="table-wrap"><table><thead><tr><th>Élève</th><th>Classe</th><th>Score /20</th><th>Interprétation</th><th>Date</th><th>Action</th></tr></thead><tbody id="coeffe-results-body"></tbody></table></div></div>
+</div>
+<div id="coeffe-overlay" hidden><div id="coeffe-dialog" role="dialog" aria-modal="true" aria-label="Passation du test Coéffé"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3 id="coeffe-dialog-title">Test COÉFFÉ</h3><button type="button" class="btn ghost" id="coeffe-close">Fermer</button></div><div id="coeffe-dialog-content"></div></div></div>
+<div id="paiMainPanel" class="card section" style="display:none;border-top:4px solid #0f766e">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
         <div><h3 style="margin:0;color:#0f766e"><i class="fa fa-clipboard-list"></i> Plan d’Accompagnement Individualisé (PAI)</h3><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Questionnaire officiel fourni — 52 questions, réponses individuelles et observations du conseiller.</div></div>
         <button class="btn ghost close-panel"><i class="fa fa-arrow-left"></i> Retour</button>
@@ -1285,9 +1293,6 @@ body{overflow-x:hidden}
                 <button id="btn-export-cio-excel" class="btn" style="background:#10b981; color:white; margin-left:auto">
                     <i class="fa fa-file-excel"></i> Exporter Excel
                 </button>
-                <button id="btn-export-cio-pdf" class="btn" style="background:#059669; color:white">
-    <i class="fa fa-file-pdf"></i> Exporter PDF
-</button>
             </div>
         </div>
 
@@ -6721,29 +6726,26 @@ document.getElementById('cio-period-selector').addEventListener('change', () => 
 /* ====== FONCTION D'EXPORT EXCEL POUR LE RAPPORT CIO ====== */
 function exportCIOToExcel() {
     try {
-        const period = document.getElementById('cio-period-selector').value;
-        const periodLabel = document.getElementById('cio-period-selector').selectedOptions[0].text;
+        if (typeof XLSX === 'undefined') throw new Error('La bibliothèque Excel est indisponible.');
+        const periodSelector = document.getElementById('cio-period-selector');
+        const period = periodSelector.value;
+        const periodLabel = periodSelector.selectedOptions[0].text;
         const dateStr = new Date().toISOString().slice(0,10);
-        
-        // Demander à l'utilisateur quel rapport exporter
-        const choice = confirm("Voulez-vous exporter les deux rapports ?\n\nOK = Deux fichiers séparés\nAnnuler = Rapport d'analyse uniquement");
-        
-        if (choice) {
-            // Exporter deux fichiers séparés
-            exportFirstTableAsExcel(period, periodLabel, dateStr);
-            // Petit délai pour éviter les conflits
-            setTimeout(() => {
-                exportSecondTableAsExcel(period, periodLabel, dateStr);
-            }, 500);
-        } else {
-            // Exporter seulement le premier tableau (analyse par matière)
-            exportFirstTableAsExcel(period, periodLabel, dateStr);
-        }
-        
+        // Un seul classeur, deux rapports, un onglet par rapport.
+        const wb = XLSX.utils.book_new();
+        const analysis = XLSX.utils.aoa_to_sheet(generateFirstTableForExcel(period));
+        const averages = XLSX.utils.aoa_to_sheet(generateSecondTableForExcel(period));
+        XLSX.utils.book_append_sheet(wb, analysis, 'Analyse par matière');
+        XLSX.utils.book_append_sheet(wb, averages, 'Moyennes générales');
+        const safePeriod = periodLabel.replace(/[^a-zA-Z0-9_-]+/g,'_');
+        const safeYear = String(getSelectedYear()).replace(/[^a-zA-Z0-9_-]+/g,'_');
+        const fileName = `Rapport_CIO_${safeYear}_${safePeriod}_${dateStr}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        if (typeof setStatus === 'function') setStatus('Rapport CIO exporté dans un seul fichier Excel.', 'success');
     } catch (error) {
-        console.error("Erreur lors de l'export Excel:", error);
-        setStatus('Erreur lors de l\'export Excel', 'error');
-        alert("Une erreur est survenue lors de l'export : " + error.message);
+        console.error("Erreur lors de l'export Excel CIO :", error);
+        if (typeof setStatus === 'function') setStatus("Erreur lors de l'export Excel CIO", 'error');
+        alert("Impossible d'exporter le rapport CIO : " + error.message);
     }
 }
 
@@ -7879,8 +7881,7 @@ document.getElementById('btn-export-report-pdf').addEventListener('click', async
   // Bouton Export CIO
   const btnExpCioExcel = document.getElementById('btn-export-cio-excel');
   if(btnExpCioExcel) btnExpCioExcel.addEventListener('click', exportCIOToExcel);
-  const btnExpCioPdf = document.getElementById('btn-export-cio-pdf');
-  if(btnExpCioPdf) btnExpCioPdf.addEventListener('click', exportCioToPDF);
+  
 
 });
 
@@ -8388,7 +8389,7 @@ if(typeof previous==='function')window.openStudent=async function(s){await previ
 <script id="v712-year-import-behavior">(function(){'use strict';function init(){const year=document.getElementById('school-year'),file=document.getElementById('ic-file'),preview=document.getElementById('ic-preview'),commit=document.getElementById('ic-commit'),ack=document.getElementById('ic-ack'),status=document.getElementById('ic-year-status');if(!year)return;const sync=()=>{if(status)status.textContent='Année sélectionnée : '+year.value+' — les prochaines importations alimenteront cette année.';if(preview)preview.style.display='none';if(commit)commit.disabled=true;if(ack)ack.checked=false;const feedback=document.getElementById('ic-feedback');if(feedback)feedback.textContent='Année scolaire sélectionnée : '+year.value+'. Analysez votre fichier Excel avant importation.';};year.addEventListener('change',sync);const create=document.getElementById('btn-create-school-year');create?.addEventListener('click',()=>setTimeout(sync,350));sync();}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();</script>
 <style id="v713-reliability-styles">
 body[data-workspace="lycamMainPanel"] #lycamMainPanel,body[data-workspace="classResultsPanel"] #classResultsPanel{display:flex!important;flex-direction:column!important;min-height:0!important;visibility:visible!important}
-body[data-workspace="lycamMainPanel"] #lycam-view-candidates{display:flex;flex-direction:column;min-height:260px;overflow:visible}
+body[data-workspace="lycamMainPanel"] #lycam-view-candidates{flex-direction:column;min-height:260px;overflow:visible}
 body[data-workspace="lycamMainPanel"] #lycam-view-candidates .table-wrap{min-height:220px;max-height:65vh;overflow:auto}
 #v713-lycam-summary,#v713-results-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin:12px 0}
 .v713-metric{background:#f2f8f8;border:1px solid #dcebec;border-radius:12px;padding:13px;color:#345266}.v713-metric strong{display:block;font-size:23px;color:#0d686b;margin-top:4px}
@@ -8547,6 +8548,20 @@ function pdf(){
 #studentPanel #v747-workspace .v758-trend.v758-equal{color:#516477!important;background-color:#eef2f6!important;border:1px solid #d4dce4!important}
 #studentPanel #v747-workspace .v758-trend.v758-missing{color:#697586!important;background-color:#f5f6f8!important}
 #studentPanel #v747-workspace .v758-trend{display:inline-flex!important;font-weight:800!important;font-size:12px!important;padding:3px 7px!important;border-radius:7px!important;white-space:nowrap!important}
+</style><style id="v763-lycam-responsive">
+/* Les panneaux ne doivent pas couper les tableaux sur écran PC. */
+#lycamMainPanel{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;overflow:visible!important}
+#lycamMainPanel .tabs{display:flex!important;flex-wrap:wrap!important;gap:8px;min-width:0}
+#lycamMainPanel .tabs .tab{flex:1 1 190px;min-width:0;white-space:normal!important;overflow-wrap:anywhere;padding:12px 10px;line-height:1.4;text-align:center}
+#lycamMainPanel #lycam-view-results,#lycamMainPanel #lycam-view-candidates{min-width:0!important;max-width:100%!important;overflow:visible!important;box-sizing:border-box!important}
+#lycamMainPanel #lycam-view-results .table-wrap,#lycamMainPanel #lycam-view-candidates .table-wrap{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:auto!important;max-height:70vh;box-sizing:border-box;scrollbar-width:thin}
+#lycamMainPanel #lycam-global-table,#lycamMainPanel #lycam-candidates-table{width:max-content;min-width:100%;border-collapse:collapse}
+#lycamMainPanel #lycam-global-table th,#lycamMainPanel #lycam-global-table td,#lycamMainPanel #lycam-candidates-table th,#lycamMainPanel #lycam-candidates-table td{white-space:normal!important;overflow-wrap:anywhere;vertical-align:middle;max-width:360px;min-width:100px}
+#lycamMainPanel #lycam-global-table td:nth-child(3){min-width:240px}
+#lycamMainPanel .toolbar{flex-wrap:wrap!important;min-width:0}
+#lycamMainPanel .toolbar .field{min-width:min(100%,180px)}
+#lycamMainPanel #lycam-class-workspace,#lycamMainPanel #lc-report{min-width:0;max-width:100%;overflow-x:auto}
+@media(max-width:700px){#lycamMainPanel .tabs .tab{flex-basis:100%}#lycamMainPanel #lycam-global-table th,#lycamMainPanel #lycam-global-table td{min-width:115px}}
 </style></body></html>`;
  // No external libraries or network dependency: print directly from a standalone document.
  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -8870,6 +8885,132 @@ function setup(){
 const old=window.openStudent;if(typeof old==='function')window.openStudent=async function(s){window.v757Student=s;await old(s);paint(s)};
 document.addEventListener('click',e=>{if(e.target.closest('.v710-plus'))setTimeout(()=>paint(window.v757Student),0)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+})();
+</script><style id="v762-lycam-tabs-fix">
+#lycamMainPanel[data-lycam-view="results"] #lycam-view-candidates{display:none!important}
+#lycamMainPanel[data-lycam-view="results"] #lycam-view-results{display:flex!important;flex-direction:column;min-height:250px;overflow:visible}
+#lycamMainPanel[data-lycam-view="candidates"] #lycam-view-candidates{display:flex!important}
+#lycamMainPanel[data-lycam-view="candidates"] #lycam-view-results{display:none!important}
+#lycamMainPanel #lycam-view-results .table-wrap{max-height:65vh;overflow:auto;min-height:180px}
+#lycamMainPanel .tabs .tab{cursor:pointer;position:relative;z-index:1}
+</style>
+<script id="v762-lycam-tabs-script">
+(function(){
+ 'use strict';
+ const original=window.switchLycamView;
+ window.switchLycamView=function(view){
+  if(view!=='results'&&view!=='candidates')return;
+  const panel=document.getElementById('lycamMainPanel');
+  if(panel)panel.dataset.lycamView=view;
+  if(typeof original==='function')return original(view);
+ };
+ function init(){
+  const panel=document.getElementById('lycamMainPanel');if(!panel)return;
+  panel.dataset.lycamView='candidates';
+  const tabs=panel.querySelectorAll('.tabs .tab');
+  tabs.forEach((tab,index)=>{
+   tab.setAttribute('role','button');tab.setAttribute('tabindex','0');
+   tab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();window.switchLycamView(index===0?'candidates':'results')}});
+  });
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script><style id="coeffe-style">
+#coeffeMainPanel .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+#coeffeMainPanel .tab{border:1px solid #b8c9d4;border-radius:8px;padding:10px 14px;background:#f5f9fc;color:#28485d;cursor:pointer;font-weight:650}
+#coeffeMainPanel .tab.active{background:#386d89;color:white}
+#coeffeMainPanel .table-wrap{max-width:100%;overflow:auto}
+#coeffeMainPanel table{width:100%;min-width:650px}
+#coeffe-overlay:not([hidden]){position:fixed;inset:0;z-index:100000;background:rgba(16,32,48,.62);display:flex;align-items:center;justify-content:center;padding:14px}
+#coeffe-dialog{width:min(850px,100%);max-height:92vh;overflow:auto;background:white;border-radius:14px;padding:20px;color:#263747;box-shadow:0 20px 80px #0005}
+#coeffe-dialog .coeffe-question{border-bottom:1px solid #e0e8ee;padding:12px 0}
+#coeffe-dialog .coeffe-choices{display:flex;gap:18px;flex-wrap:wrap;margin-top:7px}
+#coeffe-dialog .coeffe-choices label{display:flex;gap:5px;align-items:center}
+#coeffe-dialog .coeffe-result{border-radius:10px;padding:14px;background:#edf5f8;margin:12px 0}
+#coeffe-dialog .coeffe-tip{padding:8px 0;border-bottom:1px solid #e2e8f0}
+@media(max-width:600px){#coeffe-dialog{padding:12px}#coeffe-dialog .coeffe-choices{gap:12px}}
+</style><style id="coeffe-nav-fix">body[data-workspace="coeffeMainPanel"] .app-main>.grid-container{display:flex!important;overflow:visible!important;height:auto!important}body[data-workspace="coeffeMainPanel"] .grid-container>.section:not(#coeffeMainPanel){display:none!important}body[data-workspace="coeffeMainPanel"] #coeffeMainPanel{display:flex!important;flex-direction:column;min-width:0;overflow:visible!important}#coeffe-candidates[hidden],#coeffe-results[hidden]{display:none!important}#coeffeMainPanel{width:100%;max-width:100%}</style><script id="coeffe-module">
+(function(){
+'use strict';
+const Q=["La veille des contrôles je panique", "Je n’arrive pas à me mettre au travail", "J’apprends la veille de l’interrogation", "Je n’apprends ma leçon que si je risque d’être interrogé", "En travaillant je pense à mes loisirs", "J’aime travailler en musique", "Je n’ai pas le temps de revoir les cours difficiles", "Il m’arrive de travailler dans mon lit", "Il n’est pas utile d’apprendre les titres et sous titres d’une leçon", "Apprendre un schéma ne permet pas de retenir", "Je m’applique à noter mot à mot ce que dit le prof", "Je n’ai pas assez de temps pour mes loisirs", "Je travaille quand j’en ai envie", "Je ne sais pas comment organiser mon travail", "J’aime bien prendre mon temps quand je travaille", "Lorsque je travaille, je m’arrête toutes les demi-heures", "Il y a trop de termes dont je ne comprends le sens", "Je me concentre sur les matières où je suis le meilleur", "Je ne suis jamais l’actualité", "Je refais rarement les exercices que je n’ai pas pu faire"];
+const T=["S’entraîner régulièrement aide à gagner en confiance.", "Travailler régulièrement, si possible aux mêmes heures.", "Réviser en plusieurs fois pour mémoriser à long terme.", "Apprendre régulièrement facilite la compréhension des leçons suivantes.", "Noter les préoccupations sur une feuille et y revenir plus tard.", "Éviter les distractions sonores, notamment la musique avec paroles.", "Consacrer davantage de temps aux cours difficiles.", "Choisir un lieu de travail adapté, plutôt que le lit.", "Apprendre les titres et sous-titres pour structurer les connaissances.", "Utiliser les schémas comme supports de mémorisation.", "Prendre des notes synthétiques plutôt que tout recopier mot à mot.", "Planifier du temps pour le travail et pour les loisirs.", "Prévoir des plages de travail régulières, sans attendre l’envie.", "Organiser son travail et établir un planning.", "Se fixer des limites de temps pour travailler efficacement.", "Prévoir des pauses courtes et adaptées à sa concentration.", "Développer son vocabulaire par la lecture.", "Travailler également les matières dans lesquelles on rencontre des difficultés.", "Multiplier les sources d’information et suivre l’actualité.", "Reprendre les exercices non réussis et comprendre ses erreurs."];
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const year=()=>typeof getSelectedYear==='function'?getSelectedYear():$('school-year')?.value||'';
+const key=()=> 'gestionnaire_coeffe_passations_v1_'+year();
+const load=()=>{try{return JSON.parse(localStorage.getItem(key())||'[]')}catch(e){return []}};
+const save=data=>localStorage.setItem(key(),JSON.stringify(data));
+const students=()=>Array.isArray(window.allStudents)?window.allStudents:(typeof allStudents!=='undefined'&&Array.isArray(allStudents)?allStudents:[]);
+const grade=s=>String(s.classe||'');
+let current=null,active='candidates';
+const level=score=>score>=15?'Méthodes très satisfaisantes':score>=10?'Méthodes plutôt correctes, à améliorer':score>=5?'Méthodes peu efficaces':'Changement important des méthodes nécessaire';
+function switchTab(tab){
+ active=tab;
+ $('coeffe-candidates').hidden=tab!=='candidates';
+ $('coeffe-results').hidden=tab!=='results';
+ document.querySelectorAll('[data-coeffe-tab]').forEach(b=>b.classList.toggle('active',b.dataset.coeffeTab===tab));
+ render();
+}
+function render(){
+ if(!$('coeffeMainPanel'))return;
+ if(active==='results'){
+ const data=load().slice().sort((a,b)=>b.at.localeCompare(a.at));
+ $('coeffe-results-body').innerHTML=data.length?data.map((r,i)=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.classe)+'</td><td>'+r.score+'/20</td><td>'+esc(level(r.score))+'</td><td>'+esc(new Date(r.at).toLocaleDateString('fr-FR'))+'</td><td><button type="button" class="btn ghost" data-coeffe-view="'+esc(r.id)+'">Voir</button></td></tr>').join(''):'<tr><td colspan="6">Aucune passation enregistrée pour cette année scolaire.</td></tr>';
+ return;
+ }
+ const cls=$('coeffe-class'),selected=cls.value,classes=[...new Set(students().map(grade).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr',{numeric:true}));
+ cls.innerHTML='<option value="">Toutes les classes</option>'+classes.map(c=>'<option value="'+esc(c)+'"'+(selected===c?' selected':'')+'>'+esc(c)+'</option>').join('');
+ const search=$('coeffe-search').value.trim().toLocaleLowerCase('fr');
+ const data=load();
+ const list=students().filter(s=>(!selected||grade(s)===selected)&&(!search||[s.nom,s.prenoms,s.matricule].some(v=>String(v||'').toLocaleLowerCase('fr').includes(search))));
+ $('coeffe-candidates-body').innerHTML=list.length?list.slice(0,250).map(s=>{const count=data.filter(r=>r.matricule===String(s.matricule)).length;return '<tr><td>'+esc(s.matricule)+'</td><td>'+esc((s.nom||'')+' '+(s.prenoms||''))+'</td><td>'+esc(grade(s))+'</td><td>'+count+'</td><td><button class="btn" type="button" data-coeffe-start="'+esc(s.matricule)+'">Faire passer</button></td></tr>'}).join(''):'<tr><td colspan="5">Aucun élève trouvé. Importez d’abord la liste des élèves.</td></tr>';
+}
+function openDialog(title,content){
+ $('coeffe-dialog-title').textContent=title;$('coeffe-dialog-content').innerHTML=content;$('coeffe-overlay').hidden=false;
+}
+function closeDialog(){$('coeffe-overlay').hidden=true;current=null}
+function start(mat){
+ const s=students().find(x=>String(x.matricule)===String(mat));if(!s)return;
+ current=s;
+ const html='<p><strong>'+esc((s.nom||'')+' '+(s.prenoms||''))+'</strong> · '+esc(grade(s))+' · '+esc(s.matricule)+'</p><p>Pour chaque affirmation, sélectionnez « plutôt vrai » ou « plutôt faux ».</p><form id="coeffe-form">'+Q.map((q,i)=>'<div class="coeffe-question"><strong>'+(i+1)+'. '+esc(q)+'</strong><div class="coeffe-choices"><label><input type="radio" name="q'+i+'" value="vrai" required> Plutôt vrai</label><label><input type="radio" name="q'+i+'" value="faux" required> Plutôt faux</label></div></div>').join('')+'<p id="coeffe-error" role="alert" style="color:#b42318"></p><button type="submit" class="btn">Enregistrer et calculer le résultat</button></form>';
+ openDialog('Passation du test COÉFFÉ',html);
+ $('coeffe-form').addEventListener('submit',e=>{
+ e.preventDefault();const form=e.currentTarget;const answers=Q.map((_,i)=>form.querySelector('input[name="q'+i+'"]:checked')?.value||null);
+ if(answers.some(x=>!x)){$('coeffe-error').textContent='Veuillez répondre aux 20 affirmations.';return}
+ const score=answers.filter(x=>x==='faux').length;
+ const record={id:'cof_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),matricule:String(s.matricule),name:((s.nom||'')+' '+(s.prenoms||'')).trim(),classe:grade(s),schoolYear:year(),at:new Date().toISOString(),answers,score};
+ try{const data=load();data.push(record);save(data)}catch(err){$('coeffe-error').textContent='Enregistrement impossible : '+err.message;return}
+ show(record);render();
+ });
+}
+function show(r){
+ const positive=r.answers.map((a,i)=>a==='vrai'?i:-1).filter(i=>i>=0);
+ openDialog('Résultat du test COÉFFÉ','<p><strong>'+esc(r.name)+'</strong> · '+esc(r.classe)+' · '+esc(new Date(r.at).toLocaleString('fr-FR'))+'</p><div class="coeffe-result"><strong>Score : '+r.score+'/20 réponses « plutôt faux »</strong><p>'+esc(level(r.score))+'</p></div><p>Ce résultat est une autoévaluation des méthodes d’étude, pas un diagnostic psychologique.</p><h4>Difficultés signalées et conseils</h4>'+(positive.length?positive.map(i=>'<div class="coeffe-tip"><strong>'+(i+1)+'. '+esc(Q[i])+'</strong><div>'+esc(T[i])+'</div></div>').join(''):'<p>Aucune affirmation « plutôt vrai ».</p>')+'<p><button type="button" class="btn ghost" id="coeffe-print">Imprimer ce bilan</button></p>');
+ $('coeffe-print').addEventListener('click',()=>{
+  const w=window.open('','_blank');
+  if(!w){alert('Veuillez autoriser les fenêtres surgissantes pour imprimer le bilan.');return;}
+  const rows=positive.map(i=>'<div class="tip"><strong>'+(i+1)+'. '+esc(Q[i])+'</strong><p>'+esc(T[i])+'</p></div>').join('');
+  const html='<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bilan COÉFFÉ - '+esc(r.name)+'</title><style>@page{size:A4;margin:16mm}*{box-sizing:border-box}body{font:11pt/1.5 Arial,Helvetica,sans-serif;color:#263747;margin:20px auto;max-width:760px}h1{color:#20546a;font-size:19pt;margin-bottom:4px}h2{font-size:13pt;margin-top:24px;color:#20546a}.meta{border-bottom:2px solid #20546a;padding-bottom:12px}.score{background:#eef5f8;border:1px solid #bad0db;padding:14px;margin:18px 0;border-radius:7px}.tip{border-bottom:1px solid #dce5ea;padding:10px 0;break-inside:avoid}.tip p{margin:4px 0}.notice{font-size:9pt;color:#56636b}.printbtn{padding:9px 14px;background:#20546a;color:white;border:0;border-radius:5px;cursor:pointer}@media print{body{margin:0;max-width:none}.printbtn{display:none}.score{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><button class="printbtn" onclick="window.print()">Imprimer le bilan</button><h1>Bilan individuel — Test COÉFFÉ</h1><div class="meta"><strong>Élève :</strong> '+esc(r.name)+'<br><strong>Classe :</strong> '+esc(r.classe)+'<br><strong>Matricule :</strong> '+esc(r.matricule)+'<br><strong>Année scolaire :</strong> '+esc(r.schoolYear||'')+'<br><strong>Date :</strong> '+esc(new Date(r.at).toLocaleDateString('fr-FR'))+'</div><div class="score"><strong>Score : '+r.score+'/20 réponses « plutôt faux »</strong><p>'+esc(level(r.score))+'</p></div><h2>Difficultés signalées et conseils pédagogiques</h2>'+(rows||'<p>Aucune difficulté signalée par les réponses « plutôt vrai ».</p>')+'<p class="notice">Questionnaire adapté du test de Michel Coéffé. Outil d’autoévaluation des méthodes d’étude, sans valeur de diagnostic psychologique.</p></body></html>';
+  w.document.open();w.document.write(html);w.document.close();w.focus();
+});
+}
+function init(){
+ if(!$('coeffeMainPanel'))return;
+ document.querySelectorAll('[data-coeffe-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.coeffeTab)));
+ $('coeffe-search').addEventListener('input',render);$('coeffe-class').addEventListener('change',render);
+ $('coeffeMainPanel').addEventListener('click',e=>{
+ const st=e.target.closest('[data-coeffe-start]'),vw=e.target.closest('[data-coeffe-view]');
+ if(st)start(st.dataset.coeffeStart);
+ if(vw){const r=load().find(x=>x.id===vw.dataset.coeffeView);if(r)show(r)}
+ });
+ $('coeffe-close').addEventListener('click',closeDialog);
+ $('coeffe-overlay').addEventListener('click',e=>{if(e.target===$('coeffe-overlay'))closeDialog()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('coeffe-overlay').hidden)closeDialog()});
+ document.querySelector('[data-target="coeffeMainPanel"]')?.addEventListener('click',()=>setTimeout(render,0));
+ $('school-year')?.addEventListener('change',()=>setTimeout(render,0));
+ render();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script></body>
 </html>
