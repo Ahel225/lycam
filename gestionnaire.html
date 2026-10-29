@@ -1288,7 +1288,7 @@ body{overflow-x:hidden}
                         <th rowspan="3" style="min-width:50px">Genre</th>
                         <th colspan="3">COMPO. FR</th>
                         <th colspan="3">ORTH/GRAM</th>
-                        <th colspan="3">FRANÇAIS (second cycle)</th>
+                        <th colspan="3">FRANÇAIS</th>
                         <th colspan="3">ANGLAIS</th>
                         <th colspan="3">ALLEMAND</th>
                         <th colspan="3">ESPAGNOL</th>
@@ -2536,7 +2536,7 @@ if (classe.includes('Esp') || classe.includes('esp')) {
                 if (s.moyennes['Annuelle']?.Moy_generale < 10) {
                     // Élèves en difficulté scolaire
                     dimScores[dim] = randInt(1, 4);
-                } else if (s.sexe === 'F' && ['RS', 'CS'].includes(dim)) {
+                } else if (String(s.sexe||'').trim().toUpperCase().startsWith('F') && ['RS', 'CS'].includes(dim)) {
                     // Filles souvent meilleures en confiance et rendement
                     dimScores[dim] = randInt(0, 2);
                 } else {
@@ -3100,7 +3100,7 @@ function getSubjectDisplayName(k, studentOrClass = null){
     'hg': 'Hist-Géo', 
     'eps': 'EPS', 
     'philosophie': 'Philo', 
-    'lv2': 'LV2', // Valeur par défaut
+    'lv2': 'Allemand', // Libellé demandé
     'edhc': 'EDHC',
     'art_plastique': 'Arts',
     'conduite': 'Conduite'
@@ -3141,7 +3141,7 @@ function getSubjectDisplayName(k, studentOrClass = null){
     }
     
     // Par défaut
-    return 'LV2';
+    return 'Allemand';
   }
   
   return names[k] || k.charAt(0).toUpperCase() + k.slice(1);
@@ -5893,8 +5893,8 @@ function renderGenderStats() {
         ? allStudents
         : allStudents.filter(s => normalizeClasseKey(s.classe) === normalizeClasseKey(selectedClass));
     
-    const male = classStudents.filter(s => s.sexe === 'M');
-    const female = classStudents.filter(s => s.sexe === 'F');
+    const male = classStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
+    const female = classStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
     
     const calcAvg = (list) => calculateClassAverage(list, 'Moy_generale', period) || 0;
     const avgM = calcAvg(male);
@@ -6024,7 +6024,7 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
             'orthographe': ['orthographe', 'orthographe grammaire', 'orthographe-grammaire', 'orth', 'dictée'],
             'francais': ['francais', 'fr', 'français'],
             'anglais': ['anglais', 'eng', 'english'],
-            'allemand': ['allemand', 'all', 'deutsch'],
+            'allemand': ['allemand', 'all', 'deutsch', 'lv2'],
             'espagnol': ['espagnol', 'esp', 'español'],
             'hg': ['hg', 'histoire', 'géographie', 'hist-geo'],
             'maths': ['maths', 'math', 'mathematique'],
@@ -6118,22 +6118,16 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
             `;
         }
         
-        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
-        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        const femaleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
+        const maleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
         
         const femaleData = processStudentGroup(femaleStudents);
         const maleData = processStudentGroup(maleStudents);
         
         // Calculer les données "Ensemble" (total Fém. + Masc.)
-        const ensembleData = {};
-        subjects.forEach(subject => {
-            ensembleData[subject] = {
-                eff: (femaleData[subject]?.eff || 0) + (maleData[subject]?.eff || 0),
-                under10: (femaleData[subject]?.under10 || 0) + (maleData[subject]?.under10 || 0)
-            };
-        });
+        const ensembleData = processStudentGroup(levelStudents);
         
-        const totalStudents = femaleStudents.length + maleStudents.length;
+        const totalStudents = levelStudents.length;
         
         return `
             <tr>
@@ -6193,8 +6187,8 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
         premierCycleStudentsWithGrades = premierCycleStudentsWithGrades.concat(levelStudentsWithGrades);
         
         // Accumuler les totaux par genre
-        const femaleStudents = levelStudentsWithGrades.filter(s => s.sexe === 'F');
-        const maleStudents = levelStudentsWithGrades.filter(s => s.sexe === 'M');
+        const femaleStudents = levelStudentsWithGrades.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
+        const maleStudents = levelStudentsWithGrades.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
         
         totalPremierCycleFemale += femaleStudents.length;
         totalPremierCycleMale += maleStudents.length;
@@ -6210,13 +6204,13 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
             totalPremierCycleMaleData[subject].eff += maleData[subject]?.eff || 0;
             totalPremierCycleMaleData[subject].under10 += maleData[subject]?.under10 || 0;
             
-            totalPremierCycleEnsembleData[subject].eff = totalPremierCycleFemaleData[subject].eff + totalPremierCycleMaleData[subject].eff;
-            totalPremierCycleEnsembleData[subject].under10 = totalPremierCycleFemaleData[subject].under10 + totalPremierCycleMaleData[subject].under10;
+            totalPremierCycleEnsembleData[subject].eff = processStudentGroup(premierCycleStudentsWithGrades)[subject].eff;
+            totalPremierCycleEnsembleData[subject].under10 = processStudentGroup(premierCycleStudentsWithGrades)[subject].under10;
         });
     });
     
     // *** Ligne de total général pour le premier cycle ***
-    const totalPremierCycleStudents = totalPremierCycleFemale + totalPremierCycleMale;
+    const totalPremierCycleStudents = premierCycleStudentsWithGrades.length;
     html += `
         <tr style="background-color: #e0f2fe; border-top: 2px solid #0ea5e9;">
             <td rowspan="3" style="font-weight:bold;vertical-align:middle; background:#0ea5e9;color:white; text-align:center">TOTAL<br>1er CYCLE</td>
@@ -6285,8 +6279,8 @@ function renderFirstTableForHTML(period, allStudentsForReport, studentsWithGrade
         secondCycleStudentsWithGrades = secondCycleStudentsWithGrades.concat(levelStudentsWithGrades);
         
         // Accumuler les totaux par genre
-        const femaleStudents = levelStudentsWithGrades.filter(s => s.sexe === 'F');
-        const maleStudents = levelStudentsWithGrades.filter(s => s.sexe === 'M');
+        const femaleStudents = levelStudentsWithGrades.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
+        const maleStudents = levelStudentsWithGrades.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
         
         totalSecondCycleFemale += femaleStudents.length;
         totalSecondCycleMale += maleStudents.length;
@@ -6851,7 +6845,7 @@ function generateFirstTableForExcel(period) {
             'orthographe': ['orthographe', 'orthographe grammaire', 'orthographe-grammaire', 'orth', 'dictée'],
             'francais': ['francais', 'fr', 'français'],
             'anglais': ['anglais', 'eng', 'english'],
-            'allemand': ['allemand', 'all', 'deutsch'],
+            'allemand': ['allemand', 'all', 'deutsch', 'lv2'],
             'espagnol': ['espagnol', 'esp', 'espa'],
             'hg': ['hg', 'histoire', 'géographie', 'hist-geo', 'histgeo'],
             'maths': ['maths', 'math', 'mathematique'],
@@ -6917,8 +6911,8 @@ function generateFirstTableForExcel(period) {
     
     premierCycleLevels.forEach(levelDef => {
         const levelStudents = allStudents.filter(levelDef.filter);
-        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
-        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        const femaleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
+        const maleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
         
         // Mettre à jour les totaux du cycle
         premierCycleTotal.total.F += femaleStudents.length;
@@ -7020,8 +7014,8 @@ function generateFirstTableForExcel(period) {
     
     secondCycleLevels.forEach(levelDef => {
         const levelStudents = allStudents.filter(levelDef.filter);
-        const femaleStudents = levelStudents.filter(s => s.sexe === 'F');
-        const maleStudents = levelStudents.filter(s => s.sexe === 'M');
+        const femaleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('F'));
+        const maleStudents = levelStudents.filter(s => String(s.sexe||'').trim().toUpperCase().startsWith('M'));
         
         // Mettre à jour les totaux du cycle
         secondCycleTotal.total.F += femaleStudents.length;
@@ -8006,7 +8000,7 @@ window.addEventListener('focus',()=>{try{dashboard();alerts()}catch(e){}});
 (()=>{
 const $=id=>document.getElementById(id), esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-const aliases={matricule:['matricule','mat','numero matricule','n matricule'],nom:['nom','noms'],prenoms:['prenoms','prenom'],fullname:['nom et prenoms','nom prenoms','nom complet'],classe:['classe','class','niveau'],sexe:['sexe','genre','sex'],dateNaissance:['date de naissance','date naissance','date_naissance','datenaissance','ne le','né le','né(e) le','naissance','ddn','dob'],age:['age','âge'],compo_francais:['compo_francais','compo francais','composition francaise','composition français','compo fr','compo française'],francais:['francais','fr','moyenne francais','moyenne de francais'],maths:['maths','math','mathematiques'],anglais:['anglais','ang'],physique:['physique','pc'],svt:['svt'],hg:['hg','histoire geographie'],eps:['eps'],philosophie:['philosophie'],lv2:['lv2'],conduite:['conduite'],edhc:['edhc'],art_plastique:['art plastique','arts plastiques'],tic:['tic'],orthographe:['orthographe','orthographe grammaire','orthographe-grammaire','ortho grammaire','grammaire'],expression_orale:['expression orale','expression orale francaise','oral francais'],Moy_generale:['moyenne generale','moy generale','moy gen','mg','moy g','moy trim1','moy trim2','moy trim3','moyenne trimestre 1','moyenne trimestre 2','moyenne trimestre 3']};
+const aliases={matricule:['matricule','mat','numero matricule','n matricule'],nom:['nom','noms'],prenoms:['prenoms','prenom'],fullname:['nom et prenoms','nom prenoms','nom complet'],classe:['classe','class','niveau'],sexe:['sexe','genre','sex'],dateNaissance:['date de naissance','date naissance','date_naissance','datenaissance','ne le','né le','né(e) le','naissance','ddn','dob'],age:['age','âge'],compo_francais:['compo_francais','compo francais','composition francaise','composition français','compo fr','compo française'],francais:['francais','fr','moyenne francais','moyenne de francais'],maths:['maths','math','mathematiques'],anglais:['anglais','ang'],physique:['physique','pc'],svt:['svt'],hg:['hg','histoire geographie'],eps:['eps'],philosophie:['philosophie'],lv2:['lv2','allemand','all','deutsch'],conduite:['conduite'],edhc:['edhc'],art_plastique:['art plastique','arts plastiques'],tic:['tic'],orthographe:['orthographe','orthographe grammaire','orthographe-grammaire','ortho grammaire','grammaire'],expression_orale:['expression orale','expression orale francaise','oral francais'],Moy_generale:['moyenne generale','moy generale','moy gen','mg','moy g','moy trim1','moy trim2','moy trim3','moyenne trimestre 1','moyenne trimestre 2','moyenne trimestre 3']};
 const grades=Object.keys(aliases).filter(k=>!['matricule','nom','prenoms','fullname','classe','sexe','dateNaissance','age'].includes(k));let pending=null;
 const mapHeaders=headers=>{const m={};headers.forEach((h,i)=>{const n=norm(h);for(const [k,vals] of Object.entries(aliases)){if(m[k]===undefined&&vals.some(v=>norm(v)===n)){m[k]=i;break;}}});return m;};
 const parseSex=x=>{const n=norm(x);if(['m','masculin','garcon','homme'].includes(n))return 'M';if(['f','feminin','fille','femme'].includes(n))return 'F';return '';};
@@ -8339,7 +8333,7 @@ function init(){tools();decorate();const year=$('school-year');year?.addEventLis
 (function(){
 'use strict';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels={francais:'Français',compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',maths:'Mathématiques',anglais:'Anglais',physique:'Physique-chimie',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',edhc:'EDHC',lv2:'Langue vivante 2',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
+const labels={francais:'Français',compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',maths:'Mathématiques',anglais:'Anglais',physique:'Physique-chimie',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',edhc:'EDHC',lv2:'Allemand',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
 const general=new Set(['moy_generale','moyenne_generale','mg','moy_trim1','moy_trim2','moy_trim3','moyenne','general']);
 function getGrades(s,p){const m=s?.moyennes?.[p];if(!m||typeof m!=='object')return [];
  return Object.entries(m).filter(([k,v])=>!general.has(k.toLowerCase())&&v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=20).map(([k,v])=>[labels[k.toLowerCase()]||k.replace(/_/g,' '),Number(v).toLocaleString('fr-FR',{maximumFractionDigits:2})]).sort((a,b)=>a[0].localeCompare(b[0],'fr'));
