@@ -8368,10 +8368,10 @@ function init(){tools();decorate();const year=$('school-year');year?.addEventLis
 (function(){
 'use strict';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels={francais:'Français',compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',maths:'Mathématiques',anglais:'Anglais',physique:'Physique-chimie',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',edhc:'EDHC',lv2:'Allemand',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
+const labels={francais:'Français',compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',maths:'Mathématiques',anglais:'Anglais',physique:'Physique-chimie',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',edhc:'EDHC',lv2:'LV2',allemand:'Allemand',espagnol:'Espagnol',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
 const general=new Set(['moy_generale','moyenne_generale','mg','moy_trim1','moy_trim2','moy_trim3','moyenne','general']);
 function getGrades(s,p){const m=s?.moyennes?.[p];if(!m||typeof m!=='object')return [];
- return Object.entries(m).filter(([k,v])=>!general.has(k.toLowerCase())&&v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=20).map(([k,v])=>[labels[k.toLowerCase()]||k.replace(/_/g,' '),Number(v).toLocaleString('fr-FR',{maximumFractionDigits:2})]).sort((a,b)=>a[0].localeCompare(b[0],'fr'));
+ return Object.entries(m).filter(([k,v])=>!general.has(k.toLowerCase())&&!['moygenerale','moyennegenerale'].includes(k.toLowerCase().replace(/[^a-z0-9]/g,''))&&v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=20).map(([k,v])=>[labels[k.toLowerCase()]||k.replace(/_/g,' '),Number(v).toLocaleString('fr-FR',{maximumFractionDigits:2})]).sort((a,b)=>a[0].localeCompare(b[0],'fr'));
 }
 function addDetails(s){const root=document.getElementById('v79-profile-averages');if(!root)return;
  const cards=root.querySelectorAll('.v79-average');['1TR','2TR','3TR'].forEach((p,i)=>{const card=cards[i];if(!card)return;const small=card.querySelector('small');if(!small||card.querySelector('.v710-plus'))return;
@@ -8535,7 +8535,13 @@ function pdf(){
  const html=`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport LYCAM - ${safe(current.className)}</title><style>
  @page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}html,body{margin:0;padding:0;color:#24414b;font:10pt Arial,sans-serif}h1{font-size:17pt;color:#125467;margin:0 0 7mm}h2{font-size:11pt;color:#125467;margin:7mm 0 3mm}.meta{line-height:1.7;margin-bottom:5mm}.meta b{color:#25444d}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:8pt}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #cadce1;padding:2.4mm 1.2mm;overflow-wrap:anywhere;vertical-align:middle}th{background:#e9f3f6;text-align:center;color:#35566c}th:nth-child(1){width:4%}th:nth-child(2){width:23%}th:nth-child(n+3):nth-child(-n+9){width:7%}th:nth-child(10){width:10%}th:nth-child(11){width:14%}.student{text-align:left}.student small{display:block;color:#627983;margin-top:1mm}.num{text-align:center}.alert{color:#a63830;font-weight:bold}.legend{margin-top:6mm;line-height:1.65;font-size:9pt;break-inside:avoid}.conf{border-top:1px solid #cbdce1;padding-top:3mm;margin-top:5mm;font-size:8pt;color:#506d78}.toolbar{padding:12px;background:#e9f3f6;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.toolbar button{background:#087f8b;color:white;border:0;border-radius:7px;padding:10px 16px;font-weight:bold;cursor:pointer}@media print{.toolbar{display:none!important}body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
  </style></head><body><div class="toolbar"><span>Dans la fenêtre d'impression, choisissez <b>Enregistrer au format PDF</b>.</span><button onclick="window.print()">Imprimer / Enregistrer en PDF</button></div><main><h1>LYCAM — Dépouillement collectif</h1><div class="meta"><b>Année scolaire :</b> ${safe(current.year)} &nbsp; <b>Classe :</b> ${safe(current.className)} &nbsp; <b>Motif :</b> ${safe(current.reason)}<br><b>Élèves testés :</b> ${tested.length}/${classSize} &nbsp; <b>Risque élevé :</b> ${high} &nbsp; <b>Faible risque :</b> ${tested.length-high} &nbsp; <b>Session :</b> ${current.status==='completed'?'Clôturée':'En cours'} &nbsp; <b>Date :</b> ${new Date().toLocaleDateString('fr-FR')}</div><h2>Résultats des élèves ayant passé le test</h2><table><thead><tr><th>N°</th><th>Élève / matricule</th>${dimList.map(([k])=>`<th>${safe(k)}</th>`).join('')}<th>Score global</th><th>Niveau de risque</th></tr></thead><tbody>${rows}</tbody></table><div class="legend"><b>Légende des dimensions :</b> ${dimList.map(([k,d])=>`<b>${safe(k)}</b> : ${safe(d.label)}`).join(' &nbsp; · &nbsp; ')}<p>Les scores en rouge signalent une dimension atteignant son seuil. Le seuil global paramétré est de ${threshold}/41. Les résultats servent à orienter l'accompagnement et ne constituent pas un diagnostic.</p></div><div class="conf">DOCUMENT CONFIDENTIEL — Données individuelles à usage professionnel uniquement.</div></main>
-</body></html>`;
+<style id="v758-results-style">
+#v747-workspace .v758-trend{display:inline-flex;align-items:center;justify-content:center;font-weight:750;font-size:12px;white-space:nowrap;margin-left:5px;border-radius:6px;padding:3px 5px}
+#v747-workspace .v758-up{color:#087650;background:#e9f8ef}#v747-workspace .v758-down{color:#b52e42;background:#fff0f1}
+#v747-workspace .v758-equal{color:#536b7b;background:#edf3f7}#v747-workspace .v758-missing{color:#6b7280}
+#v747-workspace .v747-table td:last-child{text-align:right}#v747-workspace .v747-table th{text-align:left}
+#v747-workspace .v747-table td:nth-child(2){font-variant-numeric:tabular-nums}
+</style></body></html>`;
  // No external libraries or network dependency: print directly from a standalone document.
  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
  const url=URL.createObjectURL(blob);
@@ -8765,7 +8771,28 @@ function displayRecords(list,fields){return list.length?list.slice().reverse().m
 function existingExtra(){try{const year=typeof getSelectedYear==='function'?getSelectedYear():'';const key='GestionnaireStudentExtra_v741_'+encodeURIComponent(year)+'_'+encodeURIComponent(String(current.matricule||'').trim().toUpperCase());return JSON.parse(localStorage.getItem(key)||'{}')}catch(e){return {}}}
 function content(){if(!current)return '';const s=current,year=typeof getSelectedYear==='function'?getSelectedYear():'';const extra=existingExtra();
 if(active==='identite')return '<h3>Informations personnelles et administratives</h3><div class="v747-grid">'+fact('Nom',s.nom)+fact('Prénoms',s.prenoms||s.prenom)+fact('Matricule',s.matricule)+fact('Sexe',s.sexe)+fact('Date de naissance',s.dateNaissance)+fact('Classe',s.classe)+fact('Année scolaire',year)+fact('Redoublant',s.redoublant===true?'Oui':s.redoublant===false?'Non':'Non renseigné')+fact('Établissement',extra.school||s.etablissement)+fact('Responsable légal',extra.guardian)+fact('Téléphone',extra.phone)+fact('Adresse',extra.address)+'</div><h3>Observations administratives</h3><p>'+label(extra.notes)+'</p><button type="button" class="btn ghost" id="v747-edit">Modifier les informations administratives</button><p class="v747-muted">Vous pouvez modifier le responsable légal, son contact, le quartier et les observations depuis ce formulaire.</p>';
-if(active==='resultats'){const periods=[['1TR','1er trimestre'],['2TR','2e trimestre'],['3TR','3e trimestre'],['Annuelle','Année']];let html='<h3>Résultats scolaires · '+esc(year)+'</h3><div class="v747-grid">'+periods.map(([p,n])=>fact(n,grade(s.moyennes?.[p])==='—'?'Non disponible':grade(s.moyennes?.[p])+' / 20')).join('')+'</div>';for(const [p,n] of periods){const m=s.moyennes?.[p];html+='<details class="v747-record"><summary><b>'+esc(n)+'</b> · détail des matières</summary>';const rows=Object.entries(m||{}).filter(([k,v])=>v!==''&&v!=null&&typeof v!=='object'&&Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=20);html+=rows.length?'<table class="v747-table"><tbody>'+rows.map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table>':'<p class="v747-muted">Aucune moyenne disponible pour cette période.</p>';html+='</details>'}return html}
+if(active==='resultats'){
+ const periods=[['1TR','1er trimestre'],['2TR','2e trimestre'],['3TR','3e trimestre'],['Annuelle','Année']];
+ const subjects={compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',francais:'Français',maths:'Mathématiques',anglais:'Anglais',svt:'SVT',hg:'Histoire-géographie',physique:'Physique-chimie',eps:'EPS',allemand:'Allemand',espagnol:'Espagnol',edhc:'EDHC',lv2:'LV2',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
+ const canonical=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const generalKeys=new Set(['moygenerale','moyennegenerale','mg','moytrim1','moytrim2','moytrim3','moyenne','general']);
+ const note=v=>{if(v==null||String(v).trim()==='')return null;const n=Number(String(v).replace(',','.'));return Number.isFinite(n)&&n>=0&&n<=20?n:null};
+ const period=p=>s.moyennes?.[p]||{};
+ const general=m=>{for(const [k,v] of Object.entries(m)){if(generalKeys.has(canonical(k))&&note(v)!==null)return note(v)}return null};
+ const display=v=>v===null?'—':v.toFixed(2).replace('.',',');
+ const trend=(a,b)=>{if(a===null||b===null)return '<span class="v758-trend v758-missing" title="Comparaison indisponible : note manquante">—</span>';const d=a-b;return Math.abs(d)<0.005?'<span class="v758-trend v758-equal" title="Moyenne stable">→ Stable</span>':d>0?'<span class="v758-trend v758-up" title="Progression de '+display(Math.abs(d))+' point(s)">↑ +'+display(Math.abs(d))+'</span>':'<span class="v758-trend v758-down" title="Régression de '+display(Math.abs(d))+' point(s)">↓ −'+display(Math.abs(d))+'</span>'};
+ const entries=m=>Object.entries(m).filter(([k,v])=>!generalKeys.has(canonical(k))&&note(v)!==null).map(([k,v])=>({key:canonical(k),label:subjects[canonical(k)]||k.replace(/_/g,' '),value:note(v)}));
+ let html='<h3>Résultats scolaires · '+esc(year)+'</h3><div class="v747-grid">';
+ for(const [p,n] of periods){const v=general(period(p)),prev=p==='2TR'?'1TR':p==='3TR'?'2TR':null;html+='<div class="v747-fact"><small>'+esc(n)+'</small><strong>'+(v===null?'Non disponible':display(v)+' / 20')+'</strong>'+(prev?trend(v,general(period(prev))):'')+'</div>'}
+ html+='</div>';
+ for(const [p,n] of periods){const curr=period(p),previous=p==='2TR'?'1TR':p==='3TR'?'2TR':null,prior=previous?period(previous):{},priorMap=new Map(entries(prior).map(x=>[x.key,x.value]));const rows=entries(curr);
+ html+='<details class="v747-record"><summary><b>'+esc(n)+'</b> · détail des matières</summary>';
+ html+=rows.length?'<table class="v747-table"><thead><tr><th>Matière</th><th>Moyenne /20</th>'+(previous?'<th>Évolution</th>':'')+'</tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+display(x.value)+'</td>'+(previous?'<td>'+trend(x.value,priorMap.has(x.key)?priorMap.get(x.key):null)+'</td>':'')+'</tr>').join('')+'</tbody></table>':'<p class="v747-muted">Aucune moyenne disponible pour cette période.</p>';
+ if(previous)html+='<p class="v747-muted">Évolution par rapport au '+(p==='2TR'?'1er':'2e')+' trimestre. « — » signifie que la comparaison est impossible.</p>';
+ html+='</details>';
+ }
+ return html
+}
 if(active==='orientation')return '<h3>Évaluations d’orientation</h3><h4>LYCAM</h4>'+displayRecords(records('allTestResults'),[['Date','at'],['Score total','totalScore'],['Dimensions à risque',r=>(r.riskDimensions||[]).join(', ')||'Aucune signalée']])+'<h4>PAI</h4>'+displayRecords(records('allPAIResults'),[['Date','at'],['Statut','status'],['Réponses','answeredCount'],['Observations du conseiller','counselorNotes']])+'<p class="v747-muted">Les questionnaires, réponses et barèmes restent conservés dans leurs modules d’origine.</p>';
 if(active==='suivi')return '<h3>Entretiens et visites</h3>'+displayRecords(records('allVisits'),[['Date','at'],['Motif',r=>r.reason||r.details],['Détails','details']])+'<h3>Accompagnements et coaching</h3>'+displayRecords(records('coachingData'),[['Date','at'],['Statut','status'],['Actions','actions']]);
 if(active==='parcours')return '<h3>Parcours scolaire</h3><p class="v747-muted">Année actuelle et années archivées liées au même matricule. Les historiques saisis manuellement sont présentés séparément.</p><div id="v747-history">Chargement…</div><h4>Historique complémentaire</h4>'+((extra.history||[]).length?displayRecords(extra.history,[['Année','year'],['Classe','classe'],['Établissement','school']]):'<p class="v747-muted">Aucun historique complémentaire.</p>');
@@ -8806,55 +8833,37 @@ window.appConfirm=(message)=>ask(message,'confirm');window.appPrompt=(message,in
 #v754-yearbar{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;width:max-content;max-width:100%;box-sizing:border-box;background:#f3faf9;border:1px solid #cfe4e4;border-radius:10px;padding:7px 10px;margin:8px 0;vertical-align:middle}
 #v754-yearbar label{font-weight:600;font-size:12px;white-space:nowrap}#v754-yearbar select,#v754-yearbar select.select{width:145px!important;min-width:0!important;max-width:145px!important;flex:0 0 145px;padding:6px 8px;font-size:13px}#v754-yearhint{font-size:11px;color:#59717a;white-space:nowrap}@media(max-width:480px){#v754-yearbar{gap:6px;padding:6px 8px}#v754-yearbar select,#v754-yearbar select.select{width:125px!important;max-width:125px!important;flex-basis:125px}#v754-yearhint{display:none}}
 .v754-trend{font-size:12px;font-weight:700;margin-left:7px;white-space:nowrap}.v754-up{color:#087c55}.v754-down{color:#b93e45}.v754-flat{color:#65788a}
-</style><script id="v754-year-trends">(function(){'use strict';
+</style><script id="v757-progressions">
+(function(){
+'use strict';
 const $=id=>document.getElementById(id);
-const n=v=>{if(v==null||v==='')return null;const x=Number(String(v).replace(',','.'));return Number.isFinite(x)&&x>=0&&x<=20?x:null};
-const avg=m=>{if(!m)return null;for(const k of ['Moy_generale','moyenne_generale','moy_generale','mg','moyenne']){const v=n(m[k]);if(v!==null)return v}return null};
-const diff=(a,b)=>{if(a===null||b===null)return '<span class="v754-trend v754-flat" title="Données insuffisantes">—</span>';const d=a-b;if(Math.abs(d)<.005)return '<span class="v754-trend v754-flat">→ stable</span>';return '<span class="v754-trend '+(d>0?'v754-up':'v754-down')+'">'+(d>0?'↑ +':'↓ −')+Math.abs(d).toFixed(2).replace('.',',')+'</span>'};
-function init(){const roster=$('roster'),main=$('school-year');if(!roster||!main)return;let bar=$('v754-yearbar');if(!bar){bar=document.createElement('div');bar.id='v754-yearbar';bar.innerHTML='<label for="v754-year">Année scolaire — Élèves et classes</label><select class="select" id="v754-year"></select><span id="v754-yearhint"></span>';roster.parentElement.insertBefore(bar,roster)}const select=$('v754-year');const sync=()=>{select.innerHTML=main.innerHTML;select.value=main.value;$('v754-yearhint').textContent='Données de '+main.value};select.addEventListener('change',()=>{main.value=select.value;main.dispatchEvent(new Event('change',{bubbles:true}))});main.addEventListener('change',sync);new MutationObserver(sync).observe(main,{childList:true});sync()}
-
-function trends(s){
+const number=v=>{if(v===null||v===undefined||String(v).trim()==='')return null;const x=Number(String(v).replace(',','.'));return Number.isFinite(x)&&x>=0&&x<=20?x:null};
+const key=k=>String(k).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const general=new Set(['moygenerale','moyennegenerale','mg','moytrim1','moytrim2','moytrim3','moyenne','general']);
+const label={compofrancais:'Composition française',orthographe:'Orthographe',expressionorale:'Expression orale',francais:'Français',maths:'Mathématiques',anglais:'Anglais',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',allemand:'Allemand',espagnol:'Espagnol',edhc:'EDHC',physique:'Physique-chimie',philosophie:'Philosophie',tic:'TIC',lv2:'LV2'};
+const name=k=>label[key(k)]||String(k).replace(/_/g,' ');
+const period=(s,p)=>s?.moyennes?.[p]||s?.moyennes?.[p.toLowerCase()]||s?.moyennes?.[p.replace('TR','T')]||{};
+const generalAvg=m=>{for(const [k,v] of Object.entries(m)){if(general.has(key(k))){const x=number(v);if(x!==null)return x}}return null};
+const compare=(a,b)=>{if(a===null||b===null)return '<span class="v754-trend v754-flat" title="Moyenne précédente indisponible">—</span>';const d=a-b;if(Math.abs(d)<.005)return '<span class="v754-trend v754-flat">→ Stable</span>';return '<span class="v754-trend '+(d>0?'v754-up':'v754-down')+'">'+(d>0?'↑ +':'↓ −')+Math.abs(d).toFixed(2).replace('.',',')+'</span>'};
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function paint(s){
  const root=$('v79-profile-averages');if(!root||!s)return;
- const periods=s.moyennes||{};
- const get=p=>periods[p]||periods[p.toLowerCase()]||periods[p.replace('TR','T')]||{};
- const avg2=p=>avg(get(p));
  const cards=root.querySelectorAll('.v79-average');
- [[1,'2TR','1TR'],[2,'3TR','2TR']].forEach(([i,p,prev])=>{
-  const card=cards[i];if(!card)return;
-  card.querySelectorAll('.v754-trend').forEach(x=>x.remove());
-  const anchor=card.querySelector('strong');
-  if(anchor)anchor.insertAdjacentHTML('afterend',diff(avg2(p),avg2(prev)));
- });
- const detail=root.querySelector('.v710-detail');
- if(!detail||!['2TR','3TR'].includes(detail.dataset.period))return;
- const p=detail.dataset.period,prev=p==='2TR'?'1TR':'2TR',cur=get(p),before=get(prev);
- const labels={francais:'Français',compo_francais:'Composition française',orthographe:'Orthographe',expression_orale:'Expression orale',maths:'Mathématiques',anglais:'Anglais',physique:'Physique-chimie',svt:'SVT',hg:'Histoire-géographie',eps:'EPS',edhc:'EDHC',lv2:'Allemand',allemand:'Allemand',espagnol:'Espagnol',philosophie:'Philosophie',conduite:'Conduite',art_plastique:'Arts plastiques',tic:'TIC'};
- const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
- detail.querySelectorAll('tbody tr').forEach(row=>{
-  const cell=row.cells[1];if(!cell)return;cell.querySelectorAll('.v754-trend').forEach(x=>x.remove());
-  const name=norm(row.cells[0]?.textContent);
-  const key=Object.keys(cur).find(k=>norm(labels[k]||k.replace(/_/g,' '))===name);
-  if(!key)return;
-  const prevKey=Object.keys(before).find(k=>norm(labels[k]||k.replace(/_/g,' '))===name);
-  cell.insertAdjacentHTML('beforeend',diff(n(cur[key]),prevKey?n(before[prevKey]):null));
- });
+ [[1,'2TR','1TR'],[2,'3TR','2TR']].forEach(([i,p,prev])=>{const card=cards[i];if(!card)return;card.querySelectorAll('.v754-trend').forEach(n=>n.remove());const anchor=card.querySelector('strong');if(anchor)anchor.insertAdjacentHTML('afterend',compare(generalAvg(period(s,p)),generalAvg(period(s,prev))))});
+ const detail=root.querySelector('.v710-detail');if(!detail)return;
+ const p=detail.dataset.period;if(!['2TR','3TR'].includes(p))return;
+ const curr=period(s,p),prior=period(s,p==='2TR'?'1TR':'2TR');
+ const priorByKey=new Map(Object.entries(prior).map(([k,v])=>[key(k),number(v)]));
+ const previousByName=new Map(Object.entries(prior).map(([k,v])=>[key(name(k)),number(v)]));
+ const rows=detail.querySelectorAll('tbody tr');
+ rows.forEach(row=>{const cell=row.cells[1];if(!cell)return;cell.querySelectorAll('.v754-trend').forEach(x=>x.remove());const subject=key(row.cells[0]?.textContent);let current=null,previous=null;for(const [k,v] of Object.entries(curr)){if(key(name(k))===subject){current=number(v);previous=priorByKey.has(key(k))?priorByKey.get(key(k)):previousByName.get(subject)??null;break}}if(current!==null)cell.insertAdjacentHTML('beforeend',compare(current,previous))});
 }
-const old=window.openStudent;
-if(typeof old==='function')window.openStudent=async function(s){
- window.v754Student=s;
- await old(s);
- trends(s);
-};
-document.addEventListener('click',e=>{
- if(e.target.closest('.v710-plus')){
-  setTimeout(()=>{if(window.v754Student)trends(window.v754Student)},30);
- }
-});
-const observer=new MutationObserver(records=>{
- if(!window.v754Student)return;
- if(records.some(r=>[...r.addedNodes].some(node=>node.nodeType===1&&(node.matches?.('.v710-detail')||node.querySelector?.('.v710-detail')))))trends(window.v754Student);
-});
-function watch(){const root=$('v79-profile-averages');if(root)observer.observe(root,{childList:true,subtree:true})}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();watch()});else{init();watch()}
-})();</script></body>
+function setup(){
+ const main=$('school-year'),roster=$('roster');if(main&&roster){let bar=$('v754-yearbar');if(!bar){bar=document.createElement('div');bar.id='v754-yearbar';bar.innerHTML='<label for="v754-year">Année scolaire — Élèves et classes</label><select class="select" id="v754-year"></select><span id="v754-yearhint"></span>';roster.parentElement.insertBefore(bar,roster)}const select=$('v754-year');const sync=()=>{select.innerHTML=main.innerHTML;select.value=main.value;$('v754-yearhint').textContent='Données de '+main.value};select.addEventListener('change',()=>{main.value=select.value;main.dispatchEvent(new Event('change',{bubbles:true}))});main.addEventListener('change',sync);new MutationObserver(sync).observe(main,{childList:true});sync()}
+}
+const old=window.openStudent;if(typeof old==='function')window.openStudent=async function(s){window.v757Student=s;await old(s);paint(s)};
+document.addEventListener('click',e=>{if(e.target.closest('.v710-plus'))setTimeout(()=>paint(window.v757Student),0)});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+})();
+</script></body>
 </html>
