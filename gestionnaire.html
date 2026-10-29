@@ -775,6 +775,17 @@ body{overflow-x:hidden}
 </style>
 <style id="v738-coaching-add-fixes">#modal-add-student{z-index:11050!important}#track-view-coaching{min-height:180px}#track-view-coaching .table-wrap{min-height:150px}</style>
 <style id="v741-student-file-css">.v741-file{margin:18px 0;padding:18px;border:1px solid #cbdde3;background:#f8fbfd;border-radius:14px}.v741-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:start}.v741-head h3{margin:0;color:#115e69}.v741-head p{color:#64748b;margin:5px 0 14px}.v741-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;margin-bottom:12px}.v741-file .field{margin-bottom:10px}.v741-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.v741-history{display:grid;gap:7px}.v741-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:white;border:1px solid #e2e8f0;padding:10px;border-radius:8px}.v741-history-row button{flex-shrink:0}.v741-file h4{margin:18px 0 10px}@media(max-width:600px){.v741-file{padding:12px}.v741-actions button{width:100%}}</style>
+<style id="v748-professional-notifications-css">
+#v715-toast-stack{position:fixed;top:20px;right:20px;z-index:2147483647;width:min(420px,calc(100vw - 28px));display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.v715-toast{--note:#087f8c;--note-bg:#e6f5f7;position:relative;overflow:hidden;pointer-events:auto;display:grid;grid-template-columns:36px minmax(0,1fr) 28px;gap:11px;align-items:start;padding:15px 13px 17px;border-radius:13px;border:1px solid #dce5ed;border-left:4px solid var(--note);background:#fff;color:#17263b;box-shadow:0 14px 40px rgba(18,39,61,.16);font:400 13px/1.5 system-ui,-apple-system,sans-serif;animation:v748-in .2s ease-out;overflow-wrap:anywhere}
+.v715-toast[data-type="success"]{--note:#13856c;--note-bg:#e6f7f0}.v715-toast[data-type="error"]{--note:#d34343;--note-bg:#fff0f0}.v715-toast[data-type="warning"]{--note:#b87516;--note-bg:#fff4df}
+.v748-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--note-bg);color:var(--note);font-size:18px;font-weight:800}
+.v748-copy{min-width:0}.v748-title{display:block;font-size:13px;font-weight:800;margin-bottom:3px;color:#17263b}.v748-message{white-space:pre-line;color:#4a5d70;font-size:12.5px;max-height:170px;overflow-y:auto}.v748-close{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:#6b7e90;cursor:pointer;font-size:20px;line-height:1}.v748-close:hover,.v748-close:focus-visible{background:#edf2f7;color:#152b3d;outline-offset:2px}
+.v748-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;background:var(--note);opacity:.7;transform-origin:left;animation:v748-count var(--duration,6s) linear forwards}.v715-toast:hover .v748-progress,.v715-toast:focus-within .v748-progress{animation-play-state:paused}
+@keyframes v748-in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}@keyframes v748-count{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media(max-width:600px){#v715-toast-stack{top:auto;bottom:max(14px,env(safe-area-inset-bottom));right:14px;left:14px;width:auto}.v715-toast{padding:12px 11px 15px;gap:9px}}
+@media(prefers-reduced-motion:reduce){.v715-toast,.v748-progress{animation:none!important}}
+</style>
 </head>
 <body>
 
@@ -1561,7 +1572,7 @@ async function saveStudentIdentity() {
 
 // Fonction pour supprimer un élève
 async function deleteStudent(studentId) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.')) {
+    if (!await appConfirm('Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible.')) {
         return;
     }
     
@@ -1731,8 +1742,8 @@ function addNewSubjectField() {
 }
 
 // Fonction pour supprimer un champ de matière
-function removeSubjectField(subjectName) {
-    if (!confirm(`Supprimer la matière "${subjectName}" ?`)) return;
+async function removeSubjectField(subjectName) {
+    if (!await appConfirm(`Supprimer la matière "${subjectName}" ?`)) return;
     
     // Trouver et supprimer le champ
     const field = document.querySelector(`.grade-input[data-subject="${subjectName}"]`);
@@ -3221,7 +3232,7 @@ async function importFullBackup(file) {
     const text = await file.text();
     const backup = JSON.parse(text);
     if (!backup || typeof backup !== 'object' || !backup.indexedDB) throw new Error('Le fichier ne semble pas être une sauvegarde Gestionnaire d’Élèves Pro.');
-    if (!confirm('Restaurer cette sauvegarde ? Les données locales correspondantes seront remplacées.')) return;
+    if (!await appConfirm('Restaurer cette sauvegarde ? Les données locales correspondantes seront remplacées.')) return;
     const local = backup.localStorage || {};
     ['LYCAMTestResults','studentVisits','LYCAMCoachingData','GlobalRegistryData','PAIQuestionnaireResults'].forEach(key => {
       if (Object.prototype.hasOwnProperty.call(local,key)) storage.save(key,local[key]);
@@ -4658,8 +4669,8 @@ function renderStudentStatus(s) {
 }
 
 /* ====== LYCAM LOGIC ====== */
-function deleteLycam(id){ 
-    if(confirm('Supprimer ce résultat ?')){ 
+async function deleteLycam(id){ 
+    if(await appConfirm('Supprimer ce résultat ?')){ 
         allTestResults = allTestResults.filter(t => t.id !== id); 
         storage.save('LYCAMTestResults', allTestResults); 
         renderLycamGlobal();
@@ -5997,7 +6008,7 @@ function renderCioReport() {
         tbody.innerHTML = firstTableHTML + secondTableHTML;
         
         console.log("Rapport CIO généré avec succès");
-        setStatus(`Rapport CIO ${period} : ${allStudentsForReport.length} élèves, ${studentsWithGrades.length} avec moyennes enregistrées`, 'success');
+        // Rapport CIO : consultation silencieuse, sans notification automatique.
         
     } catch (error) {
         console.error("Erreur dans renderCioReport:", error);
@@ -8020,7 +8031,7 @@ if(!entries.length)throw Error('Aucune donnée trouvée.');const valid=entries.f
 $('ic-table').querySelector('thead').innerHTML='<tr><th>Ligne</th><th>Matricule</th><th>Élève</th><th>Classe cible</th><th>Sexe</th><th>Naissance</th><th>Moyennes</th><th>Contrôle</th></tr>';
 $('ic-table').querySelector('tbody').innerHTML=entries.slice(0,200).map(e=>'<tr><td>'+e.line+'</td><td>'+esc(e.mat)+'</td><td>'+esc(e.fullname||[e.nom,e.prenoms].join(' '))+'</td><td>'+esc(e.cls)+'</td><td>'+esc(e.sexe||'—')+'</td><td>'+esc(e.dateNaissance||'—')+'</td><td>'+esc(Object.entries(e.values).map(([k,v])=>k+': '+v).join(' · '))+'</td><td style="color:'+(e.problems.length?'#b91c1c':'#166534')+'">'+esc([...e.problems,...e.warnings,e.student?'Mise à jour':'Nouvel élève'].join(' ; '))+'</td></tr>').join('');$('ic-preview').style.display='block';$('ic-commit').disabled=true;$('ic-commit-help').textContent=valid.length?'Cochez « J’ai vérifié la prévisualisation » pour activer l’importation.':'Aucune ligne importable : corrigez les erreurs indiquées.';
 }catch(e){console.error(e);say('Analyse impossible : '+esc(e.message||e),true);}}
-async function commit(){if(!pending||!pending.valid.length||!$('ic-ack').checked)return alert('Analysez un fichier importable et confirmez la vérification des données.');const p=pending;if(p.year!==getSelectedYear())return alert('Année scolaire modifiée : relancez l’analyse.');if(!confirm('Importer '+p.valid.length+' lignes dans '+p.year+' / '+p.period+' ? Une sauvegarde sera téléchargée.'))return;const btn=$('ic-commit');btn.disabled=true;$('ic-commit-help').textContent='Sauvegarde et enregistrement en cours…';
+async function commit(){if(!pending||!pending.valid.length||!$('ic-ack').checked)return alert('Analysez un fichier importable et confirmez la vérification des données.');const p=pending;if(p.year!==getSelectedYear())return alert('Année scolaire modifiée : relancez l’analyse.');if(!await appConfirm('Importer '+p.valid.length+' lignes dans '+p.year+' / '+p.period+' ? Une sauvegarde sera téléchargée.'))return;const btn=$('ic-commit');btn.disabled=true;$('ic-commit-help').textContent='Sauvegarde et enregistrement en cours…';
 try{const current=await studentsStore.load(p.year)||[];download('sauvegarde_avant_import_'+p.year+'_'+Date.now()+'.json',JSON.stringify({format:'sauvegarde-avant-import-excel-v6.4',year:p.year,date:new Date().toISOString(),file:p.file,students:current}));const copy=typeof structuredClone==='function'?structuredClone(current):JSON.parse(JSON.stringify(current));let created=0,updated=0;for(const e of p.valid){let s=e.student?copy.find(x=>norm(x.matricule)===norm(e.mat)):null;if(!s){s={id:e.mat,matricule:e.mat,nom:e.nom||e.fullname,prenoms:e.prenoms,classe:e.cls,sexe:e.sexe||'',dateNaissance:e.dateNaissance||'',moyennes:{}};copy.push(s);created++;}else updated++;if(e.sexe)s.sexe=e.sexe;if(e.dateNaissance)s.dateNaissance=e.dateNaissance;if(p.mode!=='roster'){s.moyennes=s.moyennes||{};s.moyennes[p.period]={...(s.moyennes[p.period]||{}),...e.values};}}
 await studentsStore.save(p.year,copy);const verified=await studentsStore.load(p.year);if(!Array.isArray(verified)||verified.length!==copy.length)throw Error('Vérification de sauvegarde échouée');await loadStudentsForYear();if(typeof updateResultsSelectors==='function')updateResultsSelectors();say('Importation terminée : '+updated+' élèves mis à jour, '+created+' créés. Sauvegarde téléchargée.');pending=null;$('ic-preview').style.display='none';$('ic-file').value='';$('ic-commit-help').textContent='Importation terminée.';}catch(e){console.error(e);say('Erreur : '+esc(e.message||e)+' — utilisez la sauvegarde si nécessaire.',true);}finally{btn.disabled=true;if(pending){$('ic-ack').checked=false;$('ic-commit-help').textContent='Une erreur est survenue. Vérifiez le message puis relancez l’analyse.';}}}
 $('ic-open-file')?.addEventListener('click',()=>{$('ic-file').click();});
@@ -8247,7 +8258,7 @@ function matricule(x){return String(x??'').trim().toUpperCase().replace(/\s+/g,'
 async function snapshot(){await exportFullBackup();}
 window.v78DeleteStudent=async function(s){
  const year=getSelectedYear(),key=matricule(s.matricule);
- if(!confirm(`Supprimer ${s.nom} ${s.prenoms||''} (${key}) de ${year} ?\nUne sauvegarde complète sera téléchargée avant suppression.`))return;
+ if(!await appConfirm(`Supprimer ${s.nom} ${s.prenoms||''} (${key}) de ${year} ?\nUne sauvegarde complète sera téléchargée avant suppression.`))return;
  try{
   await snapshot();
   const previous=await studentsStore.load(year);
@@ -8303,9 +8314,9 @@ const oldRender=window.renderRoster;if(typeof oldRender==='function')window.rend
 function edit(s){editing=s;const f=$('v79-edit-form');for(const name of ['matricule','classe','nom','prenoms','sexe','dateNaissance','etablissement'])if(f.elements[name])f.elements[name].value=s[name]??'';f.elements.redoublant.value=s.redoublant?'true':'false';$('v79-edit-modal').style.display='flex'}
 $('v79-edit-cancel').onclick=()=>{$('v79-edit-modal').style.display='none';editing=null};
 $('v79-edit-save').onclick=async()=>{if(busy||!editing)return;const f=$('v79-edit-form');if(!f.reportValidity())return;const data=Object.fromEntries(new FormData(f).entries());const year=getSelectedYear(),mat=norm(data.matricule);if(allStudents.some(s=>s.id!==editing.id&&norm(s.matricule)===mat))return alert('Ce matricule appartient déjà à un autre élève.');busy=true;try{const saved=await studentsStore.load(year);const ix=saved.findIndex(s=>s.id===editing.id);if(ix<0)throw Error('Élève introuvable dans la liste enregistrée.');Object.assign(saved[ix],data,{matricule:mat,redoublant:data.redoublant==='true'});await studentsStore.save(year,saved);await loadStudentsForYear();$('v79-edit-modal').style.display='none';editing=null;alert('Modifications enregistrées.')}catch(e){alert('Modification impossible : '+e.message)}finally{busy=false}};
-async function bulkDelete(){if(busy||!selected.size)return alert('Sélectionnez au moins un élève.');const year=getSelectedYear(),n=selected.size;if(!confirm('Supprimer '+n+' élève(s) de '+year+' ? Une sauvegarde sera téléchargée avant toute modification.'))return;busy=true;try{await exportFullBackup();const previous=await studentsStore.load(year);const next=previous.filter(s=>!selected.has(String(s.id)));if(previous.length===next.length)throw Error('Aucun élève correspondant trouvé.');await studentsStore.save(year,next);const check=await studentsStore.load(year);if(check.length!==next.length)throw Error('Vérification de la suppression échouée.');selected.clear();await loadStudentsForYear();alert((previous.length-next.length)+' élève(s) supprimé(s).')}catch(e){alert('Suppression interrompue : '+e.message)}finally{busy=false}}
+async function bulkDelete(){if(busy||!selected.size)return alert('Sélectionnez au moins un élève.');const year=getSelectedYear(),n=selected.size;if(!await appConfirm('Supprimer '+n+' élève(s) de '+year+' ? Une sauvegarde sera téléchargée avant toute modification.'))return;busy=true;try{await exportFullBackup();const previous=await studentsStore.load(year);const next=previous.filter(s=>!selected.has(String(s.id)));if(previous.length===next.length)throw Error('Aucun élève correspondant trouvé.');await studentsStore.save(year,next);const check=await studentsStore.load(year);if(check.length!==next.length)throw Error('Vérification de la suppression échouée.');selected.clear();await loadStudentsForYear();alert((previous.length-next.length)+' élève(s) supprimé(s).')}catch(e){alert('Suppression interrompue : '+e.message)}finally{busy=false}}
 // La navigation des deux rubriques est traitée en capture pour éviter qu'un gestionnaire générique ne les ouvre ensemble.
-function manage(which){const el=$('v78-management');if(!el)return;document.querySelectorAll('#app-main .section').forEach(n=>{if(n!==el)n.style.display='none'});['excel-center','excel-import-access','dashboard-panel'].forEach(id=>{const n=$(id);if(n)n.style.display='none'});document.body.dataset.workspace='v78-management';el.style.display='block';document.querySelectorAll('.app-sidebar .side-link').forEach(n=>n.classList.toggle('active',n.id==='v78-'+which));const year=getSelectedYear();if(which==='years'){el.innerHTML='<h2>Créer une année scolaire</h2><p>Année actuelle : <b>'+safe(year)+'</b></p><div class="v78-actions"><input class="input" id="v79-new-year" placeholder="2027-2028"><button class="btn" id="v79-create-year">Créer et sélectionner</button></div><p>Les données des autres années sont conservées.</p>';$('v79-create-year').onclick=async()=>{const y=$('v79-new-year').value.trim();if(!/^\d{4}-\d{4}$/.test(y)||+y.slice(5)!==+y.slice(0,4)+1)return alert('Saisissez une année valide, par exemple 2027-2028.');try{if((await studentsStore.listYears()).map(String).includes(y))return alert('Cette année existe déjà.');await studentsStore.save(y,[]);await refreshSchoolYearOptions(y);await loadStudentsForYear();manage('years');alert('Année '+y+' créée et sélectionnée.')}catch(e){alert('Création impossible : '+e.message)}}}else{el.innerHTML='<h2>Réinitialiser la liste des élèves</h2><p>Année concernée : <b>'+safe(year)+'</b></p><p>Seule la liste de cette année sera vidée. Les autres années ne seront pas modifiées.</p><div class="v78-actions"><button class="btn ghost" id="v79-backup">Télécharger une sauvegarde</button><button class="btn" style="background:#b45353" id="v79-reset">Réinitialiser la liste</button></div>';$('v79-backup').onclick=()=>exportFullBackup().catch(e=>alert(e.message));$('v79-reset').onclick=async()=>{if(busy)return;const typed=prompt('Tapez exactement '+year+' pour confirmer la suppression de la liste :');if(typed!==year)return;busy=true;try{await exportFullBackup();await studentsStore.save(year,[]);if((await studentsStore.load(year)).length)throw Error('La liste n’a pas été vidée.');selected.clear();await loadStudentsForYear();manage('reset');alert('Liste '+year+' réinitialisée.')}catch(e){alert('Réinitialisation impossible : '+e.message)}finally{busy=false}}}}
+function manage(which){const el=$('v78-management');if(!el)return;document.querySelectorAll('#app-main .section').forEach(n=>{if(n!==el)n.style.display='none'});['excel-center','excel-import-access','dashboard-panel'].forEach(id=>{const n=$(id);if(n)n.style.display='none'});document.body.dataset.workspace='v78-management';el.style.display='block';document.querySelectorAll('.app-sidebar .side-link').forEach(n=>n.classList.toggle('active',n.id==='v78-'+which));const year=getSelectedYear();if(which==='years'){el.innerHTML='<h2>Créer une année scolaire</h2><p>Année actuelle : <b>'+safe(year)+'</b></p><div class="v78-actions"><input class="input" id="v79-new-year" placeholder="2027-2028"><button class="btn" id="v79-create-year">Créer et sélectionner</button></div><p>Les données des autres années sont conservées.</p>';$('v79-create-year').onclick=async()=>{const y=$('v79-new-year').value.trim();if(!/^\d{4}-\d{4}$/.test(y)||+y.slice(5)!==+y.slice(0,4)+1)return alert('Saisissez une année valide, par exemple 2027-2028.');try{if((await studentsStore.listYears()).map(String).includes(y))return alert('Cette année existe déjà.');await studentsStore.save(y,[]);await refreshSchoolYearOptions(y);await loadStudentsForYear();manage('years');alert('Année '+y+' créée et sélectionnée.')}catch(e){alert('Création impossible : '+e.message)}}}else{el.innerHTML='<h2>Réinitialiser la liste des élèves</h2><p>Année concernée : <b>'+safe(year)+'</b></p><p>Seule la liste de cette année sera vidée. Les autres années ne seront pas modifiées.</p><div class="v78-actions"><button class="btn ghost" id="v79-backup">Télécharger une sauvegarde</button><button class="btn" style="background:#b45353" id="v79-reset">Réinitialiser la liste</button></div>';$('v79-backup').onclick=()=>exportFullBackup().catch(e=>alert(e.message));$('v79-reset').onclick=async()=>{if(busy)return;const typed=await appPrompt('Tapez exactement '+year+' pour confirmer la suppression de la liste :');if(typed!==year)return;busy=true;try{await exportFullBackup();await studentsStore.save(year,[]);if((await studentsStore.load(year)).length)throw Error('La liste n’a pas été vidée.');selected.clear();await loadStudentsForYear();manage('reset');alert('Liste '+year+' réinitialisée.')}catch(e){alert('Réinitialisation impossible : '+e.message)}finally{busy=false}}}}
 window.openSchoolManagement=manage;
 ['years','reset'].forEach(which=>{const b=$('v78-'+which);b?.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();manage(which)},true)});
 function avg(s,p){const m=s?.moyennes?.[p]||{};for(const k of ['Moy_generale','moyenne_generale','moy_generale','mg']){const v=Number(m[k]);if(m[k]!==''&&m[k]!=null&&Number.isFinite(v)&&v>=0&&v<=20)return v.toFixed(2)}return '—'}
@@ -8404,17 +8415,34 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <script id="v715-notifications-js">
-(function(){
- function showToast(message,type='info'){
-  let stack=document.getElementById('v715-toast-stack');if(!stack){stack=document.createElement('div');stack.id='v715-toast-stack';document.body.appendChild(stack)}
-  const item=document.createElement('div');item.className='v715-toast';item.setAttribute('role','status');
-  const mark=document.createElement('span');mark.textContent=type==='error'?'⚠':'✓';mark.style.color=type==='error'?'#b45309':'#087f76';
-  const msg=document.createElement('span');msg.textContent=String(message);msg.style.flex='1';
-  const close=document.createElement('button');close.textContent='×';close.setAttribute('aria-label','Fermer');close.onclick=()=>item.remove();
-  item.append(mark,msg,close);stack.appendChild(item);setTimeout(()=>item.remove(),Math.max(5500,Math.min(14000,String(message).length*70)));
+(function(){'use strict';
+ const titles={success:'Opération réussie',error:'Une erreur est survenue',warning:'Attention',info:'Information'};
+ const symbols={success:'✓',error:'!',warning:'!',info:'i'};
+ const active=new Map();
+ function classify(message){const s=String(message||'');if(/erreur|impossible|introuvable|échec|echec|indisponible|échoué|echoue/i.test(s))return 'error';if(/invalide|obligatoire|manquant|veuillez|attention|doit être|doivent|sélectionnez|selectionnez|aucune donnée|aucun fichier/i.test(s))return 'warning';if(/enregistré|enregistree|importé|importee|créé|créée|sauvegard|terminé|réussi|succès/i.test(s))return 'success';return 'info'}
+ function showToast(message,type,options){
+  const content=String(message==null?'':message).trim();if(!content)return;
+  if(type&&typeof type==='object'){options=type;type=options.type}
+  options=options||{};type=['success','error','warning','info'].includes(type)?type:classify(content);
+  let stack=document.getElementById('v715-toast-stack');if(!stack){stack=document.createElement('div');stack.id='v715-toast-stack';stack.setAttribute('aria-label','Notifications de l’application');document.body.appendChild(stack)}
+  const key=type+'|'+content;const previous=active.get(key);if(previous&&previous.isConnected){previous.remove();active.delete(key)}
+  const item=document.createElement('section');item.className='v715-toast';item.dataset.type=type;item.setAttribute('role',type==='error'?'alert':'status');item.setAttribute('aria-live',type==='error'?'assertive':'polite');
+  const icon=document.createElement('span');icon.className='v748-icon';icon.setAttribute('aria-hidden','true');icon.textContent=symbols[type];
+  const copy=document.createElement('div');copy.className='v748-copy';const title=document.createElement('strong');title.className='v748-title';title.textContent=options.title||titles[type];const body=document.createElement('div');body.className='v748-message';body.textContent=content;copy.append(title,body);
+  const close=document.createElement('button');close.className='v748-close';close.type='button';close.textContent='×';close.setAttribute('aria-label','Fermer la notification');
+  const progress=document.createElement('div');progress.className='v748-progress';progress.setAttribute('aria-hidden','true');item.append(icon,copy,close,progress);stack.prepend(item);active.set(key,item);
+  const duration=options.persistent?0:(Number.isFinite(options.duration)?Math.max(2000,options.duration):Math.min(12000,Math.max(5500,content.length*55)));
+  let timer=null,remaining=duration,started=Date.now();
+  function dismiss(){if(timer)clearTimeout(timer);item.remove();if(active.get(key)===item)active.delete(key)}
+  function resume(){if(!remaining)return;started=Date.now();timer=setTimeout(dismiss,remaining);progress.style.animationPlayState='running'}
+  function pause(){if(timer){clearTimeout(timer);timer=null;remaining=Math.max(100,remaining-(Date.now()-started));progress.style.animationPlayState='paused'}}
+  close.addEventListener('click',dismiss);item.addEventListener('mouseenter',pause);item.addEventListener('mouseleave',resume);item.addEventListener('focusin',pause);item.addEventListener('focusout',e=>{if(!item.contains(e.relatedTarget))resume()});
+  if(duration){progress.style.setProperty('--duration',duration+'ms');resume()}else progress.remove();
+  while(stack.children.length>4){const oldest=stack.lastElementChild;if(oldest===item)break;oldest.querySelector('.v748-close')?.click()}
+  return item;
  }
  window.appNotify=showToast;
- window.alert=(message)=>showToast(message,/erreur|impossible|invalide|introuvable|obligatoire/i.test(String(message))?'error':'info');
+ window.alert=function(message){showToast(message)};
 })();
 </script>
 
@@ -8723,6 +8751,31 @@ function printSelected(){const selected=[...document.querySelectorAll('.v747-inc
 function render(){const panel=$('studentPanel');if(!panel||!current)return;let root=$('v747-workspace');if(!root){root=document.createElement('div');root.id='v747-workspace';panel.append(root)}panel.classList.add('v747-active');const name=[current.nom,current.prenoms||current.prenom].filter(Boolean).join(' ');root.innerHTML='<div class="v747-hero"><div class="v747-top"><div><small>DOSSIER INDIVIDUEL DE L’ÉLÈVE</small><h2>'+esc(name)+'</h2><span class="chip">'+esc(current.matricule)+'</span> <span class="chip">'+esc(current.classe)+'</span></div><div class="v747-actions"><button type="button" class="btn ghost" id="v747-back">← Retour à la liste</button><button type="button" class="btn" id="v747-print-shortcut">Imprimer / PDF</button></div></div></div><div class="v747-tabs" role="tablist" aria-label="Rubriques du dossier">'+tabs.map(([k,n])=>'<button type="button" role="tab" data-v747-tab="'+k+'" aria-selected="'+(k===active)+'">'+esc(n)+'</button>').join('')+'</div><div class="v747-content" id="v747-content">'+content()+'</div>';root.querySelectorAll('[data-v747-tab]').forEach(b=>b.onclick=()=>{active=b.dataset.v747Tab;render()});$('v747-print-shortcut').onclick=()=>{active='impression';render()};$('v747-back').onclick=()=>{panel.classList.remove('v747-active');$('backToListBtn')?.click()};$('v747-edit')?.addEventListener('click',()=>{const edit=document.querySelector('#roster tbody .btn');if(typeof window.v79EditStudent==='function')window.v79EditStudent(current);else alert('Pour modifier les informations de base, utilisez le bouton Modifier depuis la liste des élèves.')});$('v747-print')?.addEventListener('click',printSelected);history(++seq)}
 const previous=window.openStudent;if(typeof previous==='function')window.openStudent=async function(s){await previous(s);current=s;active='identite';render()};
 $('backToListBtn')?.addEventListener('click',()=>{$('studentPanel')?.classList.remove('v747-active')});
+})();
+</script>
+<style id="v749-dialog-style">
+#v749-overlay{position:fixed;inset:0;z-index:2147483646;background:rgba(15,31,48,.57);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(3px)}
+#v749-dialog{background:#fff;color:#183046;border:1px solid #e0e8f0;border-radius:18px;box-shadow:0 25px 80px #071a3155;width:min(100%,470px);max-height:calc(100vh - 36px);overflow:auto;padding:24px;font:14px/1.55 system-ui,-apple-system,sans-serif}
+#v749-dialog h2{margin:0 0 8px;font-size:19px;color:#17324a}#v749-dialog p{white-space:pre-line;overflow-wrap:anywhere;color:#506275;margin:0 0 18px}#v749-dialog input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #b8cbd9;border-radius:9px;font:inherit;margin-bottom:18px}#v749-dialog .v749-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}#v749-dialog button{padding:10px 17px;border-radius:9px;border:1px solid #cbd6e0;font:600 13px system-ui;cursor:pointer}#v749-dialog .v749-cancel{background:#fff;color:#33485c}#v749-dialog .v749-ok{background:#155e75;color:#fff;border-color:#155e75}#v749-dialog .v749-ok.danger{background:#b33b42;border-color:#b33b42}#v749-dialog button:focus-visible,#v749-dialog input:focus-visible{outline:3px solid #81c3dc;outline-offset:2px}@media(max-width:600px){#v749-dialog{padding:20px}}
+</style>
+<script id="v749-dialog-js">
+(function(){'use strict';
+let queue=Promise.resolve();
+function ask(message,mode,defaultValue){
+ const task=()=>new Promise(resolve=>{
+  const previous=document.activeElement,overlay=document.createElement('div');overlay.id='v749-overlay';overlay.setAttribute('role','presentation');
+  const panel=document.createElement('div');panel.id='v749-dialog';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','v749-heading');panel.setAttribute('aria-describedby','v749-description');
+  const title=document.createElement('h2');title.id='v749-heading';const danger=/supprim|réinitialis|restaur|remplac|effac|irréversib/i.test(String(message));title.textContent=mode==='prompt'?'Saisie requise':danger?'Confirmer une opération sensible':'Confirmer cette opération';
+  const description=document.createElement('p');description.id='v749-description';description.textContent=String(message??'');panel.append(title,description);
+  let field;if(mode==='prompt'){field=document.createElement('input');field.type='text';field.value=defaultValue??'';field.setAttribute('aria-label','Votre réponse');panel.append(field)}
+  const actions=document.createElement('div');actions.className='v749-actions';const cancel=document.createElement('button');cancel.type='button';cancel.className='v749-cancel';cancel.textContent='Annuler';const ok=document.createElement('button');ok.type='button';ok.className='v749-ok'+(danger?' danger':'');ok.textContent=mode==='prompt'?'Valider':danger?'Confirmer':'Continuer';actions.append(cancel,ok);panel.append(actions);overlay.append(panel);document.body.append(overlay);
+  function done(value){document.removeEventListener('keydown',keys,true);overlay.remove();if(previous?.isConnected&&typeof previous.focus==='function')previous.focus();resolve(value)}
+  function keys(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();done(mode==='prompt'?null:false)}else if(e.key==='Tab'){const focusable=Array.from(panel.querySelectorAll('button,input'));const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}else if(e.key==='Enter'&&(mode!=='prompt'||document.activeElement===field)){e.preventDefault();done(mode==='prompt'?field.value:true)}}
+  cancel.onclick=()=>done(mode==='prompt'?null:false);ok.onclick=()=>done(mode==='prompt'?field.value:true);document.addEventListener('keydown',keys,true);(field||cancel).focus();
+ });
+ const result=queue.then(task,task);queue=result.then(()=>{},()=>{});return result;
+}
+window.appConfirm=(message)=>ask(message,'confirm');window.appPrompt=(message,initial)=>ask(message,'prompt',initial);
 })();
 </script>
 </body>
