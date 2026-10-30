@@ -895,7 +895,7 @@ body{overflow-x:hidden}
           </div>
         </div>
         
-<div id="ic-year-status" role="status" aria-live="polite"></div></div><div class="toolbar"><div class="field"><label class="label">Mode</label><select id="ic-mode" class="select"><option value="grades">Moyennes trimestrielles</option><option value="roster" selected>Liste sans moyennes</option><option value="complete">Liste avec moyennes</option></select></div><div class="field"><label class="label">Trimestre</label><select id="ic-period" class="select"><option value="1TR" selected>1er trimestre</option><option value="2TR">2e trimestre</option><option value="3TR">3e trimestre</option></select></div><div class="field"><label class="label">Classe (détectée automatiquement, modifiable)</label><input id="ic-class" class="input" value="" placeholder="Détection automatique — ou saisir ex. 3e 1"></div><div class="field" style="flex:1"><label class="label">Fichier Excel (.xlsx / .xls)</label><input id="ic-file" class="input" type="file" accept=".xlsx,.xls"></div></div><div class="toolbar" style="margin-top:0"><label><input id="ic-all-sheets" type="checkbox" checked> Importer tous les onglets du classeur</label><label><input id="ic-auto" type="checkbox" checked> Reconnaissance automatique des colonnes</label><label><input id="ic-file-class" type="checkbox" checked> Utiliser la classe indiquée dans le fichier (si présente)</label><label><input id="ic-create" type="checkbox" checked> Créer les élèves absents (avec matricule et nom)</label><button id="ic-analyze" class="btn" type="button">Analyser et prévisualiser</button><button id="ic-template" class="btn ghost" type="button">Télécharger le modèle Excel</button></div><div id="ic-feedback" role="status" aria-live="polite" style="padding:8px 0;color:var(--text-muted)">Choisissez un fichier puis cliquez sur Analyser.</div><div id="ic-preview" style="display:none"><div class="table-wrap" style="max-height:350px"><table id="ic-table"><thead></thead><tbody></tbody></table></div><div class="toolbar"><label><input id="ic-backup-before" type="checkbox"> Télécharger une sauvegarde avant importation (facultatif)</label><label><input id="ic-ack" type="checkbox"> J'ai vérifié la prévisualisation et autorise la mise à jour des données reconnues.</label><button id="ic-commit" class="btn" type="button" disabled>Importer les données</button><span id="ic-commit-help" style="font-size:12px;color:#64748b">Cochez la confirmation ci-dessus pour activer ce bouton.</span></div></div></details></section>
+<div id="ic-year-status" role="status" aria-live="polite"></div></div><div class="toolbar"><div class="field"><label class="label">Mode</label><select id="ic-mode" class="select"><option value="roster" selected>Liste sans moyennes — début d’année</option><option value="grades">Moyennes trimestrielles — liste avec moyennes</option></select></div><div class="field"><label class="label">Trimestre</label><select id="ic-period" class="select"><option value="1TR" selected>1er trimestre</option><option value="2TR">2e trimestre</option><option value="3TR">3e trimestre</option></select></div><div class="field"><label class="label">Classe (détectée automatiquement, modifiable)</label><input id="ic-class" class="input" value="" placeholder="Détection automatique — ou saisir ex. 3e 1"></div><div class="field" style="flex:1"><label class="label">Fichier Excel (.xlsx / .xls)</label><input id="ic-file" class="input" type="file" accept=".xlsx,.xls"></div></div><div class="toolbar" style="margin-top:0"><label><input id="ic-all-sheets" type="checkbox" checked> Importer tous les onglets du classeur</label><label><input id="ic-auto" type="checkbox" checked> Reconnaissance automatique des colonnes</label><label><input id="ic-file-class" type="checkbox" checked> Utiliser la classe indiquée dans le fichier (si présente)</label><label><input id="ic-create" type="checkbox" checked> Créer les élèves absents (avec matricule et nom)</label><button id="ic-analyze" class="btn" type="button">Analyser et prévisualiser</button><button id="ic-template" class="btn ghost" type="button">Télécharger le modèle Excel</button></div><div id="ic-feedback" role="status" aria-live="polite" style="padding:8px 0;color:var(--text-muted)">Choisissez un fichier puis cliquez sur Analyser.</div><div id="ic-preview" style="display:none"><div class="table-wrap" style="max-height:350px"><table id="ic-table"><thead></thead><tbody></tbody></table></div><div class="toolbar"><label><input id="ic-backup-before" type="checkbox"> Télécharger une sauvegarde avant importation (facultatif)</label><label><input id="ic-ack" type="checkbox"> J'ai vérifié la prévisualisation et autorise la mise à jour des données reconnues.</label><button id="ic-commit" class="btn" type="button" disabled>Importer les données</button><span id="ic-commit-help" style="font-size:12px;color:#64748b">Cochez la confirmation ci-dessus pour activer ce bouton.</span></div></div></details></section>
   <div class="grid-container">
 
     <div id="rosterPanel" class="card section">
@@ -1878,7 +1878,9 @@ function openAddStudentModal() {
 }
 
 // Fonction pour ajouter un nouvel élève
+let addingStudent = false;
 async function addNewStudent() {
+    if (addingStudent) return;
     const form = document.getElementById('form-add-student');
     const formData = new FormData(form);
     
@@ -1920,23 +1922,30 @@ async function addNewStudent() {
         }
     };
     
-    // Ajouter à la liste
-    allStudents.push(newStudent);
-    
-    // Sauvegarder
-    await studentsStore.save(getSelectedYear(), allStudents);
-    
-    // Fermer la modal
-    document.getElementById('modal-add-student').style.display = 'none';
-    
-    // Recharger l'affichage
-    renderRoster();
-    setStatus(`Élève ${newStudent.nom} ${newStudent.prenoms} ajouté`, 'success');
-    
-    // Ouvrir automatiquement la fiche de l'élève
-    setTimeout(() => {
-        openStudent(newStudent);
-    }, 500);
+    const year = getSelectedYear();
+    const button = document.getElementById('btn-submit-add');
+    addingStudent = true;
+    button.disabled = true;
+    try {
+        // Vérifier aussi la liste enregistrée, puis sauvegarder avant de modifier l’affichage.
+        const saved = await studentsStore.load(year);
+        if (saved.some(s => v8NormalizeMatricule(s.matricule) === matricule)) {
+            alert('Ce matricule existe déjà dans cette année scolaire.');
+            return;
+        }
+        await studentsStore.save(year, [...saved, newStudent]);
+        if (getSelectedYear() !== year) return;
+        await loadStudentsForYear();
+        document.getElementById('modal-add-student').style.display = 'none';
+        form.reset();
+        setStatus(`Élève ${newStudent.nom} ${newStudent.prenoms} ajouté`, 'success');
+        setTimeout(() => { if (getSelectedYear() === year) openStudent(newStudent); }, 500);
+    } catch (error) {
+        alert('Ajout impossible : ' + error.message);
+    } finally {
+        addingStudent = false;
+        button.disabled = false;
+    }
 }
 
 /* ====== AJOUT DES BOUTONS D'ACTION DANS L'AFFICHAGE ====== */
@@ -1946,6 +1955,13 @@ function renderRoster(list) {
     const sel = document.getElementById('class-filter');
     const filterKey = sel.value;
     let rows = list || allStudents;
+  const seenStudents = new Set();
+  rows = rows.filter(s => {
+    const key = v8NormalizeMatricule(s.matricule) || String(s.id || '');
+    if (!key) return true;
+    if (seenStudents.has(key)) return false;
+    seenStudents.add(key); return true;
+  });
     if(!list && filterKey !== '__ALL__') rows = allStudents.filter(s => normalizeClasseKey(s.classe) === filterKey);
 
     const lycamMap = new Map();
@@ -2999,6 +3015,13 @@ function renderRoster(list) {
   const sel = document.getElementById('class-filter');
   const filterKey = sel.value;
   let rows = list || allStudents;
+  const seenStudents = new Set();
+  rows = rows.filter(s => {
+    const key = v8NormalizeMatricule(s.matricule) || String(s.id || '');
+    if (!key) return true;
+    if (seenStudents.has(key)) return false;
+    seenStudents.add(key); return true;
+  });
   if(filterKey !== '__ALL__') rows = rows.filter(s => normalizeClasseKey(s.classe) === filterKey);
   const searchInput = document.getElementById('search');
   const q = (searchInput?.value || '').trim().toLocaleLowerCase('fr');
@@ -4899,8 +4922,17 @@ function submitLycamTest() {
         reason: "Test complet"
     };
 
+    const session = window.__lycamActiveClassSession;
+    if (session && session.year === getSelectedYear() && v8NormalizeMatricule(session.matricule) === v8NormalizeMatricule(result.matricule)) {
+        result.classSessionId = session.id;
+        result.classSessionYear = session.year;
+        result.reason = session.reason;
+    }
+    // Enregistrer le résultat complet, avec son rattachement collectif, avant de notifier les vues.
+    storage.save('LYCAMTestResults', [...allTestResults, result]);
     allTestResults.push(result);
-    storage.save('LYCAMTestResults', allTestResults);
+    window.__lycamActiveClassSession = null;
+    document.dispatchEvent(new CustomEvent('gestionnaire:lycam-saved', {detail:{year:getSelectedYear(), result}}));
     
     // Cacher le message d'erreur s'il existe
     const errorDiv = document.getElementById('lycam-error-message');
@@ -8462,13 +8494,13 @@ function lycamStats(){
  const tested=new Set(tests.filter(t=>ids.has(String(t.matricule||'').trim())).map(t=>String(t.matricule).trim()));
  return {total:students.length,tested:tested.size,remaining:Math.max(0,students.length-tested.size),passes:tests.filter(t=>ids.has(String(t.matricule||'').trim())).length};
 }
-function updateLycam(){
+function updateLycam(refreshCandidates = true){
  const panel=byId('lycamMainPanel');if(!panel)return;
  let summary=byId('v713-lycam-summary');if(!summary){summary=document.createElement('div');summary.id='v713-lycam-summary';const tabs=panel.querySelector('.tabs');(tabs||panel.firstElementChild).insertAdjacentElement('afterend',summary)}
  const k=lycamStats();summary.innerHTML=metric('Élèves',k.total)+metric('Élèves testés',k.tested)+metric('Non testés',k.remaining)+metric('Passations',k.passes);
  let note=byId('v713-lycam-notice');if(!note){note=document.createElement('div');note.id='v713-lycam-notice';summary.insertAdjacentElement('afterend',note)}
  note.textContent=k.total?'Sélectionnez un élève dans la liste pour lancer son test LYCAM, ou consultez les résultats des passations.':'Aucun élève pour l’année scolaire active. Importez d’abord une liste dans « Importation Excel ».';
- try{if(typeof populateClassFilter==='function')populateClassFilter();if(typeof switchLycamView==='function')switchLycamView('candidates')}catch(e){note.textContent='Impossible de charger la liste LYCAM : '+e.message;console.error(e)}
+ try{if(refreshCandidates){if(typeof populateClassFilter==='function')populateClassFilter();if(typeof switchLycamView==='function')switchLycamView('candidates')}}catch(e){note.textContent='Impossible de charger la liste LYCAM : '+e.message;console.error(e)}
 }
 function updateResults(){
  const panel=byId('classResultsPanel');if(!panel)return;
@@ -8480,6 +8512,8 @@ function updateResults(){
 }
 
 function init(){
+ document.addEventListener('gestionnaire:lycam-saved',()=>updateLycam(false));
+ document.addEventListener('gestionnaire:students-loaded',()=>updateLycam(false));
  const nav=byId('main-side-nav');
  nav?.addEventListener('click',e=>{const link=e.target.closest('.side-link');if(!link)return;const target=link.id==='dashboard-nav-toggle'?'dashboard':link.dataset.target;if(target==='lycamMainPanel')setTimeout(updateLycam,60);if(target==='classResultsPanel')setTimeout(()=>{try{if(typeof populateClassResultsFilters==='function')populateClassResultsFilters();else if(typeof renderClassResultsGrid==='function')renderClassResultsGrid()}catch(e){console.warn(e)}updateResults()},60);},false);
  ['results-class','results-period','results-mode','results-average-mode','school-year'].forEach(id=>byId(id)?.addEventListener('change',()=>setTimeout(()=>{updateResults();},100)));
@@ -8598,8 +8632,8 @@ function pdf(){
 }
 
 function init(){const panel=$('lycamMainPanel');if(!panel||$('lycam-class-workspace'))return;const root=document.createElement('section');root.id='lycam-class-workspace';root.innerHTML=`<div class="lc-actions" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Passation collective et dépouillement LYCAM</h3><button type="button" class="btn ghost" id="lc-individual"><i class="fa fa-user"></i> Passer le test individuel</button></div><p class="lc-note" id="lc-classes-info" aria-live="polite"></p><div class="lc-controls"><div class="lc-field"><label for="lc-class">Classe à tester</label><select class="select" id="lc-class"></select></div><div class="lc-field"><label for="lc-reason">Motif de la passation</label><input class="input" id="lc-reason" maxlength="250" placeholder="Ex. : Dépistage et accompagnement à l'orientation"></div><button type="button" class="btn" id="lc-create"><i class="fa fa-users"></i> Tester une classe</button></div><div class="lc-controls" style="margin-top:12px"><div class="lc-field"><label for="lc-sessions">Sessions enregistrées</label><select class="select" id="lc-sessions"></select></div></div><div class="lc-actions" id="lc-session-actions" style="display:none"><strong id="lc-session-title" style="margin:auto 10px auto 0"></strong><button type="button" class="btn" id="lc-finish">Clôturer la session</button><button type="button" class="btn ghost" id="lc-pdf"><i class="fa fa-file-pdf"></i> Ouvrir le rapport PDF</button></div><div id="lc-report"></div>`;panel.insertBefore(root,$('lycam-view-candidates'));$('lc-individual').addEventListener('click',()=>{window.__lycamActiveClassSession=null;current=null;render();if(typeof switchLycamView==='function')switchLycamView('candidates');$('lycam-view-candidates')?.scrollIntoView({behavior:'smooth',block:'start'});});$('lc-create').addEventListener('click',create);$('lc-sessions').addEventListener('change',e=>chooseSession(e.target.value));$('lc-finish').addEventListener('click',finish);$('lc-pdf').addEventListener('click',pdf);$('school-year')?.addEventListener('change',()=>{current=null;setTimeout(()=>{selectClass();render()},100)});document.addEventListener('gestionnaire:students-loaded',e=>{if(e.detail?.year!==getYear())return;current=null;selectClass();render()});$('main-side-nav')?.addEventListener('click',()=>setTimeout(()=>{selectClass();render()},150));selectClass();render();
-// Existing submitLycamTest() records a single result; tag that result after its original save.
-if(typeof window.submitLycamTest==='function'){const original=window.submitLycamTest;window.submitLycamTest=function(...args){const before=tests().length;const active=window.__lycamActiveClassSession;const ret=original.apply(this,args);if(active&&tests().length>before){const t=tests()[tests().length-1];if(norm(t.matricule)===norm(active.matricule)){t.classSessionId=active.id;t.classSessionYear=active.year;t.reason=active.reason;if(typeof storage!=='undefined')storage.save('LYCAMTestResults',tests());window.__lycamActiveClassSession=null;setTimeout(render,50)}}return ret}}
+// Le résultat est déjà rattaché à la session et enregistré par submitLycamTest.
+document.addEventListener('gestionnaire:lycam-saved',render);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
@@ -8966,7 +9000,7 @@ const year=()=>typeof getSelectedYear==='function'?getSelectedYear():$('school-y
 const key=()=> 'gestionnaire_coeffe_passations_v1_'+year();
 const load=()=>{try{return JSON.parse(localStorage.getItem(key())||'[]')}catch(e){return []}};
 const save=data=>localStorage.setItem(key(),JSON.stringify(data));
-const students=()=>Array.isArray(window.allStudents)?window.allStudents:(typeof allStudents!=='undefined'&&Array.isArray(allStudents)?allStudents:[]);
+const students=()=>typeof allStudents!=='undefined'&&Array.isArray(allStudents)?allStudents:[];
 const grade=s=>String(s.classe||'');
 let current=null,active='candidates';
 const level=score=>score>=15?'Méthodes très satisfaisantes':score>=10?'Méthodes plutôt correctes, à améliorer':score>=5?'Méthodes peu efficaces':'Changement important des méthodes nécessaire';
@@ -8984,7 +9018,8 @@ function render(){
  $('coeffe-results-body').innerHTML=data.length?data.map((r,i)=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.classe)+'</td><td>'+r.score+'/20</td><td>'+esc(level(r.score))+'</td><td>'+esc(new Date(r.at).toLocaleDateString('fr-FR'))+'</td><td><button type="button" class="btn ghost" data-coeffe-view="'+esc(r.id)+'">Voir</button></td></tr>').join(''):'<tr><td colspan="6">Aucune passation enregistrée pour cette année scolaire.</td></tr>';
  return;
  }
- const cls=$('coeffe-class'),selected=cls.value,classes=[...new Set(students().map(grade).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr',{numeric:true}));
+ const cls=$('coeffe-class'),classes=[...new Set(students().map(grade).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr',{numeric:true}));
+ const selected=classes.includes(cls.value)?cls.value:'';
  cls.innerHTML='<option value="">Toutes les classes</option>'+classes.map(c=>'<option value="'+esc(c)+'"'+(selected===c?' selected':'')+'>'+esc(c)+'</option>').join('');
  const search=$('coeffe-search').value.trim().toLocaleLowerCase('fr');
  const data=load();
@@ -9032,7 +9067,8 @@ function init(){
  $('coeffe-close').addEventListener('click',closeDialog);
  $('coeffe-overlay').addEventListener('click',e=>{if(e.target===$('coeffe-overlay'))closeDialog()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('coeffe-overlay').hidden)closeDialog()});
- document.querySelector('[data-target="coeffeMainPanel"]')?.addEventListener('click',()=>setTimeout(render,0));
+ document.addEventListener('gestionnaire:students-loaded',render);
+ document.querySelectorAll('[data-target="coeffeMainPanel"],[data-home-target="coeffeMainPanel"]').forEach(b=>b.addEventListener('click',()=>setTimeout(render,0)));
  $('school-year')?.addEventListener('change',()=>setTimeout(render,0));
  render();
 }
